@@ -19,7 +19,7 @@
 set -e
 
 # Configuration - EDIT THESE VALUES
-GIT_REPO="https://github.com/YOUR_USERNAME/portfolio-app.git"
+GIT_REPO="https://github.com/mmhfarooque/portfolio-app.git"
 GIT_BRANCH="main"
 APP_NAME="portfolio-app"
 
