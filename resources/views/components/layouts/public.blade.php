@@ -126,7 +126,7 @@
                     <!-- Quick Links -->
                     <div>
                         <h4 class="font-medium mb-4 text-theme-primary">Quick Links</h4>
-                        <ul class="space-y-2 text-theme-secondary">
+                        <ul class="flex gap-6 text-theme-secondary">
                             <li><a href="{{ route('home') }}" class="hover:text-theme-accent transition">Home</a></li>
                             <li><a href="{{ route('photos.index') }}" class="hover:text-theme-accent transition">Gallery</a></li>
                             <li><a href="{{ route('contact') }}" class="hover:text-theme-accent transition">Contact</a></li>
