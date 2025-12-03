@@ -106,7 +106,10 @@
                 <!-- Branding Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Branding</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Branding</h3>
+                            <x-section-save-button />
+                        </div>
 
                         <div class="space-y-4">
                             @foreach ($settings->get('branding', collect()) as $setting)
@@ -138,7 +141,10 @@
                 <!-- Social Media Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Social Media & Links</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Social Media & Links</h3>
+                            <x-section-save-button />
+                        </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach ($settings->get('social', collect()) as $setting)
@@ -156,7 +162,10 @@
                 <!-- Watermark Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Watermark</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Watermark</h3>
+                            <x-section-save-button />
+                        </div>
 
                         <div class="space-y-4">
                             @foreach ($settings->get('watermark', collect()) as $setting)
@@ -197,7 +206,10 @@
                 <!-- Contact Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Contact Information</h3>
+                            <x-section-save-button />
+                        </div>
 
                         <div class="space-y-4">
                             @foreach ($settings->get('contact', collect()) as $setting)
@@ -489,7 +501,10 @@
                 <!-- Image Optimization Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Image Optimization</h3>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-medium text-gray-900">Image Optimization</h3>
+                            <x-section-save-button />
+                        </div>
                         <p class="text-sm text-gray-500 mb-4">All images are automatically converted to WebP format for optimal file size and quality.</p>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

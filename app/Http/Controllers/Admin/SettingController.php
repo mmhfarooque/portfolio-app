@@ -130,6 +130,14 @@ class SettingController extends Controller
 
         LoggingService::settingsUpdated(array_keys($request->except(['_token', '_method'])));
 
+        // Return JSON for AJAX requests
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Settings updated successfully.'
+            ]);
+        }
+
         return redirect()
             ->route('admin.settings.index')
             ->with('success', 'Settings updated successfully.');
