@@ -17,8 +17,8 @@ class DashboardController extends Controller
     {
         // Photo statistics
         $totalPhotos = Photo::count();
-        $publishedPhotos = Photo::where('is_published', true)->count();
-        $draftPhotos = $totalPhotos - $publishedPhotos;
+        $publishedPhotos = Photo::published()->count();
+        $draftPhotos = Photo::draft()->count();
 
         // Photos by category
         $photosByCategory = Category::withCount('photos')
