@@ -10,8 +10,10 @@ class Photo extends Model
 {
     protected $fillable = [
         'title',
+        'seo_title',
         'slug',
         'description',
+        'meta_description',
         'story',
         'original_path',
         'display_path',

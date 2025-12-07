@@ -719,6 +719,121 @@
                     </div>
                 </div>
 
+                <!-- SEO Settings -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                    SEO Settings
+                                </h3>
+                                <p class="text-sm text-gray-500 mt-1">Optimize your site for search engines</p>
+                            </div>
+                            <x-section-save-button />
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="seo_site_title" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Site Title
+                                    <span class="text-gray-400 font-normal">(appears in browser tabs and search results)</span>
+                                </label>
+                                <input type="text" name="seo_site_title" id="seo_site_title" value="{{ App\Models\Setting::get('seo_site_title', '') }}" maxlength="60" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="{{ App\Models\Setting::get('site_name', 'Photography Portfolio') }}">
+                                <p class="text-xs text-gray-500 mt-1">Leave blank to use Site Name. Max 60 characters recommended.</p>
+                            </div>
+
+                            <div>
+                                <label for="seo_site_description" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Site Description
+                                    <span class="text-gray-400 font-normal">(meta description for homepage)</span>
+                                </label>
+                                <textarea name="seo_site_description" id="seo_site_description" rows="2" maxlength="160" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Enter a compelling description of your photography portfolio...">{{ App\Models\Setting::get('seo_site_description', '') }}</textarea>
+                                <p class="text-xs text-gray-500 mt-1">Appears in search results. Max 160 characters recommended.</p>
+                            </div>
+
+                            <div>
+                                <label for="seo_site_keywords" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Keywords
+                                    <span class="text-gray-400 font-normal">(comma separated)</span>
+                                </label>
+                                <input type="text" name="seo_site_keywords" id="seo_site_keywords" value="{{ App\Models\Setting::get('seo_site_keywords', '') }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="photography, landscape, nature, portfolio">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="seo_twitter_handle" class="block text-sm font-medium text-gray-700 mb-1">Twitter/X Handle</label>
+                                    <input type="text" name="seo_twitter_handle" id="seo_twitter_handle" value="{{ App\Models\Setting::get('seo_twitter_handle', '') }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="@yourusername">
+                                    <p class="text-xs text-gray-500 mt-1">For Twitter Card attribution</p>
+                                </div>
+
+                                <div>
+                                    <x-media-picker
+                                        name="seo_og_image"
+                                        label="Default Social Image"
+                                        :current-image="App\Models\Setting::get('seo_og_image') ? asset('storage/' . App\Models\Setting::get('seo_og_image')) : null"
+                                        :value="App\Models\Setting::get('seo_og_image')"
+                                        preview-class="h-20 object-cover rounded"
+                                    />
+                                    <p class="text-xs text-gray-500 mt-1">Recommended: 1200x630px. Used when sharing on social media.</p>
+                                </div>
+                            </div>
+
+                            <!-- Verification Codes -->
+                            <div class="border-t pt-4 mt-4">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Search Engine Verification</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="seo_google_verification" class="block text-sm font-medium text-gray-700 mb-1">Google Verification Code</label>
+                                        <input type="text" name="seo_google_verification" id="seo_google_verification" value="{{ App\Models\Setting::get('seo_google_verification', '') }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="google-site-verification code">
+                                    </div>
+                                    <div>
+                                        <label for="seo_bing_verification" class="block text-sm font-medium text-gray-700 mb-1">Bing Verification Code</label>
+                                        <input type="text" name="seo_bing_verification" id="seo_bing_verification" value="{{ App\Models\Setting::get('seo_bing_verification', '') }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="msvalidate.01 code">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Analytics -->
+                            <div class="border-t pt-4 mt-4">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Analytics</h4>
+                                <div>
+                                    <label for="seo_google_analytics" class="block text-sm font-medium text-gray-700 mb-1">Google Analytics ID</label>
+                                    <input type="text" name="seo_google_analytics" id="seo_google_analytics" value="{{ App\Models\Setting::get('seo_google_analytics', '') }}" class="w-full md:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="G-XXXXXXXXXX">
+                                    <p class="text-xs text-gray-500 mt-1">Your Google Analytics 4 Measurement ID</p>
+                                </div>
+                            </div>
+
+                            <!-- Sitemap Info -->
+                            <div class="border-t pt-4 mt-4">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Sitemap</h4>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-2">Your sitemaps are automatically generated:</p>
+                                    <ul class="text-sm space-y-1">
+                                        <li>
+                                            <a href="{{ route('sitemap') }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                                /sitemap.xml
+                                            </a>
+                                            <span class="text-gray-500">- Main sitemap with all pages</span>
+                                        </li>
+                                        <li>
+                                            <a href="{{ route('sitemap.images') }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                                /sitemap-images.xml
+                                            </a>
+                                            <span class="text-gray-500">- Image-specific sitemap</span>
+                                        </li>
+                                    </ul>
+                                    <p class="text-xs text-gray-500 mt-3">Submit these URLs to Google Search Console and Bing Webmaster Tools for better indexing.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
                         Save Settings

@@ -252,6 +252,34 @@
                                 @endif
                             </div>
 
+                            <!-- SEO Section -->
+                            <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                    SEO Settings
+                                </h3>
+
+                                <div class="mb-4">
+                                    <label for="seo_title" class="block text-sm font-medium text-gray-700 mb-2">
+                                        SEO Title
+                                        <span class="text-gray-400 font-normal">(optional - defaults to photo title)</span>
+                                    </label>
+                                    <input type="text" name="seo_title" id="seo_title" value="{{ old('seo_title', $photo->seo_title) }}" maxlength="70" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Custom title for search engines (max 70 chars)">
+                                    <p class="mt-1 text-xs text-gray-500">Leave blank to use the photo title</p>
+                                </div>
+
+                                <div class="mb-0">
+                                    <label for="meta_description" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Meta Description
+                                        <span class="text-gray-400 font-normal">(optional - defaults to description)</span>
+                                    </label>
+                                    <textarea name="meta_description" id="meta_description" rows="2" maxlength="160" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Custom description for search results (max 160 chars)">{{ old('meta_description', $photo->meta_description) }}</textarea>
+                                    <p class="mt-1 text-xs text-gray-500">Leave blank to use the short description</p>
+                                </div>
+                            </div>
+
                             <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
