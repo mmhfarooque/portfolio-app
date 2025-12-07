@@ -122,6 +122,13 @@ class PhotoController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[a-z0-9-]+$/',
+                'unique:photos,slug,' . $photo->id,
+            ],
             'description' => 'nullable|string',
             'story' => 'nullable|string',
             'location_name' => 'nullable|string|max:255',
@@ -131,16 +138,14 @@ class PhotoController extends Controller
             'is_featured' => 'boolean',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
+        ], [
+            'slug.regex' => 'The slug may only contain lowercase letters, numbers, and hyphens.',
+            'slug.unique' => 'This URL slug is already taken. Please choose a different one.',
         ]);
-
-        // Update slug if title changed
-        if ($photo->title !== $validated['title']) {
-            $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(6);
-        }
 
         $photo->update([
             'title' => $validated['title'],
-            'slug' => $validated['slug'] ?? $photo->slug,
+            'slug' => $validated['slug'],
             'description' => $validated['description'],
             'story' => $validated['story'],
             'location_name' => $validated['location_name'],
@@ -383,6 +388,145 @@ class PhotoController extends Controller
     }
 
     /**
+     * Suggest AI-generated content for the photo (slug, description, or story).
+     */
+    public function suggestSlug(Request $request, Photo $photo)
+    {
+        $this->authorize('update', $photo);
+
+        $type = $request->get('type', 'slug');
+
+        // Build context from photo data
+        $context = [];
+        if ($photo->title) {
+            $context[] = "Title: {$photo->title}";
+        }
+        if ($photo->description && $type !== 'description') {
+            $context[] = "Description: {$photo->description}";
+        }
+        if ($photo->location_name) {
+            $context[] = "Location: {$photo->location_name}";
+        }
+        if ($photo->category) {
+            $context[] = "Category: {$photo->category->name}";
+        }
+        if ($photo->tags->count() > 0) {
+            $context[] = "Tags: " . $photo->tags->pluck('name')->join(', ');
+        }
+        if ($photo->exif_data) {
+            $exif = $photo->formatted_exif;
+            if ($exif['camera']) $context[] = "Camera: {$exif['camera']}";
+            if ($exif['date_taken']) $context[] = "Date taken: {$exif['date_taken']}";
+        }
+
+        $aiService = app(\App\Services\AIImageService::class);
+
+        // Handle different types
+        switch ($type) {
+            case 'description':
+                return $this->generateDescription($aiService, $photo, $context);
+            case 'story':
+                return $this->generateStory($aiService, $photo, $context);
+            default:
+                return $this->generateSlug($aiService, $photo, $context);
+        }
+    }
+
+    /**
+     * Generate AI slug suggestion.
+     */
+    protected function generateSlug($aiService, Photo $photo, array $context)
+    {
+        if ($aiService->isConfigured()) {
+            try {
+                $prompt = "Based on this photo information, suggest a short, SEO-friendly URL slug (lowercase, hyphens only, no special characters, 2-5 words max). Just return the slug, nothing else.\n\n" . implode("\n", $context);
+
+                $suggestion = $aiService->generateText($prompt);
+                if ($suggestion) {
+                    $slug = Str::slug(trim($suggestion));
+                    $slug = preg_replace('/[^a-z0-9-]/', '', $slug);
+                    $slug = substr($slug, 0, 100);
+
+                    $baseSlug = $slug;
+                    $counter = 1;
+                    while (Photo::where('slug', $slug)->where('id', '!=', $photo->id)->exists()) {
+                        $slug = $baseSlug . '-' . $counter;
+                        $counter++;
+                    }
+
+                    return response()->json(['slug' => $slug]);
+                }
+            } catch (\Exception $e) {
+                // Fall back to title-based slug
+            }
+        }
+
+        // Fallback: generate from title + location
+        $parts = [];
+        if ($photo->title) {
+            $parts[] = $photo->title;
+        }
+        if ($photo->location_name && !str_contains(strtolower($photo->title ?? ''), strtolower(explode(',', $photo->location_name)[0]))) {
+            $parts[] = explode(',', $photo->location_name)[0];
+        }
+
+        $baseSlug = Str::slug(implode(' ', $parts));
+        $slug = $baseSlug;
+        $counter = 1;
+        while (Photo::where('slug', $slug)->where('id', '!=', $photo->id)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return response()->json(['slug' => $slug]);
+    }
+
+    /**
+     * Generate AI description suggestion.
+     */
+    protected function generateDescription($aiService, Photo $photo, array $context)
+    {
+        if ($aiService->isConfigured()) {
+            try {
+                $prompt = "Based on this photo information, write a brief, engaging description (1-2 sentences, under 200 characters) suitable for a photography portfolio. Be descriptive but concise. Just return the description text, nothing else.\n\n" . implode("\n", $context);
+
+                $description = $aiService->generateText($prompt);
+                if ($description) {
+                    $description = trim($description);
+                    $description = trim($description, '"\'');
+                    return response()->json(['description' => $description]);
+                }
+            } catch (\Exception $e) {
+                // Return empty
+            }
+        }
+
+        return response()->json(['description' => '']);
+    }
+
+    /**
+     * Generate AI story suggestion.
+     */
+    protected function generateStory($aiService, Photo $photo, array $context)
+    {
+        if ($aiService->isConfigured()) {
+            try {
+                $prompt = "Based on this photo information, write a thoughtful, engaging story or narrative (2-4 paragraphs) from the photographer's perspective. Include details about the moment, the atmosphere, what made it special, and any technical or creative choices. Write in first person. Make it personal and evocative.\n\n" . implode("\n", $context);
+
+                $story = $aiService->generateText($prompt);
+                if ($story) {
+                    $story = trim($story);
+                    return response()->json(['story' => $story]);
+                }
+            } catch (\Exception $e) {
+                // Return empty
+            }
+        }
+
+        return response()->json(['story' => '']);
+    }
+
+    /**
      * Save individual photo from bulk edit (AJAX).
      */
     public function quickUpdate(Request $request, Photo $photo)
@@ -401,11 +545,6 @@ class PhotoController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
         ]);
-
-        // Update slug if title changed
-        if (isset($validated['title']) && $photo->title !== $validated['title']) {
-            $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(6);
-        }
 
         $photo->update($validated);
 

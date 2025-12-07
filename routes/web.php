@@ -57,6 +57,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('photos/bulk-update', [AdminPhotoController::class, 'bulkUpdate'])->name('photos.bulk-update');
     Route::post('photos/bulk-tags', [AdminPhotoController::class, 'bulkTags'])->name('photos.bulk-tags');
     Route::post('photos/reoptimize', [AdminPhotoController::class, 'reoptimize'])->name('photos.reoptimize');
+    Route::get('photos/{photo}/suggest-slug', [AdminPhotoController::class, 'suggestSlug'])->name('photos.suggest-slug');
 
     // Categories
     Route::get('categories', [AdminCategoryController::class, 'index'])->name('categories.index');

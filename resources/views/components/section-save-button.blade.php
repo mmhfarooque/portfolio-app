@@ -130,6 +130,7 @@
                     });
 
                     if (response.ok) {
+                        const data = await response.json();
                         this.saved = true;
                         this.hasChanges = false;
 
@@ -142,10 +143,22 @@
                                 this.initialValues[key] = input.checked;
                             } else if (input.type === 'file') {
                                 this.initialValues[key] = '';
+                                // Clear file input after successful upload
+                                input.value = '';
                             } else {
                                 this.initialValues[key] = input.value;
                             }
                         });
+
+                        // Update media picker previews with uploaded file URLs
+                        if (data.uploaded_files) {
+                            Object.entries(data.uploaded_files).forEach(([fieldName, url]) => {
+                                // Dispatch custom event for media picker to update
+                                window.dispatchEvent(new CustomEvent('media-uploaded', {
+                                    detail: { fieldName, url }
+                                }));
+                            });
+                        }
 
                         setTimeout(() => {
                             this.saved = false;

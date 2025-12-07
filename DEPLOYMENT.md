@@ -28,12 +28,51 @@ This guide covers deploying the Portfolio App to various hosting environments.
   - Tokenizer
   - XML
   - GD or Imagick (for image processing)
+  - **intl** (for Laravel Number helpers like `Number::fileSize()`)
 
 ### Recommended
 
 - Composer 2.x
 - Git
 - SSH access (for deployment script)
+
+### Installing PHP intl Extension
+
+The `intl` extension is required for Laravel's `Number::fileSize()`, `Number::currency()`, and other formatting helpers.
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install php8.2-intl
+sudo systemctl restart php8.2-fpm
+# or for Apache:
+sudo systemctl restart apache2
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install php-intl
+sudo systemctl restart php-fpm
+```
+
+**Hestia Control Panel:**
+```bash
+# Check which PHP version is active
+php -v
+
+# Install intl for that version
+sudo apt install php8.2-intl
+
+# Restart PHP-FPM
+sudo systemctl restart php8.2-fpm
+```
+
+**Verify installation:**
+```bash
+php -m | grep intl
+# Should output: intl
+```
+
+> **Note:** If `intl` cannot be installed, the app will still work but some Number helper methods won't be available. Use manual formatting instead: `number_format($bytes / 1024 / 1024, 2) . ' MB'`
 
 ---
 
@@ -683,6 +722,43 @@ chmod +x /home/mfaruk/deploy.sh
 **Deploy with single command:**
 ```bash
 /home/mfaruk/deploy.sh
+```
+
+### Installing PHP Extensions on Hestia (mfaruk.com)
+
+The server uses PHP 8.4. Some Laravel features require additional extensions:
+
+**Required extensions for full Laravel 12 functionality:**
+```bash
+# SSH to server
+ssh root@63.142.240.72
+
+# Check current PHP version
+php -v
+# Output: PHP 8.4.x
+
+# Check installed extensions
+php -m
+
+# Install intl extension (required for Number::fileSize(), Number::currency(), etc.)
+sudo apt update
+sudo apt install php8.4-intl
+
+# Restart PHP-FPM for the site
+sudo systemctl restart php8.4-fpm
+
+# Verify intl is installed
+php -m | grep intl
+# Should output: intl
+```
+
+**If intl extension cannot be installed**, use manual formatting in Blade templates:
+```php
+// Instead of:
+{{ Number::fileSize($photo->file_size) }}
+
+// Use:
+{{ number_format($photo->file_size / 1024 / 1024, 2) }} MB
 ```
 
 ### SSH Access via Python (when sshpass not available)
