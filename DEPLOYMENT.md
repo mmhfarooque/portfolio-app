@@ -347,3 +347,305 @@ Before going live:
 - [ ] Set secure session settings
 - [ ] Review file permissions
 - [ ] Remove any test/development data
+
+---
+
+## Hestia Control Panel Deployment (mfaruk.com)
+
+This section documents the specific setup for deploying to mfaruk.com using Hestia Control Panel.
+
+### Server Details
+
+- **Server IP**: 63.142.240.72
+- **Control Panel**: Hestia CP
+- **Web Server**: Apache (with nginx proxy)
+- **PHP Version**: 8.4
+- **Database**: MySQL
+
+### Directory Structure on Hestia
+
+Unlike standard cPanel, Hestia uses `public_html` AS the Laravel app root (not split installation):
+
+```
+/home/mfaruk/web/mfaruk.com/
+├── private/
+│   └── portfolio-app/          ← Backup/reference copy
+│       └── .env                ← Environment backup
+│
+├── public_html/                ← THIS IS THE LIVE LARAVEL APP
+│   ├── .git/                   ← Git repository
+│   ├── app/
+│   ├── bootstrap/
+│   ├── config/
+│   ├── database/
+│   ├── resources/
+│   ├── routes/
+│   ├── storage/
+│   ├── vendor/
+│   ├── .env                    ← Production environment
+│   ├── index.php               ← Modified entry point (in root, not public/)
+│   ├── .htaccess               ← Apache rewrite rules
+│   └── public/                 ← Static assets
+│       ├── build/              ← Vite compiled assets
+│       └── storage → symlink
+```
+
+### Key Differences from Standard Laravel
+
+1. **index.php in root**: The `index.php` file is in `public_html/` root, not in `public/`
+2. **.htaccess in root**: Rewrites are handled from root
+3. **Entire app in public_html**: Unlike cPanel split, the whole Laravel app is web-accessible (protected by .htaccess)
+
+### Modified index.php
+
+The `index.php` must be modified to work from root instead of `public/`:
+
+```php
+<?php
+
+use Illuminate\Http\Request;
+
+define('LARAVEL_START', microtime(true));
+
+// When running from root instead of public/
+if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+require __DIR__.'/vendor/autoload.php';
+
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
+
+$kernel->terminate($request, $response);
+```
+
+### Modified .htaccess
+
+Root `.htaccess` to handle Laravel routing:
+
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Serve static files from public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+    RewriteRule ^(.*)$ /public/$1 [L]
+
+    # Redirect everything else to index.php
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Block access to sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "(artisan|composer\.(json|lock)|package.*\.json|webpack\..*|vite\..*|phpunit\.xml|\.env.*)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+```
+
+### Initial Deployment Steps
+
+```bash
+# SSH to server
+ssh root@63.142.240.72
+
+# Navigate to public_html
+cd /home/mfaruk/web/mfaruk.com/public_html
+
+# Clone repository (first time)
+git clone https://github.com/mmhfarooque/photography-portfolio.git .
+
+# Or if already exists, pull latest
+git fetch origin
+git reset --hard origin/main
+
+# Install dependencies
+composer install --no-dev --optimize-autoloader
+
+# Set up environment (copy from backup or create new)
+cp /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env .env
+
+# Set permissions
+chown -R mfaruk:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
+# Create storage symlink (inside public/)
+cd public
+ln -sf ../storage/app/public storage
+
+# Run migrations
+cd ..
+php artisan migrate --force
+
+# Clear all caches
+php artisan optimize:clear
+php artisan view:clear
+```
+
+### Updating Deployment
+
+When pushing new changes from local:
+
+```bash
+# On LOCAL machine
+git add .
+git commit -m "Your changes"
+git push origin main
+
+# On SERVER (SSH)
+cd /home/mfaruk/web/mfaruk.com/public_html
+
+# Pull latest
+git fetch origin
+git reset --hard origin/main
+
+# Clear ALL caches (important!)
+php artisan optimize:clear
+php artisan view:clear
+rm -rf storage/framework/views/*.php
+
+# If composer.json changed
+composer install --no-dev --optimize-autoloader
+
+# If migrations needed
+php artisan migrate --force
+
+# Fix permissions after pull
+chown -R mfaruk:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+```
+
+### Common Issues on Hestia
+
+#### Old Views Still Showing After Deployment
+
+This is the most common issue. Laravel caches compiled Blade views.
+
+**Solution:**
+```bash
+php artisan optimize:clear
+php artisan view:clear
+rm -rf storage/framework/views/*.php
+```
+
+If still showing old content:
+1. Check you're updating the correct directory (`public_html`, NOT `private/portfolio-app`)
+2. Clear Cloudflare cache if using Cloudflare
+3. Hard refresh browser (Ctrl+Shift+R)
+
+#### Git "Dubious Ownership" Error
+
+```bash
+git config --global --add safe.directory /home/mfaruk/web/mfaruk.com/public_html
+```
+
+#### Wrong Directory Updated
+
+The site runs from `public_html`, NOT from `private/portfolio-app`. Always check:
+
+```bash
+# Verify you're in the right directory
+pwd
+# Should show: /home/mfaruk/web/mfaruk.com/public_html
+
+# Verify git commit
+git log --oneline -1
+# Should match your latest commit
+```
+
+#### .env Gets Overwritten by Git
+
+Keep a backup of .env:
+```bash
+cp .env /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env
+```
+
+After git reset, restore it:
+```bash
+cp /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env .env
+```
+
+### Quick Deploy Script
+
+Create `/home/mfaruk/deploy.sh`:
+
+```bash
+#!/bin/bash
+set -e
+
+cd /home/mfaruk/web/mfaruk.com/public_html
+
+echo "Backing up .env..."
+cp .env /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env
+
+echo "Pulling latest code..."
+git fetch origin
+git reset --hard origin/main
+
+echo "Restoring .env..."
+cp /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env .env
+
+echo "Installing dependencies..."
+composer install --no-dev --optimize-autoloader --quiet
+
+echo "Running migrations..."
+php artisan migrate --force
+
+echo "Clearing caches..."
+php artisan optimize:clear
+php artisan view:clear
+rm -rf storage/framework/views/*.php
+
+echo "Fixing permissions..."
+chown -R mfaruk:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
+echo "Deployment complete!"
+git log --oneline -1
+```
+
+Make it executable:
+```bash
+chmod +x /home/mfaruk/deploy.sh
+```
+
+Then deploy with:
+```bash
+/home/mfaruk/deploy.sh
+```
+
+### SSH Access via Python (when sshpass not available)
+
+If your local machine doesn't have sshpass, use Python:
+
+```python
+import paramiko
+
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.connect('63.142.240.72', username='root', password='YOUR_PASSWORD')
+
+stdin, stdout, stderr = ssh.exec_command('cd /home/mfaruk/web/mfaruk.com/public_html && git pull')
+print(stdout.read().decode())
+print(stderr.read().decode())
+
+ssh.close()
+```
