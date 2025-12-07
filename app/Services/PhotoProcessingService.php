@@ -256,12 +256,21 @@ class PhotoProcessingService
 
         // Get watermark settings from database or use defaults
         $watermarkEnabled = Setting::get('watermark_enabled', '1') === '1';
+        $watermarkType = Setting::get('watermark_type', 'text');
         $watermarkText = Setting::get('watermark_text', $this->watermarkSettings['text']);
+        $watermarkImage = Setting::get('watermark_image', '');
         $watermarkPosition = Setting::get('watermark_position', 'bottom-right');
         $watermarkOpacity = (int) Setting::get('watermark_opacity', '40');
         $watermarkSize = (int) Setting::get('watermark_size', '24');
+        $watermarkImageSize = (int) Setting::get('watermark_image_size', '15');
 
-        if (!$watermarkEnabled || empty($watermarkText)) {
+        // Check if watermark should be applied
+        $shouldApplyWatermark = $watermarkEnabled && (
+            ($watermarkType === 'text' && !empty($watermarkText)) ||
+            ($watermarkType === 'image' && !empty($watermarkImage))
+        );
+
+        if (!$shouldApplyWatermark) {
             // Just save without watermark (WebP)
             $storagePath = storage_path('app/public/' . $directory);
             if (!is_dir($storagePath)) {
@@ -285,23 +294,141 @@ class PhotoProcessingService
         // Calculate opacity for rgba (0-100 to 0-1)
         $opacity = $watermarkOpacity / 100;
 
-        // Add text watermark
-        $watermarked->text(
-            $watermarkText,
-            $x,
-            $y,
-            function ($font) use ($watermarkSize, $opacity, $align, $valign) {
-                // Use built-in GD font or custom TTF if available
-                $customFont = resource_path('fonts/arial.ttf');
-                if (file_exists($customFont)) {
-                    $font->filename($customFont);
-                    $font->size($watermarkSize);
+        if ($watermarkType === 'image' && !empty($watermarkImage)) {
+            // Apply image watermark
+            $watermarkPath = storage_path('app/public/' . $watermarkImage);
+            if (file_exists($watermarkPath)) {
+                $watermarkImg = Image::read($watermarkPath);
+
+                // Calculate watermark size as percentage of main image width
+                $targetWidth = (int) ($watermarked->width() * ($watermarkImageSize / 100));
+                if ($watermarkImg->width() > $targetWidth) {
+                    $watermarkImg->scale(width: $targetWidth);
                 }
-                $font->color("rgba(255, 255, 255, {$opacity})");
-                $font->align($align);
-                $font->valign($valign);
+
+                // Apply opacity
+                $watermarkImg->brightness((int) (($opacity - 1) * 100));
+
+                // Place watermark
+                $watermarked->place($watermarkImg, $align . '-' . $valign);
             }
-        );
+        } else {
+            // Apply text watermark with dual fonts
+            // © symbol in regular font, name in handwriting font
+            $regularFont = resource_path('fonts/arial.ttf');
+            $scriptFont = resource_path('fonts/GreatVibes-Regular.ttf');
+
+            // Parse the watermark text - split © from the rest
+            $copyrightSymbol = '©';
+            $nameText = $watermarkText;
+
+            if (str_starts_with($watermarkText, '©')) {
+                $nameText = trim(substr($watermarkText, strlen('©')));
+            } elseif (str_starts_with($watermarkText, '(c)')) {
+                $nameText = trim(substr($watermarkText, 3));
+            }
+
+            // Calculate positions based on alignment
+            // Script font is typically larger, so adjust size
+            $scriptSize = (int) ($watermarkSize * 1.3);
+
+            // Estimate text widths for positioning
+            $copyrightWidth = $watermarkSize * 0.8; // Approximate width of ©
+            $spacing = $watermarkSize * 0.3; // Space between © and name
+
+            if (file_exists($regularFont) && file_exists($scriptFont)) {
+                // Render © symbol in regular font
+                $copyrightX = $x;
+                if ($align === 'right') {
+                    // For right alignment, we need to calculate offset
+                    // The script text will be drawn first, then ©
+                    $watermarked->text(
+                        $nameText,
+                        $x,
+                        $y,
+                        function ($font) use ($scriptFont, $scriptSize, $opacity, $align, $valign) {
+                            $font->filename($scriptFont);
+                            $font->size($scriptSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align($align);
+                            $font->valign($valign);
+                        }
+                    );
+
+                    // Draw © to the left of the name
+                    $watermarked->text(
+                        $copyrightSymbol . ' ',
+                        $x - ($this->estimateTextWidth($nameText, $scriptSize) + $spacing),
+                        $y + ($scriptSize * 0.15), // Slight vertical adjustment
+                        function ($font) use ($regularFont, $watermarkSize, $opacity, $valign) {
+                            $font->filename($regularFont);
+                            $font->size($watermarkSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align('right');
+                            $font->valign($valign);
+                        }
+                    );
+                } elseif ($align === 'center') {
+                    // For center, draw combined but with different visual approach
+                    // Draw the full text with script font for artistic look
+                    $watermarked->text(
+                        $copyrightSymbol . ' ' . $nameText,
+                        $x,
+                        $y,
+                        function ($font) use ($scriptFont, $scriptSize, $opacity, $align, $valign) {
+                            $font->filename($scriptFont);
+                            $font->size($scriptSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align($align);
+                            $font->valign($valign);
+                        }
+                    );
+                } else {
+                    // Left alignment - © first, then name
+                    $watermarked->text(
+                        $copyrightSymbol,
+                        $x,
+                        $y + ($scriptSize * 0.15),
+                        function ($font) use ($regularFont, $watermarkSize, $opacity, $valign) {
+                            $font->filename($regularFont);
+                            $font->size($watermarkSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align('left');
+                            $font->valign($valign);
+                        }
+                    );
+
+                    $watermarked->text(
+                        $nameText,
+                        $x + $copyrightWidth + $spacing,
+                        $y,
+                        function ($font) use ($scriptFont, $scriptSize, $opacity, $valign) {
+                            $font->filename($scriptFont);
+                            $font->size($scriptSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align('left');
+                            $font->valign($valign);
+                        }
+                    );
+                }
+            } else {
+                // Fallback to single font if fonts not available
+                $watermarked->text(
+                    $watermarkText,
+                    $x,
+                    $y,
+                    function ($font) use ($regularFont, $watermarkSize, $opacity, $align, $valign) {
+                        if (file_exists($regularFont)) {
+                            $font->filename($regularFont);
+                        }
+                        $font->size($watermarkSize);
+                        $font->color("rgba(255, 255, 255, {$opacity})");
+                        $font->align($align);
+                        $font->valign($valign);
+                    }
+                );
+            }
+        }
 
         // Ensure directory exists
         $storagePath = storage_path('app/public/' . $directory);
@@ -319,16 +446,38 @@ class PhotoProcessingService
 
     /**
      * Calculate watermark position coordinates.
+     * Uses 5% padding from edges for consistent positioning across image sizes.
      */
     protected function getWatermarkPosition(int $width, int $height, string $position, int $padding): array
     {
+        // Use 5% of the dimension as padding for consistent look
+        $paddingX = (int) ($width * 0.05);
+        $paddingY = (int) ($height * 0.05);
+
         return match ($position) {
-            'top-left' => [$padding, $padding, 'left', 'top'],
-            'top-right' => [$width - $padding, $padding, 'right', 'top'],
-            'bottom-left' => [$padding, $height - $padding, 'left', 'bottom'],
+            'top-left' => [$paddingX, $paddingY, 'left', 'top'],
+            'top-center' => [$width / 2, $paddingY, 'center', 'top'],
+            'top-right' => [$width - $paddingX, $paddingY, 'right', 'top'],
+            'middle-left' => [$paddingX, $height / 2, 'left', 'middle'],
             'center' => [$width / 2, $height / 2, 'center', 'middle'],
-            default => [$width - $padding, $height - $padding, 'right', 'bottom'], // bottom-right
+            'middle-right' => [$width - $paddingX, $height / 2, 'right', 'middle'],
+            'bottom-left' => [$paddingX, $height - $paddingY, 'left', 'bottom'],
+            'bottom-center' => [$width / 2, $height - $paddingY, 'center', 'bottom'],
+            'bottom-right' => [$width - $paddingX, $height - $paddingY, 'right', 'bottom'],
+            default => [$width - $paddingX, $height - $paddingY, 'right', 'bottom'],
         };
+    }
+
+    /**
+     * Estimate text width based on character count and font size.
+     * This is an approximation for script/handwriting fonts.
+     */
+    protected function estimateTextWidth(string $text, int $fontSize): int
+    {
+        // Script fonts are typically narrower, use 0.5 as multiplier
+        // This is an approximation since we don't have access to actual font metrics
+        $charWidth = $fontSize * 0.5;
+        return (int) (strlen($text) * $charWidth);
     }
 
     /**

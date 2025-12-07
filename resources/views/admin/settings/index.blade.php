@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             @if (session('success'))
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
                     {{ session('success') }}
@@ -39,22 +39,8 @@
                                 <label class="cursor-pointer group" @click="selectTheme('{{ $themeKey }}')">
                                     <input type="radio" name="site_theme" value="{{ $themeKey }}" class="sr-only peer" {{ $currentTheme === $themeKey ? 'checked' : '' }}>
                                     <div class="relative bg-white rounded-2xl border-2 transition-all overflow-hidden peer-checked:border-blue-500 peer-checked:ring-4 peer-checked:ring-blue-100 hover:border-gray-300 border-gray-200 group-hover:shadow-xl shadow-sm">
-
-                                        <!-- Theme Preview Area -->
-                                        <div class="p-3">
-                                            <div class="rounded-xl overflow-hidden p-3" style="background-color: {{ $theme['preview']['bg'] ?? $theme['colors']['bg-primary'] }};">
-                                                <!-- Color blocks showing theme palette -->
-                                                <div class="grid grid-cols-2 gap-2">
-                                                    <div class="aspect-[4/3] rounded-lg" style="background-color: {{ $theme['preview']['accent'] ?? $theme['colors']['accent'] }};"></div>
-                                                    <div class="aspect-[4/3] rounded-lg" style="background-color: {{ $theme['colors']['bg-secondary'] ?? '#f5f5f5' }};"></div>
-                                                    <div class="aspect-[4/3] rounded-lg" style="background-color: {{ $theme['colors']['bg-tertiary'] ?? '#eee' }};"></div>
-                                                    <div class="aspect-[4/3] rounded-lg" style="background-color: {{ $theme['preview']['accent'] ?? $theme['colors']['accent'] }}; opacity: 0.6;"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         <!-- Theme Info -->
-                                        <div class="px-4 pb-4">
+                                        <div class="p-4">
                                             <div class="flex items-start justify-between">
                                                 <div>
                                                     <h4 class="font-bold text-gray-900">{{ $theme['name'] }}</h4>
@@ -79,7 +65,7 @@
                                         </div>
 
                                         <!-- Selected checkmark -->
-                                        <div class="absolute top-4 right-4 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity shadow-lg">
+                                        <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity shadow-lg">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                                             </svg>
@@ -160,48 +146,236 @@
                 </div>
 
                 <!-- Watermark Settings -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6" x-data="watermarkSettings()">
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Watermark</h3>
-                            <x-section-save-button />
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="watermark_enabled" value="1" x-model="enabled"
+                                    class="sr-only peer">
+                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                <span class="ms-3 text-sm font-medium text-gray-700" x-text="enabled ? 'Enabled' : 'Disabled'"></span>
+                            </label>
                         </div>
 
-                        <div class="space-y-4">
-                            @foreach ($settings->get('watermark', collect()) as $setting)
-                                <div>
-                                    <label for="{{ $setting->key }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                        {{ ucwords(str_replace('watermark_', '', $setting->key)) }}
-                                    </label>
+                        <div x-show="enabled" x-transition>
+                            <!-- Two Column Layout -->
+                            <div class="flex flex-col lg:flex-row gap-8">
+                                <!-- Left: Settings -->
+                                <div class="flex-1 space-y-6">
+                                    <!-- Type Toggle -->
+                                    <div class="flex gap-2">
+                                        <button type="button" @click="watermarkType = 'text'"
+                                            :class="watermarkType === 'text' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                                            class="px-4 py-2 text-sm font-medium rounded-lg transition">
+                                            Text Watermark
+                                        </button>
+                                        <button type="button" @click="watermarkType = 'image'"
+                                            :class="watermarkType === 'image' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                                            class="px-4 py-2 text-sm font-medium rounded-lg transition">
+                                            Image Watermark
+                                        </button>
+                                        <input type="hidden" name="watermark_type" :value="watermarkType">
+                                    </div>
 
-                                    @if ($setting->type === 'boolean')
-                                        <label class="inline-flex items-center">
-                                            <input type="checkbox" name="{{ $setting->key }}" id="{{ $setting->key }}" value="1" {{ $setting->value ? 'checked' : '' }} class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            <span class="ml-2 text-sm text-gray-600">Enable watermarking</span>
-                                        </label>
-                                    @elseif ($setting->type === 'select' && $setting->key === 'watermark_position')
-                                        <select name="{{ $setting->key }}" id="{{ $setting->key }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            <option value="bottom-right" {{ $setting->value === 'bottom-right' ? 'selected' : '' }}>Bottom Right</option>
-                                            <option value="bottom-left" {{ $setting->value === 'bottom-left' ? 'selected' : '' }}>Bottom Left</option>
-                                            <option value="top-right" {{ $setting->value === 'top-right' ? 'selected' : '' }}>Top Right</option>
-                                            <option value="top-left" {{ $setting->value === 'top-left' ? 'selected' : '' }}>Top Left</option>
-                                            <option value="center" {{ $setting->value === 'center' ? 'selected' : '' }}>Center</option>
-                                        </select>
-                                    @elseif ($setting->type === 'number')
-                                        <input type="number" name="{{ $setting->key }}" id="{{ $setting->key }}" value="{{ $setting->value }}" min="1" max="100" class="w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                        @if (str_contains($setting->key, 'opacity'))
-                                            <span class="text-sm text-gray-500 ml-2">%</span>
-                                        @elseif (str_contains($setting->key, 'size'))
-                                            <span class="text-sm text-gray-500 ml-2">px</span>
-                                        @endif
-                                    @else
-                                        <input type="text" name="{{ $setting->key }}" id="{{ $setting->key }}" value="{{ $setting->value }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    @endif
+                                    <!-- Text Options -->
+                                    <div x-show="watermarkType === 'text'" class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                                            <input type="text" name="watermark_text" x-model="text"
+                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Font Size: <span class="text-blue-600" x-text="size + 'px'"></span></label>
+                                            <input type="range" name="watermark_size" x-model="size" min="16" max="120" step="2"
+                                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                        </div>
+                                    </div>
+
+                                    <!-- Image Options -->
+                                    <div x-show="watermarkType === 'image'" class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Upload PNG/SVG</label>
+                                            <label class="flex items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                                                <input type="file" name="watermark_image" accept=".png,.svg" class="hidden" @change="handleImageUpload($event)">
+                                                <template x-if="watermarkImage">
+                                                    <img :src="watermarkImage" class="max-h-20 object-contain">
+                                                </template>
+                                                <template x-if="!watermarkImage">
+                                                    <span class="text-gray-400 text-sm">Click to upload</span>
+                                                </template>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Size: <span class="text-blue-600" x-text="imageSize + '%'"></span></label>
+                                            <input type="range" name="watermark_image_size" x-model="imageSize" min="5" max="30"
+                                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                        </div>
+                                    </div>
+
+                                    <!-- Opacity -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Opacity: <span class="text-blue-600" x-text="opacity + '%'"></span></label>
+                                        <input type="range" name="watermark_opacity" x-model="opacity" min="10" max="100" step="5"
+                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                                    </div>
+
+                                    <!-- Position Grid -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Position</label>
+                                        <input type="hidden" name="watermark_position" :value="position">
+                                        <div class="inline-block p-2 bg-gray-100 rounded-lg">
+                                            <div class="grid gap-1" style="grid-template-columns: repeat(3, 32px); grid-template-rows: repeat(3, 32px);">
+                                                <!-- Row 1 -->
+                                                <button type="button" @click="position = 'top-left'" title="Top Left"
+                                                    :class="position === 'top-left' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">TL</button>
+                                                <button type="button" @click="position = 'top-center'" title="Top Center"
+                                                    :class="position === 'top-center' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">TC</button>
+                                                <button type="button" @click="position = 'top-right'" title="Top Right"
+                                                    :class="position === 'top-right' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">TR</button>
+                                                <!-- Row 2 -->
+                                                <button type="button" @click="position = 'middle-left'" title="Middle Left"
+                                                    :class="position === 'middle-left' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">ML</button>
+                                                <button type="button" @click="position = 'center'" title="Center"
+                                                    :class="position === 'center' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">C</button>
+                                                <button type="button" @click="position = 'middle-right'" title="Middle Right"
+                                                    :class="position === 'middle-right' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">MR</button>
+                                                <!-- Row 3 -->
+                                                <button type="button" @click="position = 'bottom-left'" title="Bottom Left"
+                                                    :class="position === 'bottom-left' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">BL</button>
+                                                <button type="button" @click="position = 'bottom-center'" title="Bottom Center"
+                                                    :class="position === 'bottom-center' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">BC</button>
+                                                <button type="button" @click="position = 'bottom-right'" title="Bottom Right"
+                                                    :class="position === 'bottom-right' ? 'bg-blue-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-600'"
+                                                    class="w-8 h-8 rounded transition text-xs font-bold flex items-center justify-center">BR</button>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">5% padding from edges</p>
+                                    </div>
                                 </div>
-                            @endforeach
+
+                                <!-- Right: Preview -->
+                                <div class="lg:w-80">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Preview <span class="text-gray-400 font-normal" x-text="'(' + position + ')'"></span></label>
+                                    <div class="relative bg-gradient-to-br from-gray-700 to-gray-900 rounded-lg overflow-hidden aspect-video shadow-lg">
+                                        <!-- Background image icon -->
+                                        <div class="absolute inset-0 flex items-center justify-center opacity-20">
+                                            <svg class="w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <!-- Watermark preview - using absolute positioning -->
+                                        <div class="absolute text-white font-semibold drop-shadow-lg px-1 bg-black/20 rounded transition-all duration-200"
+                                            x-show="watermarkType === 'text'"
+                                            :style="`
+                                                font-size: ${Math.max(10, size/4)}px;
+                                                opacity: ${opacity/100};
+                                                ${position.includes('top') ? 'top: 5%' : ''};
+                                                ${position.includes('middle') ? 'top: 50%; transform: translateY(-50%)' : ''};
+                                                ${position.includes('bottom') ? 'bottom: 5%' : ''};
+                                                ${position.includes('left') ? 'left: 5%' : ''};
+                                                ${position.includes('center') && !position.includes('middle') ? 'left: 50%; transform: translateX(-50%)' : ''};
+                                                ${position === 'center' ? 'left: 50%; top: 50%; transform: translate(-50%, -50%)' : ''};
+                                                ${position.includes('right') ? 'right: 5%' : ''};
+                                            `"
+                                            x-text="text || '© Your Name'"></div>
+                                        <img x-show="watermarkType === 'image' && watermarkImage" :src="watermarkImage"
+                                            class="absolute max-h-8 object-contain transition-all duration-200"
+                                            :style="`
+                                                opacity: ${opacity/100};
+                                                ${position.includes('top') ? 'top: 5%' : ''};
+                                                ${position.includes('middle') ? 'top: 50%; transform: translateY(-50%)' : ''};
+                                                ${position.includes('bottom') ? 'bottom: 5%' : ''};
+                                                ${position.includes('left') ? 'left: 5%' : ''};
+                                                ${position.includes('center') && !position.includes('middle') ? 'left: 50%; transform: translateX(-50%)' : ''};
+                                                ${position === 'center' ? 'left: 50%; top: 50%; transform: translate(-50%, -50%)' : ''};
+                                                ${position.includes('right') ? 'right: 5%' : ''};
+                                            `">
+                                    </div>
+
+                                    <!-- Save Button -->
+                                    <button type="button" @click="saveAndApply()" :disabled="processing"
+                                        class="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+                                        <template x-if="!processing && !done">
+                                            <span class="flex items-center gap-2">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                Save & Apply to All
+                                            </span>
+                                        </template>
+                                        <template x-if="processing">
+                                            <span class="flex items-center gap-2">
+                                                <svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                <span x-text="progress + '%'"></span>
+                                            </span>
+                                        </template>
+                                        <template x-if="done">
+                                            <span x-text="totalPhotos + ' photos updated!'"></span>
+                                        </template>
+                                    </button>
+                                    <div x-show="processing" class="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-600 transition-all" :style="`width: ${progress}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <script>
+                    function watermarkSettings() {
+                        return {
+                            enabled: {{ App\Models\Setting::get('watermark_enabled', '1') === '1' ? 'true' : 'false' }},
+                            watermarkType: '{{ App\Models\Setting::get('watermark_type', 'text') }}',
+                            text: '{{ App\Models\Setting::get('watermark_text', '© Photography Portfolio') }}',
+                            position: '{{ App\Models\Setting::get('watermark_position', 'bottom-right') }}',
+                            opacity: {{ App\Models\Setting::get('watermark_opacity', '40') }},
+                            size: {{ App\Models\Setting::get('watermark_size', '24') }},
+                            imageSize: {{ App\Models\Setting::get('watermark_image_size', '15') }},
+                            watermarkImage: '{{ App\Models\Setting::get('watermark_image') ? asset('storage/' . App\Models\Setting::get('watermark_image')) : '' }}',
+                            positionClasses: {
+                                'top-left': 'items-start justify-start',
+                                'top-center': 'items-start justify-center',
+                                'top-right': 'items-start justify-end',
+                                'middle-left': 'items-center justify-start',
+                                'center': 'items-center justify-center',
+                                'middle-right': 'items-center justify-end',
+                                'bottom-left': 'items-end justify-start',
+                                'bottom-center': 'items-end justify-center',
+                                'bottom-right': 'items-end justify-end'
+                            },
+                            processing: false, done: false, progress: 0, currentPhoto: 0,
+                            totalPhotos: {{ App\Models\Photo::count() }},
+                            handleImageUpload(e) {
+                                const file = e.target.files[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => this.watermarkImage = ev.target.result;
+                                    reader.readAsDataURL(file);
+                                }
+                            },
+                            async saveAndApply() {
+                                this.processing = true; this.done = false; this.progress = 0;
+                                const form = this.$el.closest('form');
+                                try {
+                                    await fetch(form.action, { method: 'POST', body: new FormData(form), headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'} });
+                                    const resp = await fetch('{{ route('admin.settings.regenerate-watermarks') }}', { method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json'} });
+                                    for (let i = 1; i <= this.totalPhotos; i++) { await new Promise(r => setTimeout(r, 150)); this.progress = Math.round((i/this.totalPhotos)*100); }
+                                    const data = await resp.json(); this.totalPhotos = data.count;
+                                    this.processing = false; this.done = true;
+                                    setTimeout(() => this.done = false, 3000);
+                                } catch (e) { this.processing = false; alert('Failed'); }
+                            }
+                        }
+                    }
+                </script>
 
                 <!-- Contact Settings -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">

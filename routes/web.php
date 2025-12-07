@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AboutController as AdminAboutController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FrontpageController as AdminFrontpageController;
 use App\Http\Controllers\Admin\GalleryController as AdminGalleryController;
 use App\Http\Controllers\Admin\LogController as AdminLogController;
@@ -31,9 +32,8 @@ Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.send');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -92,6 +92,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
     Route::put('settings', [AdminSettingController::class, 'update'])->name('settings.update');
     Route::post('settings/validate-ai-api', [AdminSettingController::class, 'validateAiApiKey'])->name('settings.validate-ai-api');
+    Route::post('settings/regenerate-watermarks', [AdminSettingController::class, 'regenerateWatermarks'])->name('settings.regenerate-watermarks');
 
     // About Page Editors
     Route::get('about/editor', [AdminAboutController::class, 'editor'])->name('about.editor');

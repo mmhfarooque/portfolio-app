@@ -163,4 +163,27 @@ class SettingController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Regenerate watermarks for all photos.
+     */
+    public function regenerateWatermarks(Request $request)
+    {
+        $service = new \App\Services\PhotoProcessingService();
+        $photos = \App\Models\Photo::all();
+        $count = 0;
+
+        foreach ($photos as $photo) {
+            $service->regenerateWatermark($photo);
+            $count++;
+        }
+
+        LoggingService::info('watermarks.regenerated', "Regenerated watermarks for {$count} photos");
+
+        return response()->json([
+            'success' => true,
+            'count' => $count,
+            'message' => "Regenerated watermarks for {$count} photos"
+        ]);
+    }
 }
