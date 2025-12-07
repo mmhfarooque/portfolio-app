@@ -14,6 +14,7 @@ use App\Http\Controllers\FrontPageController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 // Front Page / Home (CV/Resume style)
@@ -31,6 +32,10 @@ Route::get('/tag/{tag:slug}', [GalleryController::class, 'tag'])->name('tag.show
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.send');
+
+// Sitemap
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/sitemap-images.xml', [SitemapController::class, 'images'])->name('sitemap.images');
 
 Route::get('/dashboard', [AdminDashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');

@@ -1,30 +1,147 @@
 <x-layouts.public>
-    <x-slot name="title">{{ $photo->title }} - {{ config('app.name', 'Photography Portfolio') }}</x-slot>
+    @php
+        use App\Models\Setting;
 
-    <!-- Open Graph Meta Tags for Social Sharing -->
-    <x-slot name="meta">
-        <meta property="og:title" content="{{ $photo->title }}">
-        <meta property="og:description" content="{{ $photo->description ?? 'View this photo in our gallery' }}">
-        <meta property="og:image" content="{{ url('storage/' . $photo->display_path) }}">
-        <meta property="og:image:width" content="{{ $photo->width }}">
-        <meta property="og:image:height" content="{{ $photo->height }}">
-        <meta property="og:url" content="{{ route('photos.show', $photo) }}">
-        <meta property="og:type" content="article">
-        <meta property="og:site_name" content="{{ App\Models\Setting::get('site_name', 'Photography Portfolio') }}">
+        $siteName = Setting::get('site_name', config('app.name', 'Photography Portfolio'));
+        $photographerName = Setting::get('photographer_name', Setting::get('profile_name', $siteName));
+        $seoTitle = $photo->seo_title ?: $photo->title;
+        $metaDescription = $photo->meta_description ?: $photo->description ?: "View {$photo->title} - a beautiful photograph from our gallery.";
+        $imageUrl = url('storage/' . $photo->display_path);
+        $canonicalUrl = route('photos.show', $photo);
 
-        <!-- Twitter Card -->
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="{{ $photo->title }}">
-        <meta name="twitter:description" content="{{ $photo->description ?? 'View this photo in our gallery' }}">
-        <meta name="twitter:image" content="{{ url('storage/' . $photo->display_path) }}">
+        // Build JSON-LD Schema
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'ImageObject',
+            'name' => $photo->title,
+            'description' => $metaDescription,
+            'contentUrl' => $imageUrl,
+            'thumbnailUrl' => url('storage/' . $photo->thumbnail_path),
+            'url' => $canonicalUrl,
+            'width' => $photo->width,
+            'height' => $photo->height,
+            'author' => [
+                '@type' => 'Person',
+                'name' => $photographerName,
+            ],
+            'copyrightHolder' => [
+                '@type' => 'Person',
+                'name' => $photographerName,
+            ],
+        ];
 
-        <!-- Pinterest -->
-        <meta name="pinterest:description" content="{{ $photo->title }}">
+        if ($photo->captured_at) {
+            $schema['dateCreated'] = $photo->captured_at->toIso8601String();
+            $schema['datePublished'] = $photo->created_at->toIso8601String();
+        }
+
+        if ($photo->location_name) {
+            $schema['contentLocation'] = [
+                '@type' => 'Place',
+                'name' => $photo->location_name,
+            ];
+            if ($photo->hasLocation()) {
+                $schema['contentLocation']['geo'] = [
+                    '@type' => 'GeoCoordinates',
+                    'latitude' => $photo->latitude,
+                    'longitude' => $photo->longitude,
+                ];
+            }
+        }
+
+        if ($photo->category) {
+            $schema['genre'] = $photo->category->name;
+        }
+
+        // Camera info
+        $exif = $photo->formatted_exif;
+        if ($exif['camera']) {
+            $schema['exifData'] = [];
+            if ($exif['camera']) $schema['exifData'][] = ['@type' => 'PropertyValue', 'name' => 'Camera', 'value' => $exif['camera']];
+            if ($exif['aperture']) $schema['exifData'][] = ['@type' => 'PropertyValue', 'name' => 'Aperture', 'value' => $exif['aperture']];
+            if ($exif['shutter_speed']) $schema['exifData'][] = ['@type' => 'PropertyValue', 'name' => 'Shutter Speed', 'value' => $exif['shutter_speed']];
+            if ($exif['iso']) $schema['exifData'][] = ['@type' => 'PropertyValue', 'name' => 'ISO', 'value' => $exif['iso']];
+            if ($exif['focal_length']) $schema['exifData'][] = ['@type' => 'PropertyValue', 'name' => 'Focal Length', 'value' => $exif['focal_length']];
+        }
+
+        // Keywords from tags
+        if ($photo->tags->count() > 0) {
+            $schema['keywords'] = $photo->tags->pluck('name')->implode(', ');
+        }
+
+        // Breadcrumb Schema
+        $breadcrumbSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                [
+                    '@type' => 'ListItem',
+                    'position' => 1,
+                    'name' => 'Home',
+                    'item' => route('home'),
+                ],
+                [
+                    '@type' => 'ListItem',
+                    'position' => 2,
+                    'name' => 'Photos',
+                    'item' => route('photos.index'),
+                ],
+            ],
+        ];
+
+        if ($photo->category) {
+            $breadcrumbSchema['itemListElement'][] = [
+                '@type' => 'ListItem',
+                'position' => 3,
+                'name' => $photo->category->name,
+                'item' => route('category.show', $photo->category),
+            ];
+            $breadcrumbSchema['itemListElement'][] = [
+                '@type' => 'ListItem',
+                'position' => 4,
+                'name' => $photo->title,
+                'item' => $canonicalUrl,
+            ];
+        } else {
+            $breadcrumbSchema['itemListElement'][] = [
+                '@type' => 'ListItem',
+                'position' => 3,
+                'name' => $photo->title,
+                'item' => $canonicalUrl,
+            ];
+        }
+    @endphp
+
+    <x-slot name="pageTitle">{{ $seoTitle }} - {{ $siteName }}</x-slot>
+
+    <x-slot name="seo">
+        <x-seo-meta
+            :title="$seoTitle"
+            :description="$metaDescription"
+            :image="$imageUrl"
+            :image-width="$photo->width"
+            :image-height="$photo->height"
+            :url="$canonicalUrl"
+            :article="true"
+            :published-time="$photo->created_at->toIso8601String()"
+            :modified-time="$photo->updated_at->toIso8601String()"
+            :author="$photographerName"
+            :keywords="$photo->tags->pluck('name')->implode(', ')"
+        />
+
+        {{-- JSON-LD Structured Data --}}
+        <script type="application/ld+json">
+        {!! json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+        </script>
+        <script type="application/ld+json">
+        {!! json_encode($breadcrumbSchema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+        </script>
     </x-slot>
 
     @if ($photo->hasLocation())
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <x-slot name="head">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    </x-slot>
     @endif
 
     <div class="min-h-screen">
@@ -191,6 +308,7 @@
                             <!-- Facebook -->
                             <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(route('photos.show', $photo)) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                class="text-theme-muted hover:text-theme-accent transition"
                                title="Share on Facebook">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -201,6 +319,7 @@
                             <!-- Twitter/X -->
                             <a href="https://twitter.com/intent/tweet?url={{ urlencode(route('photos.show', $photo)) }}&text={{ urlencode($photo->title) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                class="text-theme-muted hover:text-theme-accent transition"
                                title="Share on X (Twitter)">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -211,6 +330,7 @@
                             <!-- Pinterest -->
                             <a href="https://pinterest.com/pin/create/button/?url={{ urlencode(route('photos.show', $photo)) }}&media={{ urlencode(url('storage/' . $photo->display_path)) }}&description={{ urlencode($photo->title) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                class="text-theme-muted hover:text-theme-accent transition"
                                title="Pin on Pinterest">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -221,6 +341,7 @@
                             <!-- WhatsApp -->
                             <a href="https://api.whatsapp.com/send?text={{ urlencode($photo->title . ' - ' . route('photos.show', $photo)) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                class="text-theme-muted hover:text-theme-accent transition"
                                title="Share on WhatsApp">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -231,6 +352,7 @@
                             <!-- LinkedIn -->
                             <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(route('photos.show', $photo)) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                class="text-theme-muted hover:text-theme-accent transition"
                                title="Share on LinkedIn">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -241,6 +363,7 @@
                             <!-- Telegram -->
                             <a href="https://t.me/share/url?url={{ urlencode(route('photos.show', $photo)) }}&text={{ urlencode($photo->title) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                class="text-theme-muted hover:text-theme-accent transition"
                                title="Share on Telegram">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -280,8 +403,6 @@
                             </svg>
                             Camera Settings
                         </h3>
-
-                        @php $exif = $photo->formatted_exif; @endphp
 
                         <dl class="space-y-3 text-sm">
                             @if ($exif['camera'])
@@ -327,7 +448,7 @@
                         <dl class="space-y-3 text-sm">
                             <div class="flex items-start">
                                 <dt class="text-theme-muted w-24 shrink-0">Dimensions</dt>
-                                <dd class="text-theme-secondary">{{ $photo->width }} × {{ $photo->height }}</dd>
+                                <dd class="text-theme-secondary">{{ $photo->width }} x {{ $photo->height }}</dd>
                             </div>
                             <div class="flex items-start">
                                 <dt class="text-theme-muted w-24 shrink-0">Views</dt>

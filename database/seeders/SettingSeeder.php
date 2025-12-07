@@ -67,6 +67,16 @@ class SettingSeeder extends Seeder
             // Image Optimization
             ['key' => 'image_max_resolution', 'value' => '2048', 'type' => 'select', 'group' => 'optimization'],
             ['key' => 'image_quality', 'value' => '82', 'type' => 'number', 'group' => 'optimization'],
+
+            // SEO Settings
+            ['key' => 'seo_site_title', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_site_description', 'value' => '', 'type' => 'textarea', 'group' => 'seo'],
+            ['key' => 'seo_site_keywords', 'value' => '', 'type' => 'textarea', 'group' => 'seo'],
+            ['key' => 'seo_og_image', 'value' => null, 'type' => 'image', 'group' => 'seo'],
+            ['key' => 'seo_twitter_handle', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_google_verification', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_bing_verification', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_google_analytics', 'value' => '', 'type' => 'text', 'group' => 'seo'],
         ];
 
         foreach ($settings as $setting) {
