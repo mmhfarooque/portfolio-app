@@ -354,111 +354,102 @@ Before going live:
 
 This section documents the specific setup for deploying to mfaruk.com using Hestia Control Panel.
 
+**⚠️ CRITICAL: This is a SPLIT INSTALLATION - Read carefully!**
+
 ### Server Details
 
 - **Server IP**: 63.142.240.72
 - **Control Panel**: Hestia CP
-- **Web Server**: Apache (with nginx proxy)
-- **PHP Version**: 8.4
+- **Web Server**: Nginx (proxy) → Apache (backend)
+- **PHP Version**: 8.4 (php8.4-fpm-mfaruk.com.sock)
 - **Database**: MySQL
+- **GitHub Repo**: https://github.com/mmhfarooque/portfolio-app.git
 
-### Directory Structure on Hestia
+### Directory Structure (SPLIT INSTALLATION)
 
-Unlike standard cPanel, Hestia uses `public_html` AS the Laravel app root (not split installation):
+**THIS IS CRITICAL TO UNDERSTAND:**
 
 ```
 /home/mfaruk/web/mfaruk.com/
-├── private/
-│   └── portfolio-app/          ← Backup/reference copy
-│       └── .env                ← Environment backup
 │
-├── public_html/                ← THIS IS THE LIVE LARAVEL APP
-│   ├── .git/                   ← Git repository
-│   ├── app/
-│   ├── bootstrap/
-│   ├── config/
-│   ├── database/
-│   ├── resources/
-│   ├── routes/
-│   ├── storage/
-│   ├── vendor/
-│   ├── .env                    ← Production environment
-│   ├── index.php               ← Modified entry point (in root, not public/)
-│   ├── .htaccess               ← Apache rewrite rules
-│   └── public/                 ← Static assets
-│       ├── build/              ← Vite compiled assets
-│       └── storage → symlink
+├── private/
+│   └── portfolio-app/              ← LARAVEL APP CODE LIVES HERE!
+│       ├── app/                    ← Controllers, Models, Services
+│       ├── bootstrap/
+│       ├── config/
+│       ├── database/
+│       ├── resources/              ← Blade templates, CSS, JS source
+│       ├── routes/
+│       ├── storage/                ← Logs, cache, compiled views
+│       ├── vendor/                 ← Composer dependencies
+│       ├── node_modules/           ← NPM dependencies
+│       ├── public/
+│       │   └── build/              ← Vite compiled assets (SOURCE)
+│       ├── .env                    ← Production environment config
+│       ├── .git/                   ← Git repository
+│       ├── composer.json
+│       └── package.json
+│
+└── public_html/                    ← WEB ROOT (Apache DocumentRoot)
+    ├── index.php                   ← Entry point (loads app via app-path.php)
+    ├── app-path.php                ← Points to /private/portfolio-app
+    ├── .htaccess                   ← WordPress-style rewrite rules
+    ├── build/                      ← Vite assets COPIED here for serving
+    │   ├── manifest.json
+    │   └── assets/
+    │       ├── app-*.css
+    │       └── app-*.js
+    ├── storage/                    ← Symlink to private app storage
+    └── (other static files)
 ```
 
-### Key Differences from Standard Laravel
+### How It Works
 
-1. **index.php in root**: The `index.php` file is in `public_html/` root, not in `public/`
-2. **.htaccess in root**: Rewrites are handled from root
-3. **Entire app in public_html**: Unlike cPanel split, the whole Laravel app is web-accessible (protected by .htaccess)
+1. **Request comes in** → Nginx proxies to Apache
+2. **Apache serves** from `public_html/`
+3. **`index.php`** reads `app-path.php` to find Laravel app location
+4. **Laravel loads** from `/private/portfolio-app/`
+5. **Static assets** (CSS/JS) are served from `public_html/build/`
 
-### Modified index.php
+### Key Files
 
-The `index.php` must be modified to work from root instead of `public/`:
-
+#### public_html/index.php
 ```php
 <?php
-
+use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// When running from root instead of public/
-if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {
+// Load app path from config file - THIS IS THE KEY!
+$appPath = require __DIR__ . '/app-path.php';
+
+if (file_exists($maintenance = $appPath . '/storage/framework/maintenance.php')) {
     require $maintenance;
 }
 
-require __DIR__.'/vendor/autoload.php';
+require $appPath . '/vendor/autoload.php';
 
-$app = require_once __DIR__.'/bootstrap/app.php';
-
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-
-$response = $kernel->handle(
-    $request = Request::capture()
-)->send();
-
-$kernel->terminate($request, $response);
+$app = require_once $appPath . '/bootstrap/app.php';
+$app->handleRequest(Request::capture());
 ```
 
-### Modified .htaccess
+#### public_html/app-path.php
+```php
+<?php return '/home/mfaruk/web/mfaruk.com/private/portfolio-app';
+```
 
-Root `.htaccess` to handle Laravel routing:
-
+#### public_html/.htaccess
 ```apache
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Serve static files from public/
-    RewriteCond %{REQUEST_URI} !^/public/
-    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
-    RewriteRule ^(.*)$ /public/$1 [L]
-
-    # Redirect everything else to index.php
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
 </IfModule>
-
-# Block access to sensitive files
-<FilesMatch "^\.">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-<FilesMatch "(artisan|composer\.(json|lock)|package.*\.json|webpack\..*|vite\..*|phpunit\.xml|\.env.*)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
 ```
 
 ### Initial Deployment Steps
@@ -467,33 +458,33 @@ Root `.htaccess` to handle Laravel routing:
 # SSH to server
 ssh root@63.142.240.72
 
-# Navigate to public_html
-cd /home/mfaruk/web/mfaruk.com/public_html
+# Navigate to the PRIVATE app directory (NOT public_html!)
+cd /home/mfaruk/web/mfaruk.com/private/portfolio-app
 
 # Clone repository (first time)
-git clone https://github.com/mmhfarooque/photography-portfolio.git .
+git clone https://github.com/mmhfarooque/portfolio-app.git .
 
-# Or if already exists, pull latest
-git fetch origin
-git reset --hard origin/main
-
-# Install dependencies
+# Install PHP dependencies
 composer install --no-dev --optimize-autoloader
 
-# Set up environment (copy from backup or create new)
-cp /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env .env
+# Install Node dependencies and build assets
+npm install
+npm run build
+
+# Copy built assets to public_html for serving
+cp -r public/build /home/mfaruk/web/mfaruk.com/public_html/
+
+# Set up environment
+cp .env.example .env
+nano .env  # Configure database, app URL, etc.
 
 # Set permissions
 chown -R mfaruk:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-# Create storage symlink (inside public/)
-cd public
-ln -sf ../storage/app/public storage
-
 # Run migrations
-cd ..
 php artisan migrate --force
+php artisan db:seed --force  # If needed
 
 # Clear all caches
 php artisan optimize:clear
@@ -511,76 +502,112 @@ git commit -m "Your changes"
 git push origin main
 
 # On SERVER (SSH)
-cd /home/mfaruk/web/mfaruk.com/public_html
+ssh root@63.142.240.72
 
-# Pull latest
+# IMPORTANT: Go to PRIVATE directory, not public_html!
+cd /home/mfaruk/web/mfaruk.com/private/portfolio-app
+
+# Pull latest code
 git fetch origin
 git reset --hard origin/main
-
-# Clear ALL caches (important!)
-php artisan optimize:clear
-php artisan view:clear
-rm -rf storage/framework/views/*.php
 
 # If composer.json changed
 composer install --no-dev --optimize-autoloader
 
+# If package.json changed or CSS/JS modified
+npm install
+npm run build
+
+# CRITICAL: Copy built assets to public_html
+rm -rf /home/mfaruk/web/mfaruk.com/public_html/build
+cp -r public/build /home/mfaruk/web/mfaruk.com/public_html/
+
+# Clear ALL caches
+php artisan optimize:clear
+php artisan view:clear
+rm -rf storage/framework/views/*.php
+
 # If migrations needed
 php artisan migrate --force
 
-# Fix permissions after pull
+# Fix permissions
 chown -R mfaruk:www-data storage bootstrap/cache
+chown -R mfaruk:www-data /home/mfaruk/web/mfaruk.com/public_html/build
 chmod -R 775 storage bootstrap/cache
+
+# CRITICAL: Clear OPcache via web (CLI clear doesn't work for web requests)
+# Create temp file, call it, delete it:
+echo '<?php opcache_reset(); echo "cleared"; ?>' > /home/mfaruk/web/mfaruk.com/public_html/oc.php
+curl -s http://mfaruk.com/oc.php
+rm /home/mfaruk/web/mfaruk.com/public_html/oc.php
 ```
 
 ### Common Issues on Hestia
 
-#### Old Views Still Showing After Deployment
+#### 1. Changes Not Showing After Deployment
 
-This is the most common issue. Laravel caches compiled Blade views.
+**Most likely cause:** You updated the WRONG directory!
+
+- **WRONG**: `/home/mfaruk/web/mfaruk.com/public_html/` (only has entry point)
+- **CORRECT**: `/home/mfaruk/web/mfaruk.com/private/portfolio-app/` (actual Laravel app)
+
+**Verify you're in the right place:**
+```bash
+cd /home/mfaruk/web/mfaruk.com/private/portfolio-app
+git log --oneline -1  # Should match your latest commit
+```
+
+#### 2. OPcache Serving Old PHP Files
+
+PHP OPcache caches compiled PHP files. CLI commands don't clear the web OPcache!
+
+**Solution - Clear via web request:**
+```bash
+echo '<?php opcache_reset(); echo "cleared"; ?>' > /home/mfaruk/web/mfaruk.com/public_html/oc.php
+curl -s http://mfaruk.com/oc.php
+rm /home/mfaruk/web/mfaruk.com/public_html/oc.php
+```
+
+**Signs this is the issue:**
+- Git shows correct commit
+- Blade files are correct on disk
+- But browser still shows old content
+
+#### 3. Frontend Assets (CSS/JS) Not Updating
+
+Vite builds to `private/portfolio-app/public/build/` but assets are served from `public_html/build/`.
 
 **Solution:**
 ```bash
-php artisan optimize:clear
+cd /home/mfaruk/web/mfaruk.com/private/portfolio-app
+
+# Rebuild assets
+npm install
+npm run build
+
+# Copy to web root
+rm -rf /home/mfaruk/web/mfaruk.com/public_html/build
+cp -r public/build /home/mfaruk/web/mfaruk.com/public_html/
+chown -R mfaruk:www-data /home/mfaruk/web/mfaruk.com/public_html/build
+```
+
+**Signs this is the issue:**
+- Blade HTML changes show up
+- But styling/layout looks old
+- Check browser dev tools Network tab for CSS filename (hash should change)
+
+#### 4. Git "Dubious Ownership" Error
+
+```bash
+git config --global --add safe.directory /home/mfaruk/web/mfaruk.com/private/portfolio-app
+```
+
+#### 5. View Cache Not Clearing
+
+```bash
+cd /home/mfaruk/web/mfaruk.com/private/portfolio-app
 php artisan view:clear
 rm -rf storage/framework/views/*.php
-```
-
-If still showing old content:
-1. Check you're updating the correct directory (`public_html`, NOT `private/portfolio-app`)
-2. Clear Cloudflare cache if using Cloudflare
-3. Hard refresh browser (Ctrl+Shift+R)
-
-#### Git "Dubious Ownership" Error
-
-```bash
-git config --global --add safe.directory /home/mfaruk/web/mfaruk.com/public_html
-```
-
-#### Wrong Directory Updated
-
-The site runs from `public_html`, NOT from `private/portfolio-app`. Always check:
-
-```bash
-# Verify you're in the right directory
-pwd
-# Should show: /home/mfaruk/web/mfaruk.com/public_html
-
-# Verify git commit
-git log --oneline -1
-# Should match your latest commit
-```
-
-#### .env Gets Overwritten by Git
-
-Keep a backup of .env:
-```bash
-cp .env /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env
-```
-
-After git reset, restore it:
-```bash
-cp /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env .env
 ```
 
 ### Quick Deploy Script
@@ -591,35 +618,61 @@ Create `/home/mfaruk/deploy.sh`:
 #!/bin/bash
 set -e
 
-cd /home/mfaruk/web/mfaruk.com/public_html
+APP_DIR="/home/mfaruk/web/mfaruk.com/private/portfolio-app"
+PUBLIC_DIR="/home/mfaruk/web/mfaruk.com/public_html"
 
-echo "Backing up .env..."
-cp .env /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env
+echo "=== Portfolio App Deployment Script ==="
+echo ""
+echo "App directory: $APP_DIR"
+echo "Public directory: $PUBLIC_DIR"
+echo ""
 
-echo "Pulling latest code..."
+cd $APP_DIR
+
+echo "1. Pulling latest code from GitHub..."
 git fetch origin
 git reset --hard origin/main
+echo "   Current commit: $(git log --oneline -1)"
 
-echo "Restoring .env..."
-cp /home/mfaruk/web/mfaruk.com/private/portfolio-app/.env .env
-
-echo "Installing dependencies..."
+echo ""
+echo "2. Installing PHP dependencies..."
 composer install --no-dev --optimize-autoloader --quiet
 
-echo "Running migrations..."
+echo ""
+echo "3. Running database migrations..."
 php artisan migrate --force
 
-echo "Clearing caches..."
+echo ""
+echo "4. Clearing Laravel caches..."
 php artisan optimize:clear
 php artisan view:clear
-rm -rf storage/framework/views/*.php
+rm -rf storage/framework/views/*.php 2>/dev/null || true
 
-echo "Fixing permissions..."
+echo ""
+echo "5. Building frontend assets (Vite)..."
+npm install --silent
+npm run build
+
+echo ""
+echo "6. Copying assets to public_html..."
+rm -rf $PUBLIC_DIR/build
+cp -r public/build $PUBLIC_DIR/
+
+echo ""
+echo "7. Fixing permissions..."
 chown -R mfaruk:www-data storage bootstrap/cache
+chown -R mfaruk:www-data $PUBLIC_DIR/build
 chmod -R 775 storage bootstrap/cache
 
-echo "Deployment complete!"
-git log --oneline -1
+echo ""
+echo "8. Clearing OPcache (via web request)..."
+echo '<?php opcache_reset(); echo "cleared"; ?>' > $PUBLIC_DIR/oc.php
+curl -s http://mfaruk.com/oc.php
+rm $PUBLIC_DIR/oc.php
+
+echo ""
+echo "=== Deployment Complete! ==="
+echo "Commit: $(git log --oneline -1)"
 ```
 
 Make it executable:
@@ -627,7 +680,7 @@ Make it executable:
 chmod +x /home/mfaruk/deploy.sh
 ```
 
-Then deploy with:
+**Deploy with single command:**
 ```bash
 /home/mfaruk/deploy.sh
 ```
