@@ -15,14 +15,14 @@ class SitemapController extends Controller
      */
     public function index(): Response
     {
-        $photos = Photo::where('is_published', true)
+        $photos = Photo::published()
             ->select(['slug', 'updated_at', 'display_path'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
         $categories = Category::select(['slug', 'updated_at'])->get();
 
-        $galleries = Gallery::where('is_published', true)
+        $galleries = Gallery::where('status', 'published')
             ->select(['slug', 'updated_at'])
             ->get();
 
@@ -39,7 +39,7 @@ class SitemapController extends Controller
      */
     public function images(): Response
     {
-        $photos = Photo::where('is_published', true)
+        $photos = Photo::published()
             ->with('category')
             ->select(['id', 'slug', 'title', 'description', 'display_path', 'category_id', 'location_name', 'updated_at'])
             ->orderBy('updated_at', 'desc')
