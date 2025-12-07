@@ -26,12 +26,20 @@
                                 <p class="text-sm text-gray-600 mt-1">Choose a theme for your portfolio. Click to apply instantly.</p>
                             </div>
                             <div class="flex items-center gap-3">
+                                <!-- Saving indicator -->
+                                <span x-show="saving" x-transition class="inline-flex items-center gap-1.5 text-sm text-blue-600">
+                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    Saving...
+                                </span>
                                 <!-- Saved indicator -->
-                                <span x-show="justApplied" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="inline-flex items-center gap-1.5 text-sm text-gray-500">
-                                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <span x-show="justApplied && !saving" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="inline-flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
-                                    Saved
+                                    Theme Saved!
                                 </span>
                                 <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -848,17 +856,24 @@
             return {
                 selectedTheme: '{{ $currentTheme }}',
                 justApplied: false,
+                saving: false,
 
                 selectTheme(themeKey) {
                     if (this.selectedTheme === themeKey) return;
 
                     this.selectedTheme = themeKey;
 
+                    // Update the radio button
+                    document.querySelector(`input[name="site_theme"][value="${themeKey}"]`).checked = true;
+
                     // Apply theme instantly via AJAX
                     this.applyThemeInstantly(themeKey);
                 },
 
                 async applyThemeInstantly(themeKey) {
+                    this.saving = true;
+                    this.justApplied = false;
+
                     try {
                         const response = await fetch('{{ route("admin.settings.update") }}', {
                             method: 'POST',
@@ -874,6 +889,8 @@
                             })
                         });
 
+                        this.saving = false;
+
                         // Show success notification
                         this.justApplied = true;
                         setTimeout(() => {
@@ -882,6 +899,7 @@
 
                     } catch (error) {
                         console.error('Error applying theme:', error);
+                        this.saving = false;
                     }
                 }
             }
