@@ -1,9 +1,7 @@
 <x-layouts.public>
     @php
-        use App\Models\Setting;
-
-        $siteName = Setting::get('site_name', config('app.name', 'Photography Portfolio'));
-        $photographerName = Setting::get('photographer_name', Setting::get('profile_name', $siteName));
+        $siteName = \App\Models\Setting::get('site_name', config('app.name', 'Photography Portfolio'));
+        $photographerName = \App\Models\Setting::get('photographer_name', \App\Models\Setting::get('profile_name', $siteName));
         $seoTitle = $photo->seo_title ?: $photo->title;
         $metaDescription = $photo->meta_description ?: $photo->description ?: "View {$photo->title} - a beautiful photograph from our gallery.";
         $imageUrl = url('storage/' . $photo->display_path);
