@@ -4,7 +4,7 @@
     'value' => null,
     'label' => 'Image',
     'currentImage' => null,
-    'accept' => 'image/*',
+    'accept' => 'image/*,.heic,.heif,image/heic,image/heif,image/avif',
     'previewClass' => 'w-32 h-32 object-cover rounded',
 ])
 
