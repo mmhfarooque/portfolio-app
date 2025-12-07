@@ -559,4 +559,155 @@ class AIImageService
             $photo->location_name
         );
     }
+
+    /**
+     * Check if AI is configured (alias for isEnabled).
+     */
+    public function isConfigured(): bool
+    {
+        return $this->isEnabled();
+    }
+
+    /**
+     * Generate text-only response (no image).
+     */
+    public function generateText(string $prompt, int $maxTokens = 500): ?string
+    {
+        if (!$this->isEnabled()) {
+            return null;
+        }
+
+        try {
+            switch ($this->provider) {
+                case 'google':
+                    return $this->generateTextWithGoogle($prompt, $maxTokens);
+                case 'openai':
+                    return $this->generateTextWithOpenAI($prompt, $maxTokens);
+                case 'claude':
+                    return $this->generateTextWithClaude($prompt, $maxTokens);
+                default:
+                    return null;
+            }
+        } catch (\Exception $e) {
+            Log::error('AI: Text generation error', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Generate text with Google Gemini.
+     */
+    protected function generateTextWithGoogle(string $prompt, int $maxTokens = 500): ?string
+    {
+        $apiKey = $this->apiKeys['google'];
+        $url = "{$this->baseUrls['google']}/{$this->models['google']}:generateContent?key={$apiKey}";
+
+        $payload = [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.7,
+                'maxOutputTokens' => $maxTokens,
+            ]
+        ];
+
+        $response = $this->makeRequest($url, $payload);
+        if (!$response) return null;
+
+        $data = json_decode($response, true);
+        return $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+    }
+
+    /**
+     * Generate text with OpenAI.
+     */
+    protected function generateTextWithOpenAI(string $prompt, int $maxTokens = 500): ?string
+    {
+        $apiKey = $this->apiKeys['openai'];
+
+        $payload = [
+            'model' => $this->models['openai'],
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ],
+            'max_tokens' => $maxTokens,
+            'temperature' => 0.7,
+        ];
+
+        $ch = curl_init($this->baseUrls['openai']);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (!$response) return null;
+
+        $data = json_decode($response, true);
+        return $data['choices'][0]['message']['content'] ?? null;
+    }
+
+    /**
+     * Generate text with Claude.
+     */
+    protected function generateTextWithClaude(string $prompt, int $maxTokens = 500): ?string
+    {
+        $apiKey = $this->apiKeys['claude'];
+
+        $payload = [
+            'model' => $this->models['claude'],
+            'max_tokens' => $maxTokens,
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ],
+        ];
+
+        $ch = curl_init($this->baseUrls['claude']);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-api-key: ' . $apiKey,
+                'anthropic-version: 2023-06-01',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (!$response) return null;
+
+        $data = json_decode($response, true);
+        return $data['content'][0]['text'] ?? null;
+    }
+
+    /**
+     * Make HTTP request helper.
+     */
+    protected function makeRequest(string $url, array $payload): ?string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'ai_payload_');
+        file_put_contents($tempFile, json_encode($payload));
+
+        $command = sprintf(
+            'curl -s -X POST "%s" -H "Content-Type: application/json" -d @%s 2>/dev/null',
+            $url,
+            escapeshellarg($tempFile)
+        );
+
+        $response = shell_exec($command);
+        @unlink($tempFile);
+
+        return $response ?: null;
+    }
 }

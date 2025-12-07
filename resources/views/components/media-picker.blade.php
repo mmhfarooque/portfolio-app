@@ -23,6 +23,18 @@
     selectedPhoto: null,
     currentImage: '{{ $currentImage }}',
     selectedPath: '{{ $value }}',
+    uploadedFile: false,
+    fieldName: '{{ $name }}',
+
+    init() {
+        // Listen for media upload completion event
+        window.addEventListener('media-uploaded', (e) => {
+            if (e.detail.fieldName === this.fieldName) {
+                this.currentImage = e.detail.url;
+                this.uploadedFile = false;
+            }
+        });
+    },
 
     async fetchPhotos() {
         this.loading = true;
@@ -63,7 +75,11 @@
         this.selectedPhoto = null;
         this.selectedPath = '';
         this.currentImage = '';
+        this.uploadedFile = false;
         document.getElementById('{{ $pickerId }}-path').value = '';
+        // Clear file input
+        const fileInput = document.getElementById('{{ $inputId }}');
+        if (fileInput) fileInput.value = '';
     }
 }" class="mb-4">
     <label class="block text-sm font-medium text-gray-700 mb-2">{{ $label }}</label>
@@ -71,7 +87,7 @@
     <!-- Current Image Preview -->
     <template x-if="currentImage">
         <div class="mb-3 relative inline-block">
-            <img :src="currentImage.startsWith('http') || currentImage.startsWith('/') ? currentImage : '/storage/' + currentImage"
+            <img :src="currentImage.startsWith('blob:') || currentImage.startsWith('http') || currentImage.startsWith('/') ? currentImage : '/storage/' + currentImage"
                  alt="Current image"
                  class="{{ $previewClass }}">
             <button type="button"
@@ -89,21 +105,25 @@
     <input type="hidden" name="{{ $name }}_from_media" id="{{ $pickerId }}-path" :value="selectedPath">
 
     <!-- Upload and Choose from Media buttons -->
-    <div class="flex flex-wrap gap-3 items-center">
+    <div class="flex flex-col sm:flex-row gap-3">
         <!-- File Upload Input -->
-        <div class="flex-1 min-w-0">
+        <label class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium rounded-lg transition cursor-pointer border border-blue-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload File
             <input type="file"
                    name="{{ $name }}"
                    id="{{ $inputId }}"
                    accept="{{ $accept }}"
-                   @change="currentImage = URL.createObjectURL($event.target.files[0]); selectedPath = ''"
-                   class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-        </div>
+                   @change="currentImage = URL.createObjectURL($event.target.files[0]); selectedPath = ''; uploadedFile = true"
+                   class="sr-only">
+        </label>
 
         <!-- Choose from Media Button -->
         <button type="button"
                 @click="openModal()"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
+                class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition border border-gray-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>

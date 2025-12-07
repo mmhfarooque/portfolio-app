@@ -105,17 +105,133 @@
                                 <input type="text" name="title" id="title" value="{{ old('title', $photo->title) }}" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
 
-                            <div class="mb-4">
-                                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Short Description</label>
-                                <textarea name="description" id="description" rows="2" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Brief description for galleries and search">{{ old('description', $photo->description) }}</textarea>
+                            <div class="mb-4" x-data="{
+                                slug: '{{ old('slug', $photo->slug) }}',
+                                generating: false,
+
+                                async suggestSlug() {
+                                    this.generating = true;
+                                    try {
+                                        const response = await fetch('{{ route('admin.photos.suggest-slug', $photo) }}');
+                                        const data = await response.json();
+                                        if (data.slug) {
+                                            this.slug = data.slug;
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to get AI suggestion:', error);
+                                    }
+                                    this.generating = false;
+                                }
+                            }">
+                                <label for="slug" class="block text-sm font-medium text-gray-700 mb-2">
+                                    URL Slug
+                                </label>
+                                <div class="relative">
+                                    <input type="text"
+                                           name="slug"
+                                           id="slug"
+                                           x-model="slug"
+                                           required
+                                           pattern="[a-z0-9-]+"
+                                           class="w-full pr-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('slug') border-red-500 @enderror"
+                                           placeholder="my-photo-name">
+                                    <button type="button"
+                                            @click="suggestSlug()"
+                                            :disabled="generating"
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded transition disabled:opacity-50"
+                                            title="Generate with AI">
+                                        <svg x-show="!generating" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z"/>
+                                        </svg>
+                                        <svg x-show="generating" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    URL: {{ url('/photo') }}/<span x-text="slug || 'your-slug-here'" class="font-medium text-gray-700"></span>
+                                </p>
+                                @error('slug')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-4" x-data="{
+                                description: `{{ old('description', addslashes($photo->description ?? '')) }}`,
+                                generating: false,
+
+                                async generateDescription() {
+                                    this.generating = true;
+                                    try {
+                                        const response = await fetch('{{ route('admin.photos.suggest-slug', $photo) }}?type=description');
+                                        const data = await response.json();
+                                        if (data.description) {
+                                            this.description = data.description;
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to generate description:', error);
+                                    }
+                                    this.generating = false;
+                                }
+                            }">
+                                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Short Description</label>
+                                <div class="relative">
+                                    <textarea name="description" id="description" rows="2" x-model="description" class="w-full pr-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Brief description for galleries and search"></textarea>
+                                    <button type="button"
+                                            @click="generateDescription()"
+                                            :disabled="generating"
+                                            class="absolute right-2 top-2 p-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded transition disabled:opacity-50"
+                                            title="Generate with AI">
+                                        <svg x-show="!generating" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z"/>
+                                        </svg>
+                                        <svg x-show="generating" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-4" x-data="{
+                                story: `{{ old('story', addslashes($photo->story ?? '')) }}`,
+                                generating: false,
+
+                                async generateStory() {
+                                    this.generating = true;
+                                    try {
+                                        const response = await fetch('{{ route('admin.photos.suggest-slug', $photo) }}?type=story');
+                                        const data = await response.json();
+                                        if (data.story) {
+                                            this.story = data.story;
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to generate story:', error);
+                                    }
+                                    this.generating = false;
+                                }
+                            }">
                                 <label for="story" class="block text-sm font-medium text-gray-700 mb-2">
                                     Story & Thoughts
                                     <span class="text-gray-400 font-normal">(optional)</span>
                                 </label>
-                                <textarea name="story" id="story" rows="8" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Share the story behind this photo, your thoughts, memories, and what makes it special to you...">{{ old('story', $photo->story) }}</textarea>
+                                <div class="relative">
+                                    <textarea name="story" id="story" rows="8" x-model="story" class="w-full pr-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Share the story behind this photo, your thoughts, memories, and what makes it special to you..."></textarea>
+                                    <button type="button"
+                                            @click="generateStory()"
+                                            :disabled="generating"
+                                            class="absolute right-2 top-2 p-1.5 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded transition disabled:opacity-50"
+                                            title="Generate with AI">
+                                        <svg x-show="!generating" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z"/>
+                                        </svg>
+                                        <svg x-show="generating" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                                 <p class="mt-1 text-xs text-gray-500">This will be displayed on the photo's detail page as a blog-style story.</p>
                             </div>
 

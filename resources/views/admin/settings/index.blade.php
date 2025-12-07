@@ -23,14 +23,23 @@
                         <div class="flex items-center justify-between mb-6">
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900">Site Theme</h3>
-                                <p class="text-sm text-gray-600 mt-1">Choose a theme for your portfolio. Click to preview and apply.</p>
+                                <p class="text-sm text-gray-600 mt-1">Choose a theme for your portfolio. Click to apply instantly.</p>
                             </div>
-                            <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                                Preview Site
-                            </a>
+                            <div class="flex items-center gap-3">
+                                <!-- Saved indicator -->
+                                <span x-show="justApplied" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="inline-flex items-center gap-1.5 text-sm text-gray-500">
+                                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Saved
+                                </span>
+                                <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    Preview Site
+                                </a>
+                            </div>
                         </div>
 
                         <!-- Theme Cards -->
@@ -75,13 +84,6 @@
                             @endforeach
                         </div>
 
-                        <!-- Applied notification -->
-                        <div x-show="justApplied" x-transition class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-sm font-medium">Theme applied successfully!</span>
-                        </div>
                     </div>
 
                     <script>

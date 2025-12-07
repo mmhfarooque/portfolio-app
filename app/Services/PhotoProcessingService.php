@@ -89,9 +89,20 @@ class PhotoProcessingService
             }
 
             // Create photo record (no original_path - we don't store originals)
+            $baseTitle = pathinfo($originalFilename, PATHINFO_FILENAME);
+            $baseSlug = Str::slug($baseTitle);
+
+            // Generate unique slug by appending number if needed
+            $slug = $baseSlug;
+            $counter = 1;
+            while (Photo::where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+
             $photo = Photo::create([
-                'title' => pathinfo($originalFilename, PATHINFO_FILENAME),
-                'slug' => Str::slug(pathinfo($originalFilename, PATHINFO_FILENAME)) . '-' . Str::random(6),
+                'title' => $baseTitle,
+                'slug' => $slug,
                 'original_filename' => $originalFilename,
                 'width' => $width,
                 'height' => $height,
