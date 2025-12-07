@@ -22,7 +22,7 @@ class SitemapController extends Controller
 
         $categories = Category::select(['slug', 'updated_at'])->get();
 
-        $galleries = Gallery::where('status', 'published')
+        $galleries = Gallery::where('is_published', true)
             ->select(['slug', 'updated_at'])
             ->get();
 
