@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('value');
             $table->timestamps();
 
-            $table->unique(['translatable_type', 'translatable_id', 'locale', 'field']);
+            $table->unique(['translatable_type', 'translatable_id', 'locale', 'field'], 'translations_unique');
         });
 
         // Add locale preference to users
