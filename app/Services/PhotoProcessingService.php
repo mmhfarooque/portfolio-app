@@ -12,6 +12,7 @@ use Intervention\Image\Laravel\Facades\Image;
 use Intervention\Image\Interfaces\ImageInterface;
 use App\Services\LoggingService;
 use App\Services\AIImageService;
+use App\Services\ImageHashService;
 
 class PhotoProcessingService
 {
@@ -39,8 +40,177 @@ class PhotoProcessingService
         'fontSize' => 24,
     ];
 
+    protected ImageHashService $hashService;
+
+    public function __construct()
+    {
+        $this->hashService = new ImageHashService();
+    }
+
     /**
-     * Process an uploaded photo file.
+     * Check if an uploaded file is a duplicate.
+     * Returns the existing photo if duplicate found, null otherwise.
+     */
+    public function checkForDuplicate(UploadedFile $file, int $threshold = 5): ?Photo
+    {
+        $filePath = $file->getRealPath();
+
+        // Handle HEIC files - convert first for accurate hash
+        $mimeType = $file->getMimeType();
+        $isHeic = in_array($mimeType, ['image/heic', 'image/heif']) ||
+                  in_array(strtolower($file->getClientOriginalExtension()), ['heic', 'heif']);
+
+        $tempPath = null;
+        if ($isHeic) {
+            $tempPath = $this->convertHeicToJpeg($filePath);
+            if ($tempPath) {
+                $filePath = $tempPath;
+            }
+        }
+
+        $duplicate = $this->hashService->findDuplicate($filePath, $threshold);
+
+        // Clean up temp file
+        if ($tempPath && file_exists($tempPath)) {
+            @unlink($tempPath);
+        }
+
+        return $duplicate;
+    }
+
+    /**
+     * Check multiple files for duplicates.
+     * Returns array with 'duplicates' and 'valid' keys.
+     */
+    public function checkFilesForDuplicates(array $files, int $threshold = 5): array
+    {
+        $duplicates = [];
+        $valid = [];
+
+        foreach ($files as $index => $file) {
+            $duplicate = $this->checkForDuplicate($file, $threshold);
+            if ($duplicate) {
+                $duplicates[] = [
+                    'index' => $index,
+                    'filename' => $file->getClientOriginalName(),
+                    'existing_photo' => [
+                        'id' => $duplicate->id,
+                        'title' => $duplicate->title,
+                        'thumbnail' => $duplicate->thumbnail_path,
+                    ],
+                ];
+            } else {
+                $valid[] = $file;
+            }
+        }
+
+        return [
+            'duplicates' => $duplicates,
+            'valid' => $valid,
+        ];
+    }
+
+    /**
+     * Quick upload - creates photo record and prepares for background processing.
+     * Returns the photo and temp file path for the queue job.
+     */
+    public function quickUpload(UploadedFile $file, int $userId, ?int $categoryId = null): array
+    {
+        $originalFilename = $file->getClientOriginalName();
+
+        try {
+            // Handle HEIC/HEIF files - convert to JPEG first
+            $filePath = $file->getRealPath();
+            $mimeType = $file->getMimeType();
+            $isHeic = in_array($mimeType, ['image/heic', 'image/heif']) ||
+                      in_array(strtolower($file->getClientOriginalExtension()), ['heic', 'heif']);
+
+            $tempJpegPath = null;
+            if ($isHeic) {
+                $tempJpegPath = $this->convertHeicToJpeg($filePath);
+                if ($tempJpegPath) {
+                    $filePath = $tempJpegPath;
+                    LoggingService::debug('photo.heic_converted', "Converted HEIC to JPEG: {$originalFilename}");
+                }
+            }
+
+            // Get image dimensions
+            $image = Image::read($filePath);
+            $width = $image->width();
+            $height = $image->height();
+
+            // Extract EXIF data
+            $exifData = $this->extractExifData($file->getRealPath());
+
+            // Extract GPS coordinates
+            $gpsData = $this->extractGpsCoordinates($file->getRealPath());
+
+            // Reverse geocode to get location name if GPS data is available
+            $locationName = null;
+            if ($gpsData['latitude'] && $gpsData['longitude']) {
+                $locationName = $this->reverseGeocode($gpsData['latitude'], $gpsData['longitude']);
+            }
+
+            // Generate unique slug
+            $baseTitle = pathinfo($originalFilename, PATHINFO_FILENAME);
+            $baseSlug = Str::slug($baseTitle);
+            $slug = $baseSlug;
+            $counter = 1;
+            while (Photo::where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $counter;
+                $counter++;
+            }
+
+            // Create photo record with 'processing' status
+            $photo = Photo::create([
+                'title' => $baseTitle,
+                'slug' => $slug,
+                'original_filename' => $originalFilename,
+                'width' => $width,
+                'height' => $height,
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'exif_data' => $exifData,
+                'latitude' => $gpsData['latitude'],
+                'longitude' => $gpsData['longitude'],
+                'location_name' => $locationName,
+                'user_id' => $userId,
+                'category_id' => $categoryId,
+                'status' => 'processing',
+                'processing_stage' => 'queued',
+                'captured_at' => $this->getCaptureDate($exifData),
+            ]);
+
+            // Save temp file for background processing
+            // Use a unique temp file that persists for the job
+            $tempPath = storage_path('app/temp/' . Str::uuid() . '.tmp');
+            if (!is_dir(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            // Copy the file (use converted HEIC if applicable)
+            copy($filePath, $tempPath);
+
+            // Clean up temp HEIC conversion
+            if ($tempJpegPath && file_exists($tempJpegPath)) {
+                @unlink($tempJpegPath);
+            }
+
+            LoggingService::debug('photo.quick_upload', "Photo queued for processing: {$photo->id}");
+
+            return [
+                'photo' => $photo,
+                'temp_path' => $tempPath,
+                'original_filename' => $originalFilename,
+            ];
+        } catch (\Throwable $e) {
+            LoggingService::photoUploadFailed($originalFilename, $file->getSize(), $e);
+            throw $e;
+        }
+    }
+
+    /**
+     * Process an uploaded photo file (synchronous - full processing).
      */
     public function processUpload(UploadedFile $file, int $userId, ?int $categoryId = null): Photo
     {
@@ -120,6 +290,13 @@ class PhotoProcessingService
 
             // Generate different sizes
             $this->generateImageVersions($photo, $image, $filename);
+
+            // Generate and store image hashes for duplicate detection
+            $hashes = $this->hashService->generateHashes($filePath);
+            $photo->update([
+                'file_hash' => $hashes['file_hash'],
+                'image_hash' => $hashes['image_hash'],
+            ]);
 
             // Clean up temp file if we converted HEIC
             if ($tempJpegPath && file_exists($tempJpegPath)) {
@@ -807,6 +984,74 @@ class PhotoProcessingService
             "Deleted {$deletedCount} file(s) for photo: {$photo->title}",
             $photo,
             ['paths' => array_filter($paths)]
+        );
+    }
+
+    /**
+     * Process and store a "before" image for before/after comparison.
+     */
+    public function processBeforeImage(UploadedFile $file, Photo $photo): array
+    {
+        $displaySettings = $this->getDisplaySettings();
+
+        // Read the image
+        $image = Image::read($file->getRealPath());
+
+        // Resize for display
+        if ($image->width() > $displaySettings['width']) {
+            $image->scale(width: $displaySettings['width']);
+        }
+
+        // Generate unique filename based on original photo
+        $baseFilename = pathinfo($photo->display_path, PATHINFO_FILENAME);
+        $displayFilename = $baseFilename . '_before.webp';
+        $thumbnailFilename = $baseFilename . '_before_thumb.webp';
+
+        $displayPath = 'photos/' . $displayFilename;
+        $thumbnailPath = 'photos/' . $thumbnailFilename;
+
+        // Save display version
+        $image->toWebp($displaySettings['quality'])
+            ->save(storage_path('app/public/' . $displayPath));
+
+        // Create and save thumbnail
+        $thumbnail = Image::read($file->getRealPath());
+        $thumbnail->cover($this->thumbnailWidth, (int)($this->thumbnailWidth * 0.75));
+        $thumbnail->toWebp($this->thumbnailQuality)
+            ->save(storage_path('app/public/' . $thumbnailPath));
+
+        LoggingService::activity(
+            'photo.before_image_uploaded',
+            "Before image uploaded for photo: {$photo->title}",
+            $photo
+        );
+
+        return [
+            'display' => $displayPath,
+            'thumbnail' => $thumbnailPath,
+        ];
+    }
+
+    /**
+     * Delete before image files for a photo.
+     */
+    public function deleteBeforeImage(Photo $photo): void
+    {
+        $paths = [
+            $photo->before_display_path,
+            $photo->before_thumbnail_path,
+        ];
+
+        foreach ($paths as $path) {
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        LoggingService::activity(
+            'photo.before_image_deleted',
+            "Before image deleted for photo: {$photo->title}",
+            $photo
         );
     }
 

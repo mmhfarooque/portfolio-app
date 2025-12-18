@@ -16,7 +16,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach ($photos as $photo)
                         <a href="{{ route('photos.show', $photo) }}" class="group relative aspect-[4/3] overflow-hidden rounded-lg bg-gray-800">
-                            <img src="{{ asset('storage/' . $photo->thumbnail_path) }}" alt="{{ $photo->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
+                            <img src="{{ $photo->thumbnail_url }}" alt="{{ $photo->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition"></div>
                             <div class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition">
                                 <h3 class="text-lg font-medium">{{ $photo->title }}</h3>

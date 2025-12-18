@@ -61,6 +61,9 @@
                         <a href="{{ route('photos.index') }}" class="nav-theme-link transition whitespace-nowrap {{ request()->routeIs('photos.*') ? 'active text-theme-accent' : '' }}">
                             Photos
                         </a>
+                        <a href="{{ route('blog.index') }}" class="nav-theme-link transition whitespace-nowrap {{ request()->routeIs('blog.*') ? 'active text-theme-accent' : '' }}">
+                            Blog
+                        </a>
                         <a href="{{ route('contact') }}" class="nav-theme-link transition whitespace-nowrap {{ request()->routeIs('contact') ? 'text-theme-accent' : '' }}">
                             Contact
                         </a>
@@ -98,6 +101,7 @@
                     <div class="flex flex-col space-y-3">
                         <a href="{{ route('home') }}" class="nav-theme-link py-2 {{ request()->routeIs('home') ? 'text-theme-accent' : '' }}">Home</a>
                         <a href="{{ route('photos.index') }}" class="nav-theme-link py-2 {{ request()->routeIs('photos.*') ? 'text-theme-accent' : '' }}">Photos</a>
+                        <a href="{{ route('blog.index') }}" class="nav-theme-link py-2 {{ request()->routeIs('blog.*') ? 'text-theme-accent' : '' }}">Blog</a>
                         <a href="{{ route('contact') }}" class="nav-theme-link py-2 {{ request()->routeIs('contact') ? 'text-theme-accent' : '' }}">Contact</a>
                         @auth
                             <a href="{{ route('admin.photos.index') }}" class="nav-theme-link py-2">Admin</a>
@@ -130,6 +134,7 @@
                         <ul class="flex gap-6 text-theme-secondary">
                             <li><a href="{{ route('home') }}" class="hover:text-theme-accent transition">Home</a></li>
                             <li><a href="{{ route('photos.index') }}" class="hover:text-theme-accent transition">Gallery</a></li>
+                            <li><a href="{{ route('blog.index') }}" class="hover:text-theme-accent transition">Blog</a></li>
                             <li><a href="{{ route('contact') }}" class="hover:text-theme-accent transition">Contact</a></li>
                         </ul>
                     </div>

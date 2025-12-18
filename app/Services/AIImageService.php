@@ -10,7 +10,7 @@ class AIImageService
     protected ?string $provider;
     protected array $apiKeys = [];
     protected array $models = [
-        'google' => 'gemini-1.5-flash',
+        'google' => 'gemini-pro',
         'openai' => 'gpt-4o-mini',
         'claude' => 'claude-3-5-sonnet-20241022',
     ];

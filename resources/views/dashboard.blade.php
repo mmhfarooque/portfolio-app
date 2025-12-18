@@ -15,6 +15,15 @@
                     </svg>
                     Upload Photos
                 </a>
+                <a href="{{ route('admin.contacts.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition relative">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Messages
+                    @if($unreadContacts > 0)
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{{ $unreadContacts }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -97,21 +106,50 @@
                     </div>
                 </div>
 
-                <!-- Collections -->
+                <!-- Total Views -->
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-500">Collections</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $totalCategories + $totalGalleries }}</p>
+                            <p class="text-sm font-medium text-gray-500">Total Views</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-1">{{ number_format($totalViews) }}</p>
                             <p class="text-xs text-gray-400 mt-1">
-                                {{ $totalCategories }} categories, {{ $totalGalleries }} galleries
+                                {{ $downloadsCount }} downloads (30 days)
                             </p>
                         </div>
                         <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
                             <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Views Chart -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-900">Views (Last 30 Days)</h3>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-end justify-between h-32 gap-1">
+                        @php
+                            $maxViews = max(array_values($viewsChartData)) ?: 1;
+                        @endphp
+                        @foreach($viewsChartData as $date => $views)
+                            <div class="flex-1 flex flex-col items-center group relative">
+                                <div class="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
+                                     style="height: {{ ($views / $maxViews) * 100 }}%;"
+                                     title="{{ \Carbon\Carbon::parse($date)->format('M j') }}: {{ $views }} views"></div>
+                                <div class="hidden group-hover:block absolute -top-8 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                                    {{ \Carbon\Carbon::parse($date)->format('M j') }}: {{ $views }}
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="flex justify-between mt-2 text-xs text-gray-400">
+                        <span>{{ \Carbon\Carbon::now()->subDays(29)->format('M j') }}</span>
+                        <span>Today</span>
                     </div>
                 </div>
             </div>
@@ -191,6 +229,37 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Most Viewed Photos -->
+            @if($mostViewedPhotos->count() > 0)
+            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-900">Most Viewed Photos</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4">
+                        @foreach($mostViewedPhotos as $photo)
+                            <a href="{{ route('admin.photos.edit', $photo) }}" class="group">
+                                <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative">
+                                    <img src="{{ asset('storage/' . $photo->thumbnail_path) }}"
+                                        alt="{{ $photo->title }}"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                        <span class="text-white text-xs font-medium flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            {{ number_format($photo->views) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-600 mt-1 truncate">{{ $photo->title }}</p>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- Recent Activity -->
             <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100">

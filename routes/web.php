@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AboutController as AdminAboutController;
+use App\Http\Controllers\Admin\BackupController as AdminBackupController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FrontpageController as AdminFrontpageController;
@@ -9,11 +10,20 @@ use App\Http\Controllers\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Admin\PhotoController as AdminPhotoController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Admin\ContactController as AdminContactController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\BlogController;
+use App\Http\Controllers\ClientProofingController;
 use App\Http\Controllers\FrontPageController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\PrintController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ClientGalleryController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,12 +36,57 @@ Route::get('/photos/map', [GalleryController::class, 'map'])->name('photos.map')
 Route::get('/photo/{photo:slug}', [GalleryController::class, 'show'])->name('photos.show');
 Route::get('/category/{category:slug}', [GalleryController::class, 'category'])->name('category.show');
 Route::get('/gallery/{gallery:slug}', [GalleryController::class, 'gallery'])->name('gallery.show');
+Route::post('/gallery/{gallery:slug}/unlock', [GalleryController::class, 'verifyGalleryPassword'])->name('gallery.unlock');
 Route::get('/tag/{tag:slug}', [GalleryController::class, 'tag'])->name('tag.show');
+
+// Photo download routes
+Route::get('/photo/{photo:slug}/download/{format?}', [DownloadController::class, 'download'])
+    ->where('format', 'webp|jpeg|jpg')
+    ->name('photos.download');
+
+// Print store routes
+Route::get('/photo/{photo:slug}/print', [PrintController::class, 'show'])->name('print.options');
+Route::post('/photo/{photo:slug}/print/inquiry', [PrintController::class, 'inquiry'])->name('print.inquiry');
+Route::get('/api/print/products', [PrintController::class, 'products'])->name('print.products');
+
+// Checkout routes
+Route::get('/photo/{photo:slug}/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::post('/photo/{photo:slug}/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
+Route::get('/order/{order}/confirmation', [CheckoutController::class, 'confirm'])->name('order.confirmation');
+Route::post('/stripe/webhook', [CheckoutController::class, 'webhook'])->name('stripe.webhook');
+
+// Digital download route for licensed photos
+Route::get('/download/{order}', [CheckoutController::class, 'download'])->name('download.photo');
+
+// Client proofing routes (photo selection)
+Route::prefix('selections')->name('client.')->group(function () {
+    Route::get('/', [ClientProofingController::class, 'index'])->name('selections');
+    Route::get('/count', [ClientProofingController::class, 'count'])->name('count');
+    Route::post('/photo/{photo}/toggle', [ClientProofingController::class, 'toggle'])->name('toggle');
+    Route::get('/photo/{photo}/check', [ClientProofingController::class, 'check'])->name('check');
+    Route::post('/clear', [ClientProofingController::class, 'clear'])->name('clear');
+    Route::get('/export', [ClientProofingController::class, 'export'])->name('export');
+    Route::post('/send', [ClientProofingController::class, 'sendToPhotographer'])->name('send');
+});
+
+// Client gallery routes (token-based access)
+Route::prefix('client-gallery')->group(function () {
+    Route::get('/{token}', [ClientGalleryController::class, 'view'])->name('client-gallery.view');
+    Route::post('/{token}/password', [ClientGalleryController::class, 'verifyPassword'])->name('client-gallery.password');
+    Route::get('/{token}/download/{photo}', [ClientGalleryController::class, 'download'])->name('client-gallery.download');
+    Route::post('/{token}/toggle/{photo}', [ClientGalleryController::class, 'toggleSelection'])->name('client-gallery.toggle');
+    Route::get('/{token}/selections', [ClientGalleryController::class, 'getSelections'])->name('client-gallery.selections');
+    Route::post('/{token}/submit', [ClientGalleryController::class, 'submitSelections'])->name('client-gallery.submit');
+});
 
 // Static pages
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.send');
+
+// Blog/Stories routes
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{post:slug}', [BlogController::class, 'show'])->name('blog.show');
 
 // Sitemap
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
@@ -63,6 +118,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('photos/bulk-tags', [AdminPhotoController::class, 'bulkTags'])->name('photos.bulk-tags');
     Route::post('photos/reoptimize', [AdminPhotoController::class, 'reoptimize'])->name('photos.reoptimize');
     Route::get('photos/{photo}/suggest-slug', [AdminPhotoController::class, 'suggestSlug'])->name('photos.suggest-slug');
+    Route::get('photos/processing-status', [AdminPhotoController::class, 'processingStatus'])->name('photos.processing-status');
+    Route::post('photos/{photo}/retry', [AdminPhotoController::class, 'retryProcessing'])->name('photos.retry');
 
     // Categories
     Route::get('categories', [AdminCategoryController::class, 'index'])->name('categories.index');
@@ -90,6 +147,14 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('tags/{tag}', [AdminTagController::class, 'update'])->name('tags.update');
     Route::delete('tags/{tag}', [AdminTagController::class, 'destroy'])->name('tags.destroy');
 
+    // Blog Posts
+    Route::get('posts', [AdminPostController::class, 'index'])->name('posts.index');
+    Route::get('posts/create', [AdminPostController::class, 'create'])->name('posts.create');
+    Route::post('posts', [AdminPostController::class, 'store'])->name('posts.store');
+    Route::get('posts/{post}/edit', [AdminPostController::class, 'edit'])->name('posts.edit');
+    Route::put('posts/{post}', [AdminPostController::class, 'update'])->name('posts.update');
+    Route::delete('posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
+
     // Front Page Settings
     Route::get('frontpage', [AdminFrontpageController::class, 'index'])->name('frontpage.index');
     Route::put('frontpage', [AdminFrontpageController::class, 'update'])->name('frontpage.update');
@@ -97,6 +162,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Settings
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
     Route::put('settings', [AdminSettingController::class, 'update'])->name('settings.update');
+    Route::post('settings/theme', [AdminSettingController::class, 'updateTheme'])->name('settings.update-theme');
     Route::post('settings/validate-ai-api', [AdminSettingController::class, 'validateAiApiKey'])->name('settings.validate-ai-api');
     Route::post('settings/regenerate-watermarks', [AdminSettingController::class, 'regenerateWatermarks'])->name('settings.regenerate-watermarks');
 
@@ -112,8 +178,29 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('logs/clear', [AdminLogController::class, 'clear'])->name('logs.clear');
     Route::delete('logs/{log}', [AdminLogController::class, 'destroy'])->name('logs.destroy');
 
+    // Contacts
+    Route::get('contacts', [AdminContactController::class, 'index'])->name('contacts.index');
+    Route::get('contacts/{contact}', [AdminContactController::class, 'show'])->name('contacts.show');
+    Route::patch('contacts/{contact}/status', [AdminContactController::class, 'updateStatus'])->name('contacts.update-status');
+    Route::delete('contacts/{contact}', [AdminContactController::class, 'destroy'])->name('contacts.destroy');
+    Route::post('contacts/bulk-delete', [AdminContactController::class, 'bulkDelete'])->name('contacts.bulk-delete');
+    Route::post('contacts/archive-old', [AdminContactController::class, 'archiveOld'])->name('contacts.archive-old');
+
+    // Orders
+    Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
+    Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+    Route::patch('orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status');
+    Route::post('orders/{order}/ship', [AdminOrderController::class, 'ship'])->name('orders.ship');
+    Route::post('orders/{order}/note', [AdminOrderController::class, 'addNote'])->name('orders.note');
+
     // Media Library API
     Route::get('media/photos', [AdminMediaController::class, 'photos'])->name('media.photos');
+
+    // Backup
+    Route::get('backup', [AdminBackupController::class, 'index'])->name('backup.index');
+    Route::post('backup/run', [AdminBackupController::class, 'runBackup'])->name('backup.run');
+    Route::post('backup/test', [AdminBackupController::class, 'testConnection'])->name('backup.test');
+    Route::get('backup/list', [AdminBackupController::class, 'listBackups'])->name('backup.list');
 });
 
 require __DIR__.'/auth.php';

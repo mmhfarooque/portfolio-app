@@ -144,6 +144,33 @@ class SettingController extends Controller
     }
 
     /**
+     * Update theme via AJAX (dedicated POST endpoint).
+     */
+    public function updateTheme(Request $request)
+    {
+        $theme = $request->input('site_theme');
+
+        if (!$theme) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No theme specified'
+            ], 400);
+        }
+
+        $this->themeService->setTheme($theme);
+        Setting::clearCache();
+        Cache::forget('site_theme');
+
+        LoggingService::settingsUpdated(['site_theme']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Theme applied successfully',
+            'theme' => $theme
+        ]);
+    }
+
+    /**
      * Validate AI API key for any provider.
      */
     public function validateAiApiKey(Request $request)

@@ -174,10 +174,15 @@ class GalleryController extends Controller
     /**
      * Display a public gallery.
      */
-    public function gallery(Gallery $gallery)
+    public function gallery(Request $request, Gallery $gallery)
     {
         if (!$gallery->is_published) {
             abort(404);
+        }
+
+        // Check if gallery is password protected
+        if ($gallery->isPasswordProtected() && !$gallery->hasAccess()) {
+            return view('gallery.password', compact('gallery'));
         }
 
         $photos = $gallery->photos()
@@ -186,6 +191,23 @@ class GalleryController extends Controller
             ->paginate(24);
 
         return view('gallery.gallery', compact('gallery', 'photos'));
+    }
+
+    /**
+     * Verify gallery password.
+     */
+    public function verifyGalleryPassword(Request $request, Gallery $gallery)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if ($gallery->verifyPassword($request->password)) {
+            $gallery->grantAccess();
+            return redirect()->route('gallery.show', $gallery);
+        }
+
+        return back()->withErrors(['password' => 'Incorrect password. Please try again.']);
     }
 
     /**

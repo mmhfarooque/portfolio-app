@@ -99,13 +99,24 @@
                 <!-- Contact Form -->
                 <div class="bg-theme-card border border-theme rounded-lg p-6">
                     @if (session('success'))
-                        <div class="mb-6 bg-theme-success/10 border border-theme-success text-theme-success px-4 py-3 rounded">
+                        <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
                             {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                            {{ session('error') }}
                         </div>
                     @endif
 
                     <form method="POST" action="{{ route('contact.send') }}">
                         @csrf
+
+                        <!-- Honeypot field - hidden from humans, bots will fill it -->
+                        <div class="absolute -left-[9999px]" aria-hidden="true">
+                            <input type="text" name="website_url" tabindex="-1" autocomplete="off">
+                        </div>
 
                         <div class="mb-4">
                             <label for="name" class="block text-sm font-medium text-theme-secondary mb-2">Name</label>

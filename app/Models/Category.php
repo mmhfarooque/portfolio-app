@@ -39,4 +39,20 @@ class Category extends Model
     {
         $this->update(['photo_count' => $this->publishedPhotos()->count()]);
     }
+
+    /**
+     * Get the posts for this category.
+     */
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    /**
+     * Get published posts for this category.
+     */
+    public function publishedPosts(): HasMany
+    {
+        return $this->hasMany(Post::class)->where('status', 'published');
+    }
 }
