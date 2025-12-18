@@ -387,10 +387,24 @@
                             }
                         });
 
-                        // Success
-                        fileData.status = 'done';
-                        overlay.classList.add('hidden');
-                        fileData.element.querySelector('.done-overlay').classList.remove('hidden');
+                        // Success or skipped
+                        if (fileData.status !== 'skipped') {
+                            fileData.status = 'done';
+                            overlay.classList.add('hidden');
+                            fileData.element.querySelector('.done-overlay').classList.remove('hidden');
+                        } else {
+                            // Show skipped state (yellow/warning)
+                            overlay.classList.add('hidden');
+                            const errorOverlay = fileData.element.querySelector('.error-overlay');
+                            errorOverlay.classList.remove('hidden');
+                            errorOverlay.classList.remove('bg-red-500/20');
+                            errorOverlay.classList.add('bg-yellow-500/20');
+                            const circle = errorOverlay.querySelector('.bg-red-500');
+                            if (circle) {
+                                circle.classList.remove('bg-red-500');
+                                circle.classList.add('bg-yellow-500');
+                            }
+                        }
 
                     } catch (error) {
                         console.error('Upload error:', error);
@@ -405,10 +419,23 @@
                     progressPercent.textContent = `${percent}%`;
                 }
 
-                // All done
+                // All done - show notification if there were any issues
+                const successCount = files.filter(f => f.status === 'done').length;
+                const errorCount = files.filter(f => f.status === 'error').length;
+                const skippedCount = files.filter(f => f.status === 'skipped').length;
+
+                if (skippedCount > 0 || errorCount > 0) {
+                    const skippedFiles = files.filter(f => f.status === 'skipped');
+                    if (skippedFiles.length > 0) {
+                        const skippedNames = skippedFiles.map(f => f.skipReason || f.file.name);
+                        window.showNotification('warning', `${skippedCount} Duplicate(s) Skipped`,
+                            'These files were not uploaded because they already exist:', skippedNames, 10000);
+                    }
+                }
+
                 setTimeout(() => {
                     window.location.href = '{{ route("admin.photos.index") }}';
-                }, 1000);
+                }, skippedCount > 0 ? 3000 : 1000);
             }
 
             function uploadFile(fileData, categoryId, csrfToken, onProgress) {
@@ -431,7 +458,21 @@
 
                     xhr.addEventListener('load', () => {
                         if (xhr.status >= 200 && xhr.status < 400) {
-                            resolve(xhr.response);
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                // Check if this file was skipped as duplicate
+                                if (response.skipped > 0 && response.skipped_files && response.skipped_files.length > 0) {
+                                    const skippedFile = response.skipped_files[0];
+                                    fileData.status = 'skipped';
+                                    fileData.skipReason = `${skippedFile.filename} (matches: ${skippedFile.existing_photo.title})`;
+                                    resolve({ skipped: true, response });
+                                } else {
+                                    resolve({ skipped: false, response });
+                                }
+                            } catch (e) {
+                                // Not JSON, treat as success
+                                resolve({ skipped: false });
+                            }
                         } else {
                             reject(new Error(`Upload failed: ${xhr.status}`));
                         }
@@ -443,6 +484,7 @@
 
                     xhr.open('POST', '{{ route("admin.photos.store") }}');
                     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                    xhr.setRequestHeader('Accept', 'application/json');
                     xhr.send(formData);
                 });
             }

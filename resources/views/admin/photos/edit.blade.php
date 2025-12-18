@@ -96,7 +96,7 @@
                             </div>
                         @endif
 
-                        <form method="POST" action="{{ route('admin.photos.update', $photo) }}">
+                        <form method="POST" action="{{ route('admin.photos.update', $photo) }}" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
 
@@ -277,6 +277,49 @@
                                     </label>
                                     <textarea name="meta_description" id="meta_description" rows="2" maxlength="160" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Custom description for search results (max 160 chars)">{{ old('meta_description', $photo->meta_description) }}</textarea>
                                     <p class="mt-1 text-xs text-gray-500">Leave blank to use the short description</p>
+                                </div>
+                            </div>
+
+                            <!-- Before/After Comparison Image -->
+                            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
+                                    </svg>
+                                    Before/After Comparison (Optional)
+                                </h3>
+
+                                @if ($photo->hasBeforeImage())
+                                    <div class="mb-4">
+                                        <p class="text-sm text-green-600 mb-2">
+                                            <svg class="inline w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Before image uploaded
+                                        </p>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-xs text-gray-500 mb-1">Before</p>
+                                                <img src="{{ asset('storage/' . $photo->before_display_path) }}" alt="Before" class="w-full h-32 object-cover rounded border">
+                                            </div>
+                                            <div>
+                                                <p class="text-xs text-gray-500 mb-1">After (Current)</p>
+                                                <img src="{{ asset('storage/' . $photo->display_path) }}" alt="After" class="w-full h-32 object-cover rounded border">
+                                            </div>
+                                        </div>
+                                        <label class="inline-flex items-center mt-3">
+                                            <input type="checkbox" name="remove_before_image" value="1" class="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-500 focus:ring-red-500">
+                                            <span class="ml-2 text-sm text-red-600">Remove before image</span>
+                                        </label>
+                                    </div>
+                                @endif
+
+                                <div>
+                                    <label for="before_image" class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ $photo->hasBeforeImage() ? 'Replace Before Image' : 'Upload Before Image' }}
+                                    </label>
+                                    <input type="file" name="before_image" id="before_image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    <p class="mt-1 text-xs text-gray-500">Upload the "before" version of this photo to enable a comparison slider on the public page.</p>
                                 </div>
                             </div>
 

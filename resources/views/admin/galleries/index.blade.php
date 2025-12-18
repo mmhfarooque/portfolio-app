@@ -38,13 +38,21 @@
                                     <div class="p-4">
                                         <h3 class="font-medium text-gray-900">{{ $gallery->name }}</h3>
                                         <p class="text-sm text-gray-500 mt-1">{{ $gallery->photos_count }} photos</p>
-                                        <div class="flex items-center gap-2 mt-2">
+                                        <div class="flex items-center gap-2 mt-2 flex-wrap">
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $gallery->is_published ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                                 {{ $gallery->is_published ? 'Published' : 'Draft' }}
                                             </span>
                                             @if ($gallery->is_featured)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                                                     Featured
+                                                </span>
+                                            @endif
+                                            @if ($gallery->isPasswordProtected())
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    Protected
                                                 </span>
                                             @endif
                                         </div>

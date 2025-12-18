@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Photo;
 use App\Models\Category;
+use App\Models\Contact;
 use App\Models\Gallery;
 use App\Models\Tag;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
@@ -60,6 +62,55 @@ class DashboardController extends Controller
             ? round((($photosThisMonth - $photosLastMonth) / $photosLastMonth) * 100, 1)
             : ($photosThisMonth > 0 ? 100 : 0);
 
+        // ===== VIEW ANALYTICS =====
+
+        // Total views
+        $totalViews = Photo::sum('views');
+
+        // Most viewed photos (top 10)
+        $mostViewedPhotos = Photo::with('category')
+            ->where('views', '>', 0)
+            ->orderByDesc('views')
+            ->take(10)
+            ->get();
+
+        // Views by category
+        $viewsByCategory = Category::select('categories.id', 'categories.name')
+            ->selectRaw('COALESCE(SUM(photos.views), 0) as total_views')
+            ->leftJoin('photos', 'categories.id', '=', 'photos.category_id')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('total_views')
+            ->take(5)
+            ->get();
+
+        // Views over last 30 days (from activity log)
+        $viewsOverTime = ActivityLog::where('action', 'photo_viewed')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as views')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->pluck('views', 'date')
+            ->toArray();
+
+        // Fill in missing days with 0
+        $viewsChartData = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $viewsChartData[$date] = $viewsOverTime[$date] ?? 0;
+        }
+
+        // Unread contacts count (if table exists)
+        $unreadContacts = 0;
+        if (Schema::hasTable('contacts')) {
+            $unreadContacts = Contact::where('status', 'new')->count();
+        }
+
+        // Downloads count (last 30 days)
+        $downloadsCount = ActivityLog::where('action', 'photo_downloaded')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->count();
+
         return view('dashboard', compact(
             'totalPhotos',
             'publishedPhotos',
@@ -73,7 +124,14 @@ class DashboardController extends Controller
             'recentActivity',
             'photosThisMonth',
             'photosLastMonth',
-            'growthPercent'
+            'growthPercent',
+            // New analytics
+            'totalViews',
+            'mostViewedPhotos',
+            'viewsByCategory',
+            'viewsChartData',
+            'unreadContacts',
+            'downloadsCount'
         ));
     }
 

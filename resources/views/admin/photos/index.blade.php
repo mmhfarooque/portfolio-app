@@ -29,6 +29,34 @@
                 </div>
             @endif
 
+            @if (session('info'))
+                <div class="mb-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                    {{ session('info') }}
+                </div>
+            @endif
+
+            <!-- Processing Status Banner -->
+            <div x-data="processingStatus()" x-show="processingCount > 0 || failedCount > 0" x-cloak class="mb-4">
+                <div x-show="processingCount > 0" class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-2 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span><span x-text="processingCount"></span> photo(s) processing in the background...</span>
+                    </div>
+                    <button @click="refreshStatus" class="text-sm text-yellow-600 hover:text-yellow-800 underline">Refresh</button>
+                </div>
+                <div x-show="failedCount > 0" class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span><span x-text="failedCount"></span> photo(s) failed to process. Edit them to retry or delete.</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filters -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6">
@@ -39,6 +67,8 @@
                                 <option value="">All</option>
                                 <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
                                 <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>Published</option>
+                                <option value="processing" {{ request('status') === 'processing' ? 'selected' : '' }}>Processing</option>
+                                <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Failed</option>
                             </select>
                         </div>
                         <div>
@@ -133,9 +163,30 @@
                                     <div class="mt-2">
                                         <p class="text-sm font-medium text-gray-900 truncate">{{ $photo->title }}</p>
                                         <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $photo->status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-                                                {{ ucfirst($photo->status) }}
-                                            </span>
+                                            @if ($photo->status === 'processing')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">
+                                                    <svg class="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    {{ $photo->processing_stage_text ?? 'Processing' }}
+                                                </span>
+                                            @elseif ($photo->status === 'failed')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                    Failed
+                                                </span>
+                                            @elseif ($photo->status === 'published')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                    Published
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    Draft
+                                                </span>
+                                            @endif
                                             @if ($photo->is_featured)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                                                     Featured
@@ -413,6 +464,48 @@
                 showModal(type) {
                     if (this.selectedCount > 0) {
                         this.activeModal = type;
+                    }
+                }
+            }
+        }
+
+        function processingStatus() {
+            return {
+                processingCount: 0,
+                failedCount: 0,
+                photos: [],
+                pollInterval: null,
+
+                init() {
+                    this.refreshStatus();
+                    // Poll every 5 seconds while there are processing photos
+                    this.pollInterval = setInterval(() => {
+                        if (this.processingCount > 0) {
+                            this.refreshStatus();
+                        }
+                    }, 5000);
+                },
+
+                async refreshStatus() {
+                    try {
+                        const response = await fetch('{{ route("admin.photos.processing-status") }}');
+                        const data = await response.json();
+                        this.processingCount = data.processing_count;
+                        this.failedCount = data.failed_count;
+                        this.photos = data.photos;
+
+                        // If processing is done and we had processing photos, refresh the page
+                        if (this.processingCount === 0 && this.photos.length > 0 && this.photos.some(p => p.is_complete)) {
+                            window.location.reload();
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch processing status:', e);
+                    }
+                },
+
+                destroy() {
+                    if (this.pollInterval) {
+                        clearInterval(this.pollInterval);
                     }
                 }
             }

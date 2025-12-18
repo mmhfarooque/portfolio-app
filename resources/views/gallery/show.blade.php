@@ -194,17 +194,150 @@
         </div>
 
         <!-- Photo Display -->
-        <div class="relative bg-black">
+        <div class="relative bg-black" x-data="imageModal()">
             <div class="max-w-7xl mx-auto">
                 <div class="relative aspect-[16/10] md:aspect-[16/9]">
-                    <img src="{{ asset('storage/' . ($photo->watermarked_path ?? $photo->display_path)) }}"
+                    <img src="{{ $photo->primary_url }}"
                          alt="{{ $photo->title }}"
                          class="w-full h-full object-contain cursor-zoom-in"
                          id="main-photo"
-                         data-full="{{ asset('storage/' . ($photo->watermarked_path ?? $photo->display_path)) }}">
+                         @click="openModal()"
+                         data-full="{{ $photo->primary_url }}">
+                </div>
+            </div>
+
+            <!-- Image Modal (Popup) -->
+            <div x-show="isOpen"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 @keydown.escape.window="closeModal()"
+                 @keydown.left.window="navigatePrev()"
+                 @keydown.right.window="navigateNext()"
+                 class="fixed inset-0 z-50 flex items-center justify-center"
+                 style="display: none;">
+
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-black/95" @click="closeModal()"></div>
+
+                <!-- Modal Content -->
+                <div class="relative z-10 w-full h-full flex items-center justify-center p-4 md:p-8">
+                    <!-- Close Button -->
+                    <button @click="closeModal()"
+                            class="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+
+                    <!-- Previous Button -->
+                    @if ($previousPhoto)
+                    <a href="{{ route('photos.show', $previousPhoto) }}"
+                       class="absolute left-4 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </a>
+                    @endif
+
+                    <!-- Next Button -->
+                    @if ($nextPhoto)
+                    <a href="{{ route('photos.show', $nextPhoto) }}"
+                       class="absolute right-4 z-20 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    @endif
+
+                    <!-- Image Container with Zoom -->
+                    <div class="max-w-full max-h-full overflow-auto"
+                         :class="{ 'cursor-zoom-out': isZoomed, 'cursor-zoom-in': !isZoomed }"
+                         @click="toggleZoom($event)">
+                        <img :src="imageSrc"
+                             :alt="imageAlt"
+                             class="max-w-none transition-transform duration-200"
+                             :style="isZoomed ? 'transform: scale(1.5)' : 'transform: scale(1); max-width: 90vw; max-height: 90vh; object-fit: contain;'"
+                             @load="imageLoaded = true">
+                    </div>
+
+                    <!-- Photo Title -->
+                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 text-center">
+                        <h3 class="text-white text-lg font-medium bg-black/50 px-4 py-2 rounded-lg">
+                            {{ $photo->title }}
+                        </h3>
+                        <p class="text-white/70 text-sm mt-1">Press ESC to close, Arrow keys to navigate</p>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <script>
+            function imageModal() {
+                return {
+                    isOpen: false,
+                    isZoomed: false,
+                    imageLoaded: false,
+                    imageSrc: '{{ $photo->primary_url }}',
+                    imageAlt: '{{ $photo->title }}',
+
+                    openModal() {
+                        this.isOpen = true;
+                        this.isZoomed = false;
+                        document.body.style.overflow = 'hidden';
+                    },
+
+                    closeModal() {
+                        this.isOpen = false;
+                        this.isZoomed = false;
+                        document.body.style.overflow = '';
+                    },
+
+                    toggleZoom(event) {
+                        if (event.target.tagName === 'IMG') {
+                            this.isZoomed = !this.isZoomed;
+                        }
+                    },
+
+                    navigatePrev() {
+                        if (this.isOpen) {
+                            @if ($previousPhoto)
+                            window.location.href = '{{ route('photos.show', $previousPhoto) }}';
+                            @endif
+                        }
+                    },
+
+                    navigateNext() {
+                        if (this.isOpen) {
+                            @if ($nextPhoto)
+                            window.location.href = '{{ route('photos.show', $nextPhoto) }}';
+                            @endif
+                        }
+                    }
+                }
+            }
+        </script>
+
+        <!-- Before/After Comparison Slider -->
+        @if ($photo->hasBeforeImage())
+            <div class="max-w-7xl mx-auto px-4 py-8">
+                <h2 class="text-xl font-semibold mb-4 flex items-center text-theme-primary">
+                    <svg class="w-5 h-5 mr-2 text-theme-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
+                    </svg>
+                    Before & After Comparison
+                </h2>
+                <x-before-after-slider
+                    :before-image="$photo->before_display_url"
+                    :after-image="$photo->primary_url"
+                    before-label="Before"
+                    after-label="After"
+                />
+            </div>
+        @endif
 
         <!-- Photo Info -->
         <div class="max-w-4xl mx-auto px-4 py-12">
@@ -298,7 +431,29 @@
                 </div>
 
                 <!-- Sidebar -->
-                <div class="space-y-6">
+                <div class="space-y-6" x-data="photoSelection({{ $photo->id }}, {{ $photo->gallery_id ?? 'null' }})">
+                    <!-- Add to Selections Button -->
+                    <div class="bg-theme-card border border-theme rounded-lg p-6">
+                        <button @click="toggleSelection()"
+                                :class="isSelected ? 'bg-red-500 text-white border-red-500' : 'border-theme-accent text-theme-accent hover:bg-theme-accent hover:text-white'"
+                                class="w-full flex items-center justify-center gap-2 py-3 px-4 border-2 rounded-lg font-medium transition">
+                            <svg class="w-5 h-5" :fill="isSelected ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                            <span x-text="isSelected ? 'Remove from Selections' : 'Add to Selections'"></span>
+                        </button>
+
+                        <template x-if="selectionCount > 0">
+                            <a href="{{ route('client.selections') }}"
+                               class="mt-3 flex items-center justify-center gap-2 text-sm text-theme-accent hover:underline">
+                                <span x-text="'View ' + selectionCount + ' selected photos'"></span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                        </template>
+                    </div>
+
                     <!-- Share Buttons -->
                     <div class="bg-theme-card border border-theme rounded-lg p-6">
                         <h3 class="text-lg font-medium mb-4 text-theme-primary">Share This Photo</h3>
@@ -460,6 +615,58 @@
                             @endif
                         </dl>
                     </div>
+
+                    <!-- Download Options -->
+                    <div class="bg-theme-card border border-theme rounded-lg p-6" x-data="{ showOptions: false }">
+                        <h3 class="text-lg font-medium mb-4 flex items-center text-theme-primary">
+                            <svg class="w-5 h-5 mr-2 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download Photo
+                        </h3>
+
+                        <div class="space-y-2">
+                            <a href="{{ route('photos.download', ['photo' => $photo, 'format' => 'webp']) }}"
+                               class="flex items-center justify-between w-full px-4 py-2 text-sm rounded-lg bg-theme-tertiary hover:bg-theme-hover text-theme-secondary hover:text-theme-primary transition">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    WebP Format
+                                </span>
+                                <span class="text-xs text-theme-muted">Smaller file</span>
+                            </a>
+
+                            <a href="{{ route('photos.download', ['photo' => $photo, 'format' => 'jpeg']) }}"
+                               class="flex items-center justify-between w-full px-4 py-2 text-sm rounded-lg bg-theme-tertiary hover:bg-theme-hover text-theme-secondary hover:text-theme-primary transition">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    JPEG Format
+                                </span>
+                                <span class="text-xs text-theme-muted">Compatible</span>
+                            </a>
+                        </div>
+
+                        <p class="mt-3 text-xs text-theme-muted">
+                            Downloads include watermark. Max 10 downloads/hour.
+                        </p>
+                    </div>
+
+                    <!-- Buy Print -->
+                    <div class="bg-theme-card border border-theme rounded-lg p-6">
+                        <h3 class="text-lg font-medium mb-4 flex items-center text-theme-primary">
+                            <svg class="w-5 h-5 mr-2 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Buy a Print
+                        </h3>
+                        <p class="text-sm text-theme-muted mb-4">Get this photograph as a museum-quality print for your home or office.</p>
+                        <a href="{{ route('print.options', $photo) }}" class="block w-full text-center btn-theme-primary py-3 rounded-lg font-medium transition">
+                            View Print Options
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -470,7 +677,7 @@
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         @foreach ($relatedPhotos as $relatedPhoto)
                             <a href="{{ route('photos.show', $relatedPhoto) }}" class="group relative aspect-[4/3] overflow-hidden rounded-lg">
-                                <img src="{{ asset('storage/' . $relatedPhoto->thumbnail_path) }}"
+                                <img src="{{ $relatedPhoto->thumbnail_url }}"
                                      alt="{{ $relatedPhoto->title }}"
                                      class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                      loading="lazy">
@@ -495,6 +702,52 @@
                 document.getElementById('copy-icon').classList.remove('hidden');
                 document.getElementById('check-icon').classList.add('hidden');
             }, 2000);
+        }
+
+        function photoSelection(photoId, galleryId) {
+            return {
+                photoId: photoId,
+                galleryId: galleryId,
+                isSelected: false,
+                selectionCount: 0,
+
+                init() {
+                    this.checkSelection();
+                    this.loadSelectionCount();
+                },
+
+                checkSelection() {
+                    fetch(`/selections/photo/${this.photoId}/check`)
+                        .then(response => response.json())
+                        .then(data => {
+                            this.isSelected = data.selected;
+                        });
+                },
+
+                loadSelectionCount() {
+                    fetch('/selections/count')
+                        .then(response => response.json())
+                        .then(data => {
+                            this.selectionCount = data.count;
+                        });
+                },
+
+                toggleSelection() {
+                    fetch(`/selections/photo/${this.photoId}/toggle`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ gallery_id: this.galleryId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        this.isSelected = data.selected;
+                        this.selectionCount = data.count;
+                    });
+                }
+            }
         }
     </script>
 

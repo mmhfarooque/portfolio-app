@@ -7,6 +7,25 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Settings Sub-Navigation -->
+            <div class="mb-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-4 flex flex-wrap gap-4">
+                    <a href="{{ route('admin.settings.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        General Settings
+                    </a>
+                    <a href="{{ route('admin.backup.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Backup
+                    </a>
+                </div>
+            </div>
+
             @if (session('success'))
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
                     {{ session('success') }}
@@ -41,6 +60,13 @@
                                     </svg>
                                     Theme Saved!
                                 </span>
+                                <!-- Save Theme Button - submits main form -->
+                                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Save Theme
+                                </button>
                                 <a href="{{ route('home') }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -532,7 +558,7 @@
                                                 </div>
                                                 <div>
                                                     <p class="font-medium text-gray-900">Google AI</p>
-                                                    <p class="text-xs text-gray-500">Gemini 1.5 Flash</p>
+                                                    <p class="text-xs text-gray-500">Gemini Pro</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -875,19 +901,32 @@
                     this.justApplied = false;
 
                     try {
-                        const response = await fetch('{{ route("admin.settings.update") }}', {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                        if (!csrfToken) {
+                            alert('CSRF token not found. Please refresh the page.');
+                            this.saving = false;
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append('site_theme', themeKey);
+
+                        const response = await fetch('{{ route("admin.settings.update-theme") }}', {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
+                                'X-CSRF-TOKEN': csrfToken.content,
+                                'Accept': 'application/json'
                             },
-                            body: JSON.stringify({
-                                _method: 'PUT',
-                                site_theme: themeKey
-                            })
+                            body: formData
                         });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error('Theme save failed:', response.status, errorText);
+                            alert('Failed to save theme. Please try the Save Settings button at the bottom.');
+                            this.saving = false;
+                            return;
+                        }
 
                         this.saving = false;
 
@@ -899,6 +938,7 @@
 
                     } catch (error) {
                         console.error('Error applying theme:', error);
+                        alert('Network error. Please check your connection and try again.');
                         this.saving = false;
                     }
                 }

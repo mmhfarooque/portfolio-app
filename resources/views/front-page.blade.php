@@ -239,7 +239,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     @foreach ($featuredPhotos as $photo)
                         <a href="{{ route('photos.show', $photo) }}" class="group relative aspect-[4/3] overflow-hidden rounded-lg bg-theme-tertiary">
-                            <img src="{{ asset('storage/' . $photo->thumbnail_path) }}"
+                            <img src="{{ $photo->thumbnail_url }}"
                                  alt="{{ $photo->title }}"
                                  class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                  loading="lazy">

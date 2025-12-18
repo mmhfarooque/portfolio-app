@@ -27,4 +27,20 @@ class Tag extends Model
     {
         return $this->belongsToMany(Photo::class)->where('status', 'published');
     }
+
+    /**
+     * Get the posts with this tag.
+     */
+    public function posts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class);
+    }
+
+    /**
+     * Get published posts with this tag.
+     */
+    public function publishedPosts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class)->where('status', 'published');
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessPhotoUpload;
 use App\Models\Category;
 use App\Models\Gallery;
 use App\Models\Photo;
@@ -73,20 +74,104 @@ class PhotoController extends Controller
             'category_id' => 'nullable|exists:categories,id',
         ]);
 
+        $files = $request->file('photos');
         $uploadedCount = 0;
+        $queuedCount = 0;
+        $skippedDuplicates = [];
+        $queuedPhotoIds = [];
 
-        foreach ($request->file('photos') as $file) {
-            $this->photoService->processUpload(
-                $file,
-                auth()->id(),
-                $request->category_id
-            );
-            $uploadedCount++;
+        // Check for duplicates
+        $duplicateCheck = $this->photoService->checkFilesForDuplicates($files);
+        $skippedDuplicates = $duplicateCheck['duplicates'];
+        $filesToUpload = $duplicateCheck['valid'];
+
+        // Determine processing mode (async by default when queue is configured)
+        $useQueue = config('queue.default') !== 'sync';
+
+        // Process valid (non-duplicate) files
+        foreach ($filesToUpload as $file) {
+            try {
+                if ($useQueue) {
+                    // Quick upload: create record immediately, process in background
+                    $result = $this->photoService->quickUpload(
+                        $file,
+                        auth()->id(),
+                        $request->category_id
+                    );
+
+                    // Dispatch job for background processing
+                    ProcessPhotoUpload::dispatch(
+                        $result['photo'],
+                        $result['temp_path'],
+                        $result['original_filename']
+                    );
+
+                    $queuedCount++;
+                    $queuedPhotoIds[] = $result['photo']->id;
+                } else {
+                    // Synchronous processing (when queue is set to 'sync')
+                    $this->photoService->processUpload(
+                        $file,
+                        auth()->id(),
+                        $request->category_id
+                    );
+                    $uploadedCount++;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Photo upload failed', [
+                    'file' => $file->getClientOriginalName(),
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
-        return redirect()
-            ->route('admin.photos.index')
-            ->with('success', "{$uploadedCount} photo(s) uploaded successfully.");
+        // Prepare response message
+        if ($useQueue && $queuedCount > 0) {
+            $message = "{$queuedCount} photo(s) queued for processing.";
+        } else {
+            $message = "{$uploadedCount} photo(s) uploaded successfully.";
+        }
+
+        $notification = null;
+
+        if (count($skippedDuplicates) > 0) {
+            $skippedNames = array_map(fn($d) => $d['filename'] . ' (matches: ' . $d['existing_photo']['title'] . ')', $skippedDuplicates);
+            $message .= " " . count($skippedDuplicates) . " duplicate(s) skipped.";
+
+            $notification = [
+                'type' => 'warning',
+                'title' => count($skippedDuplicates) . ' Duplicate(s) Skipped',
+                'message' => 'The following files were not uploaded because they appear to already exist in your library:',
+                'details' => $skippedNames,
+                'duration' => 10000, // 10 seconds for longer notice
+            ];
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'uploaded' => $uploadedCount,
+                'queued' => $queuedCount,
+                'queued_photo_ids' => $queuedPhotoIds,
+                'skipped' => count($skippedDuplicates),
+                'skipped_files' => $skippedDuplicates,
+                'message' => $message,
+                'processing_mode' => $useQueue ? 'async' : 'sync',
+            ]);
+        }
+
+        $redirect = redirect()->route('admin.photos.index')->with('success', $message);
+
+        if ($notification) {
+            $redirect->with('notification', $notification);
+        }
+
+        // Add info about processing if using queue
+        if ($useQueue && $queuedCount > 0) {
+            $redirect->with('info', 'Photos are being processed in the background. Refresh the page to see updated status.');
+        }
+
+        return $redirect;
     }
 
     /**
@@ -140,10 +225,40 @@ class PhotoController extends Controller
             'is_featured' => 'boolean',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
+            'before_image' => 'nullable|image|max:51200', // 50MB max
+            'remove_before_image' => 'boolean',
         ], [
             'slug.regex' => 'The slug may only contain lowercase letters, numbers, and hyphens.',
             'slug.unique' => 'This URL slug is already taken. Please choose a different one.',
         ]);
+
+        // Handle before image removal
+        if ($request->boolean('remove_before_image') && $photo->hasBeforeImage()) {
+            $this->photoService->deleteBeforeImage($photo);
+            $photo->update([
+                'before_display_path' => null,
+                'before_thumbnail_path' => null,
+            ]);
+        }
+
+        // Handle before image upload
+        if ($request->hasFile('before_image')) {
+            // Delete old before image if exists
+            if ($photo->hasBeforeImage()) {
+                $this->photoService->deleteBeforeImage($photo);
+            }
+
+            // Process and store the before image
+            $beforePaths = $this->photoService->processBeforeImage(
+                $request->file('before_image'),
+                $photo
+            );
+
+            $photo->update([
+                'before_display_path' => $beforePaths['display'],
+                'before_thumbnail_path' => $beforePaths['thumbnail'],
+            ]);
+        }
 
         $photo->update([
             'title' => $validated['title'],
@@ -562,5 +677,120 @@ class PhotoController extends Controller
             'message' => 'Photo updated successfully',
             'photo' => $photo->fresh(['category', 'gallery', 'tags'])
         ]);
+    }
+
+    /**
+     * Get processing status for photos (AJAX).
+     */
+    public function processingStatus(Request $request)
+    {
+        $photoIds = $request->get('photo_ids', []);
+
+        if (empty($photoIds)) {
+            // Return all processing photos for current user
+            $photos = Photo::where('user_id', auth()->id())
+                ->whereIn('status', ['processing', 'failed'])
+                ->select(['id', 'title', 'status', 'processing_stage', 'processing_error', 'thumbnail_path'])
+                ->get();
+        } else {
+            // Return status for specific photos
+            $photos = Photo::where('user_id', auth()->id())
+                ->whereIn('id', $photoIds)
+                ->select(['id', 'title', 'status', 'processing_stage', 'processing_error', 'thumbnail_path'])
+                ->get();
+        }
+
+        return response()->json([
+            'photos' => $photos->map(function ($photo) {
+                return [
+                    'id' => $photo->id,
+                    'title' => $photo->title,
+                    'status' => $photo->status,
+                    'processing_stage' => $photo->processing_stage,
+                    'processing_stage_text' => $photo->processing_stage_text,
+                    'processing_error' => $photo->processing_error,
+                    'thumbnail_url' => $photo->thumbnail_path ? asset('storage/' . $photo->thumbnail_path) : null,
+                    'is_complete' => !in_array($photo->status, ['processing', 'failed']),
+                    'has_failed' => $photo->status === 'failed',
+                ];
+            }),
+            'processing_count' => $photos->where('status', 'processing')->count(),
+            'failed_count' => $photos->where('status', 'failed')->count(),
+        ]);
+    }
+
+    /**
+     * Retry processing a failed photo.
+     */
+    public function retryProcessing(Photo $photo)
+    {
+        $this->authorize('update', $photo);
+
+        if ($photo->status !== 'failed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Photo is not in failed state',
+            ], 400);
+        }
+
+        // Check if we have a temp file to retry with
+        // If not, we need to inform the user to re-upload
+        if (!$photo->display_path && !$photo->original_path) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No image file available. Please re-upload the photo.',
+            ], 400);
+        }
+
+        // Reset status and try re-processing from display image if available
+        $photo->update([
+            'status' => 'processing',
+            'processing_stage' => 'retrying',
+            'processing_error' => null,
+        ]);
+
+        // If we have a display path, we can try to regenerate other versions
+        if ($photo->display_path) {
+            try {
+                $displayPath = storage_path('app/public/' . $photo->display_path);
+
+                if (file_exists($displayPath)) {
+                    // Create temp file for re-processing
+                    $tempPath = storage_path('app/temp/' . Str::uuid() . '.tmp');
+                    if (!is_dir(dirname($tempPath))) {
+                        mkdir(dirname($tempPath), 0755, true);
+                    }
+                    copy($displayPath, $tempPath);
+
+                    // Dispatch job for background processing
+                    ProcessPhotoUpload::dispatch(
+                        $photo,
+                        $tempPath,
+                        $photo->original_filename ?? 'retry.jpg'
+                    );
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Photo re-queued for processing',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                $photo->update([
+                    'status' => 'failed',
+                    'processing_stage' => 'error',
+                    'processing_error' => 'Retry failed: ' . $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to retry: ' . $e->getMessage(),
+                ], 500);
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No source image available for re-processing. Please re-upload the photo.',
+        ], 400);
     }
 }

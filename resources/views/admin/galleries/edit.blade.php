@@ -56,9 +56,43 @@
                             </div>
                         </div>
 
-                        <div class="mb-6">
+                        <div class="mb-4">
                             <label for="sort_order" class="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
                             <input type="number" name="sort_order" id="sort_order" value="{{ old('sort_order', $gallery->sort_order) }}" class="w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        <!-- Password Protection -->
+                        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                    Password Protection
+                                </span>
+                            </label>
+                            @if($gallery->isPasswordProtected())
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="inline-flex items-center px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Password Protected
+                                    </span>
+                                </div>
+                            @endif
+                            <input type="text" name="password" id="password" value="" placeholder="{{ $gallery->isPasswordProtected() ? 'Enter new password to change, leave empty to keep current' : 'Leave empty for public gallery' }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <p class="mt-1 text-xs text-gray-500">
+                                @if($gallery->isPasswordProtected())
+                                    Leave empty to keep the current password, or enter a new password to change it.
+                                    <label class="inline-flex items-center ml-2">
+                                        <input type="checkbox" name="remove_password" value="1" class="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-500 focus:ring-red-500">
+                                        <span class="ml-1 text-red-600">Remove password protection</span>
+                                    </label>
+                                @else
+                                    Set a password to restrict access to this gallery.
+                                @endif
+                            </p>
                         </div>
 
                         <div class="flex items-center justify-between">

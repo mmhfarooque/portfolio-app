@@ -27,6 +27,15 @@
                     <x-nav-link :href="route('admin.tags.index')" :active="request()->routeIs('admin.tags.*')">
                         {{ __('Tags') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
+                        {{ __('Posts') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('admin.orders.index')" :active="request()->routeIs('admin.orders.*')">
+                        {{ __('Orders') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('admin.contacts.index')" :active="request()->routeIs('admin.contacts.*')">
+                        {{ __('Contacts') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('admin.frontpage.index')" :active="request()->routeIs('admin.frontpage.*')">
                         {{ __('Front Page') }}
                     </x-nav-link>
@@ -112,6 +121,15 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.tags.index')" :active="request()->routeIs('admin.tags.*')">
                 {{ __('Tags') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
+                {{ __('Posts') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.orders.index')" :active="request()->routeIs('admin.orders.*')">
+                {{ __('Orders') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.contacts.index')" :active="request()->routeIs('admin.contacts.*')">
+                {{ __('Contacts') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.frontpage.index')" :active="request()->routeIs('admin.frontpage.*')">
                 {{ __('Front Page') }}
