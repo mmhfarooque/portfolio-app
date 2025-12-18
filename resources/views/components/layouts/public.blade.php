@@ -17,6 +17,10 @@
             />
         @endif
 
+        {{-- RSS Feed Autodiscovery --}}
+        <link rel="alternate" type="application/rss+xml" title="{{ App\Models\Setting::get('site_name', config('app.name')) }} - RSS Feed" href="{{ route('feed.rss') }}">
+        <link rel="alternate" type="application/atom+xml" title="{{ App\Models\Setting::get('site_name', config('app.name')) }} - Atom Feed" href="{{ route('feed.atom') }}">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -121,7 +125,7 @@
         <!-- Footer -->
         <footer class="mt-20 py-12 bg-theme-secondary border-t border-theme">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <!-- Brand -->
                     <div>
                         <h3 class="text-xl font-bold mb-4 text-theme-primary">{{ App\Models\Setting::get('site_name', config('app.name', 'Photography Portfolio')) }}</h3>
@@ -137,6 +141,11 @@
                             <li><a href="{{ route('blog.index') }}" class="hover:text-theme-accent transition">Blog</a></li>
                             <li><a href="{{ route('contact') }}" class="hover:text-theme-accent transition">Contact</a></li>
                         </ul>
+                    </div>
+
+                    <!-- Newsletter -->
+                    <div>
+                        <x-newsletter-signup source="footer" :compact="true" />
                     </div>
 
                     <!-- Social -->

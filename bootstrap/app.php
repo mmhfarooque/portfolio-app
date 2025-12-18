@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
         ]);
+
+        // Add referral tracking to web routes
+        $middleware->web(append: [
+            \App\Http\Middleware\TrackReferrals::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Log all exceptions to database

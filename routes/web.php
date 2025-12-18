@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AboutController as AdminAboutController;
+use App\Http\Controllers\Admin\AnalyticsController as AdminAnalyticsController;
 use App\Http\Controllers\Admin\BackupController as AdminBackupController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -9,19 +10,33 @@ use App\Http\Controllers\Admin\GalleryController as AdminGalleryController;
 use App\Http\Controllers\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Admin\PhotoController as AdminPhotoController;
+use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Admin\EquipmentController as AdminEquipmentController;
+use App\Http\Controllers\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Admin\LightroomSyncController as AdminLightroomController;
+use App\Http\Controllers\Admin\SocialMediaController as AdminSocialController;
+use App\Http\Controllers\Admin\ABTestController as AdminABTestController;
+use App\Http\Controllers\Admin\SeoAuditController as AdminSeoController;
+use App\Http\Controllers\Admin\TranslationController as AdminTranslationController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ClientProofingController;
+use App\Http\Controllers\FeedController;
 use App\Http\Controllers\FrontPageController;
+use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SeriesController;
 use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PrintController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ClientGalleryController;
 use App\Http\Controllers\SitemapController;
@@ -87,6 +102,32 @@ Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.s
 // Blog/Stories routes
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post:slug}', [BlogController::class, 'show'])->name('blog.show');
+
+// Photo Series routes
+Route::get('/series', [SeriesController::class, 'index'])->name('series.index');
+Route::get('/series/{series:slug}', [SeriesController::class, 'show'])->name('series.show');
+
+// Gear/Equipment routes
+Route::get('/gear', [EquipmentController::class, 'index'])->name('gear.index');
+Route::get('/gear/{equipment:slug}', [EquipmentController::class, 'show'])->name('gear.show');
+
+// Locations routes
+Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
+Route::get('/locations/{location:slug}', [LocationController::class, 'show'])->name('locations.show');
+
+// Search routes
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
+
+// RSS/Atom Feeds
+Route::get('/feed/rss', [FeedController::class, 'rss'])->name('feed.rss');
+Route::get('/feed/atom', [FeedController::class, 'atom'])->name('feed.atom');
+Route::get('/blog/feed.xml', [FeedController::class, 'rss'])->name('feed.blog');
+
+// Newsletter
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
+Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])->name('newsletter.confirm');
+Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 
 // Sitemap
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
@@ -155,6 +196,17 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('posts/{post}', [AdminPostController::class, 'update'])->name('posts.update');
     Route::delete('posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
 
+    // Photo Series
+    Route::get('series', [AdminSeriesController::class, 'index'])->name('series.index');
+    Route::get('series/create', [AdminSeriesController::class, 'create'])->name('series.create');
+    Route::post('series', [AdminSeriesController::class, 'store'])->name('series.store');
+    Route::get('series/{series}/edit', [AdminSeriesController::class, 'edit'])->name('series.edit');
+    Route::put('series/{series}', [AdminSeriesController::class, 'update'])->name('series.update');
+    Route::delete('series/{series}', [AdminSeriesController::class, 'destroy'])->name('series.destroy');
+    Route::post('series/{series}/add-photos', [AdminSeriesController::class, 'addPhotos'])->name('series.add-photos');
+    Route::delete('series/{series}/photos/{photo}', [AdminSeriesController::class, 'removePhoto'])->name('series.remove-photo');
+    Route::post('series/{series}/update-order', [AdminSeriesController::class, 'updateOrder'])->name('series.update-order');
+
     // Front Page Settings
     Route::get('frontpage', [AdminFrontpageController::class, 'index'])->name('frontpage.index');
     Route::put('frontpage', [AdminFrontpageController::class, 'update'])->name('frontpage.update');
@@ -201,6 +253,64 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('backup/run', [AdminBackupController::class, 'runBackup'])->name('backup.run');
     Route::post('backup/test', [AdminBackupController::class, 'testConnection'])->name('backup.test');
     Route::get('backup/list', [AdminBackupController::class, 'listBackups'])->name('backup.list');
+
+    // Analytics
+    Route::get('analytics/referrals', [AdminAnalyticsController::class, 'referrals'])->name('analytics.referrals');
+
+    // Equipment
+    Route::get('equipment', [AdminEquipmentController::class, 'index'])->name('equipment.index');
+    Route::get('equipment/create', [AdminEquipmentController::class, 'create'])->name('equipment.create');
+    Route::post('equipment', [AdminEquipmentController::class, 'store'])->name('equipment.store');
+    Route::get('equipment/{equipment}/edit', [AdminEquipmentController::class, 'edit'])->name('equipment.edit');
+    Route::put('equipment/{equipment}', [AdminEquipmentController::class, 'update'])->name('equipment.update');
+    Route::delete('equipment/{equipment}', [AdminEquipmentController::class, 'destroy'])->name('equipment.destroy');
+
+    // Locations
+    Route::get('locations', [AdminLocationController::class, 'index'])->name('locations.index');
+    Route::get('locations/create', [AdminLocationController::class, 'create'])->name('locations.create');
+    Route::post('locations', [AdminLocationController::class, 'store'])->name('locations.store');
+    Route::get('locations/{location}/edit', [AdminLocationController::class, 'edit'])->name('locations.edit');
+    Route::put('locations/{location}', [AdminLocationController::class, 'update'])->name('locations.update');
+    Route::delete('locations/{location}', [AdminLocationController::class, 'destroy'])->name('locations.destroy');
+
+    // Lightroom Sync
+    Route::get('lightroom', [AdminLightroomController::class, 'index'])->name('lightroom.index');
+    Route::post('lightroom/process', [AdminLightroomController::class, 'process'])->name('lightroom.process');
+    Route::post('lightroom/preview', [AdminLightroomController::class, 'preview'])->name('lightroom.preview');
+
+    // Social Media
+    Route::get('social', [AdminSocialController::class, 'index'])->name('social.index');
+    Route::get('social/create', [AdminSocialController::class, 'create'])->name('social.create');
+    Route::post('social', [AdminSocialController::class, 'store'])->name('social.store');
+    Route::get('social/{socialPost}', [AdminSocialController::class, 'show'])->name('social.show');
+    Route::post('social/{socialPost}/publish', [AdminSocialController::class, 'publish'])->name('social.publish');
+    Route::delete('social/{socialPost}', [AdminSocialController::class, 'destroy'])->name('social.destroy');
+    Route::get('social/accounts', [AdminSocialController::class, 'accounts'])->name('social.accounts');
+
+    // A/B Testing
+    Route::get('abtests', [AdminABTestController::class, 'index'])->name('abtests.index');
+    Route::get('abtests/create', [AdminABTestController::class, 'create'])->name('abtests.create');
+    Route::post('abtests', [AdminABTestController::class, 'store'])->name('abtests.store');
+    Route::get('abtests/{abtest}', [AdminABTestController::class, 'show'])->name('abtests.show');
+    Route::get('abtests/{abtest}/edit', [AdminABTestController::class, 'edit'])->name('abtests.edit');
+    Route::put('abtests/{abtest}', [AdminABTestController::class, 'update'])->name('abtests.update');
+    Route::post('abtests/{abtest}/start', [AdminABTestController::class, 'start'])->name('abtests.start');
+    Route::post('abtests/{abtest}/pause', [AdminABTestController::class, 'pause'])->name('abtests.pause');
+    Route::post('abtests/{abtest}/complete', [AdminABTestController::class, 'complete'])->name('abtests.complete');
+    Route::delete('abtests/{abtest}', [AdminABTestController::class, 'destroy'])->name('abtests.destroy');
+
+    // SEO Audit
+    Route::get('seo', [AdminSeoController::class, 'index'])->name('seo.index');
+    Route::get('seo/photo/{photo}', [AdminSeoController::class, 'photo'])->name('seo.photo');
+    Route::get('seo/post/{post}', [AdminSeoController::class, 'post'])->name('seo.post');
+    Route::get('seo/data', [AdminSeoController::class, 'data'])->name('seo.data');
+
+    // Translations
+    Route::get('translations', [AdminTranslationController::class, 'index'])->name('translations.index');
+    Route::get('translations/photo/{photo}', [AdminTranslationController::class, 'editPhoto'])->name('translations.photo');
+    Route::put('translations/photo/{photo}', [AdminTranslationController::class, 'updatePhoto'])->name('translations.photo.update');
+    Route::get('translations/post/{post}', [AdminTranslationController::class, 'editPost'])->name('translations.post');
+    Route::put('translations/post/{post}', [AdminTranslationController::class, 'updatePost'])->name('translations.post.update');
 });
 
 require __DIR__.'/auth.php';

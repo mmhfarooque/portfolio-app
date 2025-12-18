@@ -84,6 +84,16 @@ class Photo extends Model
     }
 
     /**
+     * Get the series this photo belongs to.
+     */
+    public function series(): BelongsToMany
+    {
+        return $this->belongsToMany(Series::class, 'photo_series')
+            ->withPivot(['sort_order', 'caption'])
+            ->withTimestamps();
+    }
+
+    /**
      * Scope for published photos.
      */
     public function scopePublished($query)
