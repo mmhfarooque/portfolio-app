@@ -26,8 +26,8 @@ class PhotoProcessingService
     protected function getDisplaySettings(): array
     {
         return [
-            'width' => (int) Setting::get('image_max_resolution', 2048),
-            'quality' => (int) Setting::get('image_quality', 82),
+            'max_dimension' => (int) Setting::get('image_max_resolution', 1920),
+            'quality' => (int) Setting::get('image_quality', 92),
         ];
     }
 
@@ -119,39 +119,7 @@ class PhotoProcessingService
         $originalFilename = $file->getClientOriginalName();
 
         try {
-            // Handle HEIC/HEIF files - convert to JPEG first
-            $filePath = $file->getRealPath();
-            $mimeType = $file->getMimeType();
-            $isHeic = in_array($mimeType, ['image/heic', 'image/heif']) ||
-                      in_array(strtolower($file->getClientOriginalExtension()), ['heic', 'heif']);
-
-            $tempJpegPath = null;
-            if ($isHeic) {
-                $tempJpegPath = $this->convertHeicToJpeg($filePath);
-                if ($tempJpegPath) {
-                    $filePath = $tempJpegPath;
-                    LoggingService::debug('photo.heic_converted', "Converted HEIC to JPEG: {$originalFilename}");
-                }
-            }
-
-            // Get image dimensions
-            $image = Image::read($filePath);
-            $width = $image->width();
-            $height = $image->height();
-
-            // Extract EXIF data
-            $exifData = $this->extractExifData($file->getRealPath());
-
-            // Extract GPS coordinates
-            $gpsData = $this->extractGpsCoordinates($file->getRealPath());
-
-            // Reverse geocode to get location name if GPS data is available
-            $locationName = null;
-            if ($gpsData['latitude'] && $gpsData['longitude']) {
-                $locationName = $this->reverseGeocode($gpsData['latitude'], $gpsData['longitude']);
-            }
-
-            // Generate unique slug
+            // Generate unique slug (quick - no image processing)
             $baseTitle = pathinfo($originalFilename, PATHINFO_FILENAME);
             $baseSlug = Str::slug($baseTitle);
             $slug = $baseSlug;
@@ -161,40 +129,28 @@ class PhotoProcessingService
                 $counter++;
             }
 
-            // Create photo record with 'processing' status
+            // Create minimal photo record with 'processing' status
+            // All heavy processing (EXIF, dimensions, thumbnails) happens in background job
             $photo = Photo::create([
                 'title' => $baseTitle,
                 'slug' => $slug,
                 'original_filename' => $originalFilename,
-                'width' => $width,
-                'height' => $height,
                 'file_size' => $file->getSize(),
                 'mime_type' => $file->getMimeType(),
-                'exif_data' => $exifData,
-                'latitude' => $gpsData['latitude'],
-                'longitude' => $gpsData['longitude'],
-                'location_name' => $locationName,
                 'user_id' => $userId,
                 'category_id' => $categoryId,
                 'status' => 'processing',
                 'processing_stage' => 'queued',
-                'captured_at' => $this->getCaptureDate($exifData),
             ]);
 
             // Save temp file for background processing
-            // Use a unique temp file that persists for the job
             $tempPath = storage_path('app/temp/' . Str::uuid() . '.tmp');
             if (!is_dir(dirname($tempPath))) {
                 mkdir(dirname($tempPath), 0755, true);
             }
 
-            // Copy the file (use converted HEIC if applicable)
-            copy($filePath, $tempPath);
-
-            // Clean up temp HEIC conversion
-            if ($tempJpegPath && file_exists($tempJpegPath)) {
-                @unlink($tempJpegPath);
-            }
+            // Move file to temp location (faster than copy for large files)
+            $file->move(dirname($tempPath), basename($tempPath));
 
             LoggingService::debug('photo.quick_upload', "Photo queued for processing: {$photo->id}");
 
@@ -353,27 +309,32 @@ class PhotoProcessingService
 
     /**
      * Generate all image versions (display, thumbnail, watermarked).
-     * All images are saved as WebP for optimal file size.
+     * Display/Watermarked: AVIF format for best compression (30-50% smaller than WebP)
+     * Thumbnails: WebP format for maximum compatibility (small files anyway)
      */
     protected function generateImageVersions(Photo $photo, ImageInterface $image, string $filename): void
     {
         // Get settings from database
         $displaySettings = $this->getDisplaySettings();
 
-        // Change extension to webp
-        $webpFilename = pathinfo($filename, PATHINFO_FILENAME) . '.webp';
+        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+        $avifFilename = $baseName . '.avif';
+        $webpFilename = $baseName . '.webp';
 
-        // Generate display version (WebP)
-        $displayPath = $this->generateResizedImage(
+        // AVIF quality mapping: WebP 85-92 ≈ AVIF 60-70
+        $avifQuality = $this->mapWebpToAvifQuality($displaySettings['quality']);
+
+        // Generate display version (AVIF - smaller files)
+        $displayPath = $this->generateResizedImageAvif(
             $image,
-            $webpFilename,
+            $avifFilename,
             'photos/display',
-            $displaySettings['width'],
-            $displaySettings['quality']
+            $displaySettings['max_dimension'],
+            $avifQuality
         );
         $photo->update(['display_path' => $displayPath]);
 
-        // Generate thumbnail (WebP)
+        // Generate thumbnail (WebP - maximum compatibility, already small)
         $thumbnailPath = $this->generateResizedImage(
             $image,
             $webpFilename,
@@ -383,32 +344,57 @@ class PhotoProcessingService
         );
         $photo->update(['thumbnail_path' => $thumbnailPath]);
 
-        // Generate watermarked version (WebP)
-        $watermarkedPath = $this->generateWatermarkedImage(
+        // Generate watermarked version (AVIF - smaller files)
+        $watermarkedPath = $this->generateWatermarkedImageAvif(
             $image,
-            $webpFilename,
+            $avifFilename,
             'photos/watermarked',
-            $displaySettings['width'],
-            $displaySettings['quality']
+            $displaySettings['max_dimension'],
+            $avifQuality
         );
         $photo->update(['watermarked_path' => $watermarkedPath]);
     }
 
     /**
+     * Map WebP quality to AVIF quality.
+     * AVIF is more efficient but needs higher quality numbers for photography.
+     * WebP 85 ≈ AVIF 75, WebP 92 ≈ AVIF 80, WebP 100 ≈ AVIF 85
+     */
+    protected function mapWebpToAvifQuality(int $webpQuality): int
+    {
+        // Photography-optimized mapping: WebP 80-100 -> AVIF 70-85
+        // Higher quality to preserve gradients and fine details
+        $avifQuality = (int) (70 + (($webpQuality - 80) / 20) * 15);
+        return max(65, min(85, $avifQuality)); // Clamp between 65-85
+    }
+
+    /**
      * Generate a resized image version (WebP format).
+     * For landscape images: max width = maxDimension
+     * For portrait images: max height = maxDimension
      */
     protected function generateResizedImage(
         ImageInterface $image,
         string $filename,
         string $directory,
-        int $maxWidth,
+        int $maxDimension,
         int $quality
     ): string {
         $resized = clone $image;
+        $width = $resized->width();
+        $height = $resized->height();
 
-        // Only resize if image is larger than max width
-        if ($resized->width() > $maxWidth) {
-            $resized->scale(width: $maxWidth);
+        // Determine if landscape or portrait and resize accordingly
+        if ($width >= $height) {
+            // Landscape or square: constrain by width
+            if ($width > $maxDimension) {
+                $resized->scale(width: $maxDimension);
+            }
+        } else {
+            // Portrait: constrain by height
+            if ($height > $maxDimension) {
+                $resized->scale(height: $maxDimension);
+            }
         }
 
         // Ensure directory exists
@@ -426,20 +412,73 @@ class PhotoProcessingService
     }
 
     /**
+     * Generate a resized image version (AVIF format - best compression).
+     * For landscape images: max width = maxDimension
+     * For portrait images: max height = maxDimension
+     */
+    protected function generateResizedImageAvif(
+        ImageInterface $image,
+        string $filename,
+        string $directory,
+        int $maxDimension,
+        int $quality
+    ): string {
+        $resized = clone $image;
+        $width = $resized->width();
+        $height = $resized->height();
+
+        // Determine if landscape or portrait and resize accordingly
+        if ($width >= $height) {
+            if ($width > $maxDimension) {
+                $resized->scale(width: $maxDimension);
+            }
+        } else {
+            if ($height > $maxDimension) {
+                $resized->scale(height: $maxDimension);
+            }
+        }
+
+        // Ensure directory exists
+        $storagePath = storage_path('app/public/' . $directory);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
+
+        // Save the image as AVIF for optimal compression (30-50% smaller than WebP)
+        $path = $directory . '/' . $filename;
+        $fullPath = storage_path('app/public/' . $path);
+        $resized->toAvif($quality)->save($fullPath);
+
+        return $path;
+    }
+
+    /**
      * Generate a watermarked image version (WebP format).
+     * For landscape images: max width = maxDimension
+     * For portrait images: max height = maxDimension
      */
     protected function generateWatermarkedImage(
         ImageInterface $image,
         string $filename,
         string $directory,
-        int $maxWidth,
+        int $maxDimension,
         int $quality
     ): string {
         $watermarked = clone $image;
+        $width = $watermarked->width();
+        $height = $watermarked->height();
 
-        // Resize if needed
-        if ($watermarked->width() > $maxWidth) {
-            $watermarked->scale(width: $maxWidth);
+        // Determine if landscape or portrait and resize accordingly
+        if ($width >= $height) {
+            // Landscape or square: constrain by width
+            if ($width > $maxDimension) {
+                $watermarked->scale(width: $maxDimension);
+            }
+        } else {
+            // Portrait: constrain by height
+            if ($height > $maxDimension) {
+                $watermarked->scale(height: $maxDimension);
+            }
         }
 
         // Get watermark settings from database or use defaults
@@ -633,6 +672,200 @@ class PhotoProcessingService
     }
 
     /**
+     * Generate a watermarked image version (AVIF format - best compression).
+     * For landscape images: max width = maxDimension
+     * For portrait images: max height = maxDimension
+     */
+    protected function generateWatermarkedImageAvif(
+        ImageInterface $image,
+        string $filename,
+        string $directory,
+        int $maxDimension,
+        int $quality
+    ): string {
+        $watermarked = clone $image;
+        $width = $watermarked->width();
+        $height = $watermarked->height();
+
+        // Determine if landscape or portrait and resize accordingly
+        if ($width >= $height) {
+            if ($width > $maxDimension) {
+                $watermarked->scale(width: $maxDimension);
+            }
+        } else {
+            if ($height > $maxDimension) {
+                $watermarked->scale(height: $maxDimension);
+            }
+        }
+
+        // Get watermark settings from database or use defaults
+        $watermarkEnabled = Setting::get('watermark_enabled', '1') === '1';
+        $watermarkType = Setting::get('watermark_type', 'text');
+        $watermarkText = Setting::get('watermark_text', $this->watermarkSettings['text']);
+        $watermarkImage = Setting::get('watermark_image', '');
+        $watermarkPosition = Setting::get('watermark_position', 'bottom-right');
+        $watermarkOpacity = (int) Setting::get('watermark_opacity', '40');
+        $watermarkSize = (int) Setting::get('watermark_size', '24');
+        $watermarkImageSize = (int) Setting::get('watermark_image_size', '15');
+
+        // Check if watermark should be applied
+        $shouldApplyWatermark = $watermarkEnabled && (
+            ($watermarkType === 'text' && !empty($watermarkText)) ||
+            ($watermarkType === 'image' && !empty($watermarkImage))
+        );
+
+        if (!$shouldApplyWatermark) {
+            // Just save without watermark (AVIF)
+            $storagePath = storage_path('app/public/' . $directory);
+            if (!is_dir($storagePath)) {
+                mkdir($storagePath, 0755, true);
+            }
+            $path = $directory . '/' . $filename;
+            $fullPath = storage_path('app/public/' . $path);
+            $watermarked->toAvif($quality)->save($fullPath);
+            return $path;
+        }
+
+        // Calculate position based on setting
+        $padding = $this->watermarkSettings['padding'];
+        list($x, $y, $align, $valign) = $this->getWatermarkPosition(
+            $watermarked->width(),
+            $watermarked->height(),
+            $watermarkPosition,
+            $padding
+        );
+
+        // Calculate opacity for rgba (0-100 to 0-1)
+        $opacity = $watermarkOpacity / 100;
+
+        if ($watermarkType === 'image' && !empty($watermarkImage)) {
+            // Apply image watermark
+            $watermarkPath = storage_path('app/public/' . $watermarkImage);
+            if (file_exists($watermarkPath)) {
+                $watermarkImg = Image::read($watermarkPath);
+                $targetWidth = (int) ($watermarked->width() * ($watermarkImageSize / 100));
+                if ($watermarkImg->width() > $targetWidth) {
+                    $watermarkImg->scale(width: $targetWidth);
+                }
+                $watermarkImg->brightness((int) (($opacity - 1) * 100));
+                $watermarked->place($watermarkImg, $align . '-' . $valign);
+            }
+        } else {
+            // Apply text watermark with dual fonts
+            $regularFont = resource_path('fonts/arial.ttf');
+            $scriptFont = resource_path('fonts/GreatVibes-Regular.ttf');
+
+            $copyrightSymbol = '©';
+            $nameText = $watermarkText;
+
+            if (str_starts_with($watermarkText, '©')) {
+                $nameText = trim(substr($watermarkText, strlen('©')));
+            } elseif (str_starts_with($watermarkText, '(c)')) {
+                $nameText = trim(substr($watermarkText, 3));
+            }
+
+            $scriptSize = (int) ($watermarkSize * 1.3);
+            $copyrightWidth = $watermarkSize * 0.8;
+            $spacing = $watermarkSize * 0.3;
+
+            if (file_exists($regularFont) && file_exists($scriptFont)) {
+                if ($align === 'right') {
+                    $watermarked->text(
+                        $nameText,
+                        $x,
+                        $y,
+                        function ($font) use ($scriptFont, $scriptSize, $opacity, $align, $valign) {
+                            $font->filename($scriptFont);
+                            $font->size($scriptSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align($align);
+                            $font->valign($valign);
+                        }
+                    );
+                    $watermarked->text(
+                        $copyrightSymbol . ' ',
+                        $x - ($this->estimateTextWidth($nameText, $scriptSize) + $spacing),
+                        $y + ($scriptSize * 0.15),
+                        function ($font) use ($regularFont, $watermarkSize, $opacity, $valign) {
+                            $font->filename($regularFont);
+                            $font->size($watermarkSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align('right');
+                            $font->valign($valign);
+                        }
+                    );
+                } elseif ($align === 'center') {
+                    $watermarked->text(
+                        $copyrightSymbol . ' ' . $nameText,
+                        $x,
+                        $y,
+                        function ($font) use ($scriptFont, $scriptSize, $opacity, $align, $valign) {
+                            $font->filename($scriptFont);
+                            $font->size($scriptSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align($align);
+                            $font->valign($valign);
+                        }
+                    );
+                } else {
+                    $watermarked->text(
+                        $copyrightSymbol,
+                        $x,
+                        $y + ($scriptSize * 0.15),
+                        function ($font) use ($regularFont, $watermarkSize, $opacity, $valign) {
+                            $font->filename($regularFont);
+                            $font->size($watermarkSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align('left');
+                            $font->valign($valign);
+                        }
+                    );
+                    $watermarked->text(
+                        $nameText,
+                        $x + $copyrightWidth + $spacing,
+                        $y,
+                        function ($font) use ($scriptFont, $scriptSize, $opacity, $valign) {
+                            $font->filename($scriptFont);
+                            $font->size($scriptSize);
+                            $font->color("rgba(255, 255, 255, {$opacity})");
+                            $font->align('left');
+                            $font->valign($valign);
+                        }
+                    );
+                }
+            } else {
+                $watermarked->text(
+                    $watermarkText,
+                    $x,
+                    $y,
+                    function ($font) use ($regularFont, $watermarkSize, $opacity, $align, $valign) {
+                        if (file_exists($regularFont)) {
+                            $font->filename($regularFont);
+                        }
+                        $font->size($watermarkSize);
+                        $font->color("rgba(255, 255, 255, {$opacity})");
+                        $font->align($align);
+                        $font->valign($valign);
+                    }
+                );
+            }
+        }
+
+        // Ensure directory exists
+        $storagePath = storage_path('app/public/' . $directory);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
+
+        // Save the image as AVIF (30-50% smaller than WebP)
+        $path = $directory . '/' . $filename;
+        $fullPath = storage_path('app/public/' . $path);
+        $watermarked->toAvif($quality)->save($fullPath);
+
+        return $path;
+    }
+
+    /**
      * Calculate watermark position coordinates.
      * Uses 5% padding from edges for consistent positioning across image sizes.
      */
@@ -702,7 +935,7 @@ class PhotoProcessingService
      * Reverse geocode coordinates to get a location name.
      * Uses OpenStreetMap Nominatim API (free, no API key required).
      */
-    protected function reverseGeocode(float $latitude, float $longitude): ?string
+    public function reverseGeocode(float $latitude, float $longitude): ?string
     {
         try {
             $url = sprintf(
@@ -984,74 +1217,6 @@ class PhotoProcessingService
             "Deleted {$deletedCount} file(s) for photo: {$photo->title}",
             $photo,
             ['paths' => array_filter($paths)]
-        );
-    }
-
-    /**
-     * Process and store a "before" image for before/after comparison.
-     */
-    public function processBeforeImage(UploadedFile $file, Photo $photo): array
-    {
-        $displaySettings = $this->getDisplaySettings();
-
-        // Read the image
-        $image = Image::read($file->getRealPath());
-
-        // Resize for display
-        if ($image->width() > $displaySettings['width']) {
-            $image->scale(width: $displaySettings['width']);
-        }
-
-        // Generate unique filename based on original photo
-        $baseFilename = pathinfo($photo->display_path, PATHINFO_FILENAME);
-        $displayFilename = $baseFilename . '_before.webp';
-        $thumbnailFilename = $baseFilename . '_before_thumb.webp';
-
-        $displayPath = 'photos/' . $displayFilename;
-        $thumbnailPath = 'photos/' . $thumbnailFilename;
-
-        // Save display version
-        $image->toWebp($displaySettings['quality'])
-            ->save(storage_path('app/public/' . $displayPath));
-
-        // Create and save thumbnail
-        $thumbnail = Image::read($file->getRealPath());
-        $thumbnail->cover($this->thumbnailWidth, (int)($this->thumbnailWidth * 0.75));
-        $thumbnail->toWebp($this->thumbnailQuality)
-            ->save(storage_path('app/public/' . $thumbnailPath));
-
-        LoggingService::activity(
-            'photo.before_image_uploaded',
-            "Before image uploaded for photo: {$photo->title}",
-            $photo
-        );
-
-        return [
-            'display' => $displayPath,
-            'thumbnail' => $thumbnailPath,
-        ];
-    }
-
-    /**
-     * Delete before image files for a photo.
-     */
-    public function deleteBeforeImage(Photo $photo): void
-    {
-        $paths = [
-            $photo->before_display_path,
-            $photo->before_thumbnail_path,
-        ];
-
-        foreach ($paths as $path) {
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
-            }
-        }
-
-        LoggingService::activity(
-            'photo.before_image_deleted',
-            "Before image deleted for photo: {$photo->title}",
-            $photo
         );
     }
 

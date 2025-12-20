@@ -2,7 +2,7 @@
     <x-slot name="title">Photos - {{ config('app.name', 'Photography Portfolio') }}</x-slot>
 
     <div class="min-h-screen py-20 px-4" x-data="photoSelections()">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-screen-2xl mx-auto">
             <!-- Header -->
             <div class="text-center mb-12">
                 <h1 class="text-4xl font-bold mb-4 text-theme-primary">

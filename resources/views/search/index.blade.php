@@ -2,7 +2,7 @@
     <x-slot name="pageTitle">Search Photos - {{ App\Models\Setting::get('site_name', config('app.name')) }}</x-slot>
 
     <div class="min-h-screen py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Search Header -->
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-theme-primary mb-6">Search Photos</h1>

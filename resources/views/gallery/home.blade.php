@@ -28,7 +28,7 @@
     <!-- Categories Section -->
     @if ($categories->count() > 0)
         <section class="py-20 px-4 bg-theme-primary">
-            <div class="max-w-7xl mx-auto">
+            <div class="max-w-screen-2xl mx-auto">
                 <h2 class="text-3xl font-bold mb-12 text-center text-theme-primary">Browse by Category</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach ($categories as $category)
@@ -57,7 +57,7 @@
     <!-- Featured Photos Section -->
     @if ($featuredPhotos->count() > 0)
         <section class="py-20 px-4 bg-theme-secondary">
-            <div class="max-w-7xl mx-auto">
+            <div class="max-w-screen-2xl mx-auto">
                 <h2 class="text-3xl font-bold mb-12 text-center text-theme-primary">Featured Photos</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach ($featuredPhotos->take(6) as $photo)
@@ -85,7 +85,7 @@
     <!-- Recent Photos Section -->
     @if ($recentPhotos->count() > 0)
         <section class="py-20 px-4 bg-theme-primary">
-            <div class="max-w-7xl mx-auto">
+            <div class="max-w-screen-2xl mx-auto">
                 <h2 class="text-3xl font-bold mb-12 text-center text-theme-primary">Recent Additions</h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     @foreach ($recentPhotos as $photo)

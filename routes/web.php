@@ -142,6 +142,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Redirect /admin to /dashboard
+Route::get('/admin', function () {
+    return redirect()->route('dashboard');
+})->middleware(['auth', 'verified']);
+
 // Admin routes
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     // Photos
@@ -159,6 +164,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('photos/bulk-tags', [AdminPhotoController::class, 'bulkTags'])->name('photos.bulk-tags');
     Route::post('photos/reoptimize', [AdminPhotoController::class, 'reoptimize'])->name('photos.reoptimize');
     Route::get('photos/{photo}/suggest-slug', [AdminPhotoController::class, 'suggestSlug'])->name('photos.suggest-slug');
+    Route::post('photos/validate-slug', [AdminPhotoController::class, 'validateSlug'])->name('photos.validate-slug');
+    Route::post('photos/validate-title', [AdminPhotoController::class, 'validateTitle'])->name('photos.validate-title');
     Route::get('photos/processing-status', [AdminPhotoController::class, 'processingStatus'])->name('photos.processing-status');
     Route::post('photos/{photo}/retry', [AdminPhotoController::class, 'retryProcessing'])->name('photos.retry');
 

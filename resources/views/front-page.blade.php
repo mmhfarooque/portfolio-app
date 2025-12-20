@@ -3,7 +3,7 @@
 
     <!-- Hero Section with Profile -->
     <section class="py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
                 <!-- Left Column - Profile Image & Contact -->
                 <div class="lg:w-80 flex-shrink-0 space-y-6">
@@ -230,7 +230,7 @@
     <!-- Featured Photography Section -->
     @if ($featuredPhotos->count() > 0)
         <section class="py-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-12">
                     <h2 class="text-3xl font-bold text-theme-primary mb-3">Photography Portfolio</h2>
                     <p class="text-theme-muted max-w-xl mx-auto">A glimpse into my landscape and nature photography work</p>

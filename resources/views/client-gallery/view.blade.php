@@ -2,7 +2,7 @@
     <x-slot name="title">{{ $gallery->name }} - Client Gallery</x-slot>
 
     <div class="min-h-screen py-12 px-4" x-data="clientGallery()">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-screen-2xl mx-auto">
             <!-- Header -->
             <div class="text-center mb-8">
                 <h1 class="text-4xl font-bold text-theme-primary mb-2">{{ $gallery->name }}</h1>

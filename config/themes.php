@@ -10,169 +10,169 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Available Themes - Dark, Light, Retro
+    | Available Themes - Darkroom, Gallery, Vintage
     |--------------------------------------------------------------------------
-    | Each theme provides comprehensive styling for the entire site.
+    | Each theme provides comprehensive styling inspired by photography.
     */
     'themes' => [
         'dark' => [
-            'name' => 'Dark',
-            'description' => 'Modern dark theme with clean aesthetics',
+            'name' => 'Darkroom',
+            'description' => 'Cinematic dark theme inspired by the photographer\'s darkroom',
             'preview' => [
-                'bg' => '#0f0f0f',
-                'accent' => '#3b82f6',
-                'text' => '#ffffff',
+                'bg' => '#0c0c0c',
+                'accent' => '#d4a574',
+                'text' => '#f5f5f4',
             ],
             'colors' => [
-                // Backgrounds
-                'bg-primary' => '#0f0f0f',
-                'bg-secondary' => '#1a1a1a',
-                'bg-tertiary' => '#262626',
-                'bg-card' => '#171717',
-                'bg-hover' => '#2a2a2a',
-                'bg-input' => '#1f1f1f',
+                // Backgrounds - Deep cinematic blacks with warm undertones
+                'bg-primary' => '#0c0c0c',
+                'bg-secondary' => '#141414',
+                'bg-tertiary' => '#1c1c1c',
+                'bg-card' => '#121212',
+                'bg-hover' => '#242424',
+                'bg-input' => '#181818',
 
-                // Text
-                'text-primary' => '#ffffff',
-                'text-secondary' => '#a1a1aa',
-                'text-muted' => '#71717a',
-                'text-inverse' => '#0f0f0f',
+                // Text - Warm whites, not stark
+                'text-primary' => '#f5f5f4',
+                'text-secondary' => '#a8a29e',
+                'text-muted' => '#78716c',
+                'text-inverse' => '#0c0c0c',
 
-                // Borders
-                'border' => '#2e2e2e',
-                'border-light' => '#3f3f3f',
+                // Borders - Subtle warm grays
+                'border' => '#292524',
+                'border-light' => '#3d3835',
 
-                // Accent
-                'accent' => '#3b82f6',
-                'accent-hover' => '#2563eb',
-                'accent-light' => 'rgba(59, 130, 246, 0.1)',
+                // Accent - Golden hour amber (photography-inspired)
+                'accent' => '#d4a574',
+                'accent-hover' => '#c4956a',
+                'accent-light' => 'rgba(212, 165, 116, 0.12)',
 
                 // Status colors
-                'success' => '#22c55e',
-                'warning' => '#f59e0b',
-                'error' => '#ef4444',
+                'success' => '#86efac',
+                'warning' => '#fcd34d',
+                'error' => '#fca5a5',
 
                 // Special
-                'overlay' => 'rgba(0, 0, 0, 0.8)',
-                'shadow' => 'rgba(0, 0, 0, 0.5)',
+                'overlay' => 'rgba(12, 12, 12, 0.85)',
+                'shadow' => 'rgba(0, 0, 0, 0.6)',
             ],
             'styles' => [
-                'font-family' => "'Inter', 'Figtree', system-ui, sans-serif",
-                'font-heading' => "'Inter', 'Figtree', system-ui, sans-serif",
-                'border-radius' => '0.5rem',
-                'border-radius-lg' => '1rem',
-                'shadow-sm' => '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
-                'shadow' => '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3)',
-                'shadow-lg' => '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4)',
-                'transition' => '150ms ease-in-out',
+                'font-family' => "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
+                'font-heading' => "'Sora', 'Plus Jakarta Sans', system-ui, sans-serif",
+                'border-radius' => '0.375rem',
+                'border-radius-lg' => '0.75rem',
+                'shadow-sm' => '0 1px 2px 0 rgba(0, 0, 0, 0.4)',
+                'shadow' => '0 4px 16px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4)',
+                'shadow-lg' => '0 20px 40px -8px rgba(0, 0, 0, 0.6), 0 8px 16px -4px rgba(0, 0, 0, 0.4)',
+                'transition' => '200ms cubic-bezier(0.4, 0, 0.2, 1)',
             ],
             'is_dark' => true,
         ],
 
         'light' => [
-            'name' => 'Light',
-            'description' => 'Clean and bright theme with soft colors',
+            'name' => 'Gallery',
+            'description' => 'Elegant museum gallery aesthetic for fine art photography',
             'preview' => [
-                'bg' => '#ffffff',
-                'accent' => '#2563eb',
-                'text' => '#111827',
+                'bg' => '#fafaf9',
+                'accent' => '#1e3a5f',
+                'text' => '#1c1917',
             ],
             'colors' => [
-                // Backgrounds
-                'bg-primary' => '#ffffff',
-                'bg-secondary' => '#f8fafc',
-                'bg-tertiary' => '#f1f5f9',
+                // Backgrounds - Warm gallery whites
+                'bg-primary' => '#fafaf9',
+                'bg-secondary' => '#f5f5f4',
+                'bg-tertiary' => '#e7e5e4',
                 'bg-card' => '#ffffff',
-                'bg-hover' => '#e2e8f0',
+                'bg-hover' => '#d6d3d1',
                 'bg-input' => '#ffffff',
 
-                // Text
-                'text-primary' => '#111827',
-                'text-secondary' => '#4b5563',
-                'text-muted' => '#9ca3af',
-                'text-inverse' => '#ffffff',
+                // Text - Rich warm blacks
+                'text-primary' => '#1c1917',
+                'text-secondary' => '#57534e',
+                'text-muted' => '#a8a29e',
+                'text-inverse' => '#fafaf9',
 
-                // Borders
-                'border' => '#e5e7eb',
-                'border-light' => '#f3f4f6',
+                // Borders - Subtle warm grays
+                'border' => '#d6d3d1',
+                'border-light' => '#e7e5e4',
 
-                // Accent
-                'accent' => '#2563eb',
-                'accent-hover' => '#1d4ed8',
-                'accent-light' => 'rgba(37, 99, 235, 0.1)',
+                // Accent - Deep sophisticated navy
+                'accent' => '#1e3a5f',
+                'accent-hover' => '#152a45',
+                'accent-light' => 'rgba(30, 58, 95, 0.08)',
 
                 // Status colors
-                'success' => '#16a34a',
-                'warning' => '#d97706',
-                'error' => '#dc2626',
+                'success' => '#166534',
+                'warning' => '#a16207',
+                'error' => '#b91c1c',
 
                 // Special
-                'overlay' => 'rgba(0, 0, 0, 0.5)',
-                'shadow' => 'rgba(0, 0, 0, 0.1)',
+                'overlay' => 'rgba(28, 25, 23, 0.6)',
+                'shadow' => 'rgba(28, 25, 23, 0.08)',
             ],
             'styles' => [
-                'font-family' => "'Inter', 'Figtree', system-ui, sans-serif",
-                'font-heading' => "'Inter', 'Figtree', system-ui, sans-serif",
-                'border-radius' => '0.5rem',
-                'border-radius-lg' => '1rem',
-                'shadow-sm' => '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                'shadow' => '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-                'shadow-lg' => '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-                'transition' => '150ms ease-in-out',
+                'font-family' => "'Crimson Pro', 'Libre Baskerville', Georgia, serif",
+                'font-heading' => "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
+                'border-radius' => '0.25rem',
+                'border-radius-lg' => '0.5rem',
+                'shadow-sm' => '0 1px 3px 0 rgba(28, 25, 23, 0.06)',
+                'shadow' => '0 4px 12px -2px rgba(28, 25, 23, 0.08), 0 2px 4px -1px rgba(28, 25, 23, 0.04)',
+                'shadow-lg' => '0 16px 32px -8px rgba(28, 25, 23, 0.12), 0 8px 16px -4px rgba(28, 25, 23, 0.06)',
+                'transition' => '250ms ease-out',
             ],
             'is_dark' => false,
         ],
 
         'retro' => [
-            'name' => 'Retro',
-            'description' => 'Vintage-inspired warm tones with character',
+            'name' => 'Vintage',
+            'description' => 'Nostalgic analog film photography aesthetic',
             'preview' => [
-                'bg' => '#fef3c7',
-                'accent' => '#b45309',
-                'text' => '#451a03',
+                'bg' => '#f5f0e8',
+                'accent' => '#8b2942',
+                'text' => '#2d2520',
             ],
             'colors' => [
-                // Backgrounds
-                'bg-primary' => '#fefce8',
-                'bg-secondary' => '#fef9c3',
-                'bg-tertiary' => '#fef08a',
-                'bg-card' => '#fffbeb',
-                'bg-hover' => '#fde68a',
-                'bg-input' => '#fffbeb',
+                // Backgrounds - Aged paper and sepia tones
+                'bg-primary' => '#f5f0e8',
+                'bg-secondary' => '#ebe4d9',
+                'bg-tertiary' => '#ddd5c8',
+                'bg-card' => '#faf7f2',
+                'bg-hover' => '#d4cbbf',
+                'bg-input' => '#faf7f2',
 
-                // Text
-                'text-primary' => '#451a03',
-                'text-secondary' => '#78350f',
-                'text-muted' => '#a16207',
-                'text-inverse' => '#fefce8',
+                // Text - Deep warm browns
+                'text-primary' => '#2d2520',
+                'text-secondary' => '#5c4f45',
+                'text-muted' => '#8b7b6e',
+                'text-inverse' => '#f5f0e8',
 
-                // Borders
-                'border' => '#fcd34d',
-                'border-light' => '#fde68a',
+                // Borders - Warm sepia
+                'border' => '#c9bfb0',
+                'border-light' => '#ddd5c8',
 
-                // Accent
-                'accent' => '#b45309',
-                'accent-hover' => '#92400e',
-                'accent-light' => 'rgba(180, 83, 9, 0.15)',
+                // Accent - Deep burgundy (like darkroom safe light)
+                'accent' => '#8b2942',
+                'accent-hover' => '#6d1f33',
+                'accent-light' => 'rgba(139, 41, 66, 0.1)',
 
                 // Status colors
-                'success' => '#15803d',
-                'warning' => '#a16207',
-                'error' => '#b91c1c',
+                'success' => '#2d5a27',
+                'warning' => '#926c15',
+                'error' => '#9a2c2c',
 
                 // Special
-                'overlay' => 'rgba(69, 26, 3, 0.7)',
-                'shadow' => 'rgba(120, 53, 15, 0.2)',
+                'overlay' => 'rgba(45, 37, 32, 0.75)',
+                'shadow' => 'rgba(45, 37, 32, 0.15)',
             ],
             'styles' => [
-                'font-family' => "'Georgia', 'Cambria', 'Times New Roman', serif",
-                'font-heading' => "'Georgia', 'Cambria', 'Times New Roman', serif",
-                'border-radius' => '0.25rem',
-                'border-radius-lg' => '0.5rem',
-                'shadow-sm' => '2px 2px 0 0 rgba(180, 83, 9, 0.2)',
-                'shadow' => '4px 4px 0 0 rgba(180, 83, 9, 0.2)',
-                'shadow-lg' => '6px 6px 0 0 rgba(180, 83, 9, 0.25)',
-                'transition' => '200ms ease-out',
+                'font-family' => "'Libre Baskerville', 'Lora', Georgia, serif",
+                'font-heading' => "'Playfair Display', 'Libre Baskerville', Georgia, serif",
+                'border-radius' => '0.125rem',
+                'border-radius-lg' => '0.25rem',
+                'shadow-sm' => '1px 1px 0 0 rgba(139, 41, 66, 0.08), 2px 2px 4px 0 rgba(45, 37, 32, 0.1)',
+                'shadow' => '2px 2px 0 0 rgba(139, 41, 66, 0.1), 4px 4px 12px 0 rgba(45, 37, 32, 0.12)',
+                'shadow-lg' => '3px 3px 0 0 rgba(139, 41, 66, 0.12), 8px 8px 24px 0 rgba(45, 37, 32, 0.15)',
+                'transition' => '300ms ease-in-out',
             ],
             'is_dark' => false,
         ],

@@ -225,40 +225,10 @@ class PhotoController extends Controller
             'is_featured' => 'boolean',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
-            'before_image' => 'nullable|image|max:51200', // 50MB max
-            'remove_before_image' => 'boolean',
         ], [
             'slug.regex' => 'The slug may only contain lowercase letters, numbers, and hyphens.',
             'slug.unique' => 'This URL slug is already taken. Please choose a different one.',
         ]);
-
-        // Handle before image removal
-        if ($request->boolean('remove_before_image') && $photo->hasBeforeImage()) {
-            $this->photoService->deleteBeforeImage($photo);
-            $photo->update([
-                'before_display_path' => null,
-                'before_thumbnail_path' => null,
-            ]);
-        }
-
-        // Handle before image upload
-        if ($request->hasFile('before_image')) {
-            // Delete old before image if exists
-            if ($photo->hasBeforeImage()) {
-                $this->photoService->deleteBeforeImage($photo);
-            }
-
-            // Process and store the before image
-            $beforePaths = $this->photoService->processBeforeImage(
-                $request->file('before_image'),
-                $photo
-            );
-
-            $photo->update([
-                'before_display_path' => $beforePaths['display'],
-                'before_thumbnail_path' => $beforePaths['thumbnail'],
-            ]);
-        }
 
         $photo->update([
             'title' => $validated['title'],
@@ -546,6 +516,8 @@ class PhotoController extends Controller
                 return $this->generateDescription($aiService, $photo, $context);
             case 'story':
                 return $this->generateStory($aiService, $photo, $context);
+            case 'meta_description':
+                return $this->generateMetaDescription($aiService, $photo, $context);
             default:
                 return $this->generateSlug($aiService, $photo, $context);
         }
@@ -643,6 +615,33 @@ class PhotoController extends Controller
         }
 
         return response()->json(['story' => '']);
+    }
+
+    /**
+     * Generate AI meta description suggestion.
+     */
+    protected function generateMetaDescription($aiService, Photo $photo, array $context)
+    {
+        if ($aiService->isConfigured()) {
+            try {
+                $prompt = "Based on this photo information, write an SEO-optimized meta description (max 155 characters) for search engine results. Be concise, compelling, and include relevant keywords. Just return the meta description text, nothing else.\n\n" . implode("\n", $context);
+
+                $metaDescription = $aiService->generateText($prompt);
+                if ($metaDescription) {
+                    $metaDescription = trim($metaDescription);
+                    $metaDescription = trim($metaDescription, '"\'');
+                    // Ensure it's under 160 chars
+                    if (strlen($metaDescription) > 160) {
+                        $metaDescription = substr($metaDescription, 0, 157) . '...';
+                    }
+                    return response()->json(['meta_description' => $metaDescription]);
+                }
+            } catch (\Exception $e) {
+                // Return empty
+            }
+        }
+
+        return response()->json(['meta_description' => '']);
     }
 
     /**
@@ -792,5 +791,130 @@ class PhotoController extends Controller
             'success' => false,
             'message' => 'No source image available for re-processing. Please re-upload the photo.',
         ], 400);
+    }
+
+    /**
+     * Validate slug for uniqueness and similarity.
+     */
+    public function validateSlug(Request $request)
+    {
+        $slug = $request->input('slug');
+        $excludeId = $request->input('exclude_id');
+
+        if (empty($slug)) {
+            return response()->json(['valid' => true]);
+        }
+
+        // Check for exact match
+        $exactMatch = Photo::where('slug', $slug)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->first();
+
+        if ($exactMatch) {
+            // Suggest an alternative
+            $counter = 2;
+            $baseSlug = $slug;
+            while (Photo::where('slug', $baseSlug . '-' . $counter)->exists()) {
+                $counter++;
+            }
+
+            return response()->json([
+                'valid' => false,
+                'error' => 'This URL slug is already taken',
+                'existing' => [
+                    'title' => $exactMatch->title,
+                    'slug' => $exactMatch->slug,
+                ],
+                'suggestion' => $baseSlug . '-' . $counter,
+            ]);
+        }
+
+        // Check for similar slugs (using LIKE for partial matches)
+        $similarSlugs = Photo::where('slug', 'like', '%' . $slug . '%')
+            ->orWhere('slug', 'like', $slug . '%')
+            ->orWhere('slug', 'like', '%' . $slug)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->limit(5)
+            ->get(['id', 'title', 'slug']);
+
+        // Calculate similarity and filter
+        $similar = $similarSlugs->filter(function ($photo) use ($slug) {
+            similar_text($slug, $photo->slug, $percent);
+            return $percent > 60; // More than 60% similar
+        })->map(function ($photo) use ($slug) {
+            similar_text($slug, $photo->slug, $percent);
+            return [
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'similarity' => round($percent),
+            ];
+        })->sortByDesc('similarity')->values();
+
+        return response()->json([
+            'valid' => true,
+            'similar' => $similar->take(3),
+        ]);
+    }
+
+    /**
+     * Validate title for duplicates.
+     */
+    public function validateTitle(Request $request)
+    {
+        $title = $request->input('title');
+        $excludeId = $request->input('exclude_id');
+
+        if (empty($title)) {
+            return response()->json(['valid' => true]);
+        }
+
+        // Check for exact match
+        $exactMatch = Photo::where('title', $title)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->first();
+
+        if ($exactMatch) {
+            return response()->json([
+                'valid' => false,
+                'error' => 'A photo with this exact title already exists',
+                'existing' => [
+                    'title' => $exactMatch->title,
+                    'slug' => $exactMatch->slug,
+                ],
+            ]);
+        }
+
+        // Check for similar titles
+        $words = explode(' ', strtolower($title));
+        $query = Photo::query();
+
+        foreach ($words as $word) {
+            if (strlen($word) > 3) {
+                $query->orWhere('title', 'like', '%' . $word . '%');
+            }
+        }
+
+        $similarTitles = $query
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->limit(10)
+            ->get(['id', 'title', 'slug']);
+
+        // Calculate similarity
+        $similar = $similarTitles->map(function ($photo) use ($title) {
+            similar_text(strtolower($title), strtolower($photo->title), $percent);
+            return [
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'similarity' => round($percent),
+            ];
+        })->filter(fn($item) => $item['similarity'] > 50)
+          ->sortByDesc('similarity')
+          ->values()
+          ->take(3);
+
+        return response()->json([
+            'valid' => true,
+            'similar' => $similar,
+        ]);
     }
 }

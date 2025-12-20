@@ -50,7 +50,7 @@
                 <p class="text-sm text-theme-muted mb-4">Get notified about new photos and blog posts.</p>
             @endif
 
-            <div class="{{ $compact ? 'flex gap-2' : 'space-y-3' }}">
+            <div class="{{ $compact ? 'flex gap-3' : 'space-y-3' }}">
                 @if(!$compact)
                     <input
                         type="text"
@@ -65,17 +65,17 @@
                     x-model="email"
                     placeholder="your@email.com"
                     required
-                    class="{{ $compact ? 'flex-1' : 'w-full' }} px-4 py-2 rounded-lg input-theme focus:ring-2 focus:ring-theme-accent focus:outline-none"
+                    class="{{ $compact ? 'flex-1 min-w-0' : 'w-full' }} px-4 py-2.5 text-sm rounded-lg input-theme focus:ring-1 focus:ring-theme-accent/50 focus:outline-none placeholder:text-theme-muted/40"
                 >
 
                 <button
                     type="submit"
                     :disabled="loading"
-                    class="px-4 py-2 bg-theme-accent text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 {{ $compact ? '' : 'w-full' }}"
+                    class="px-5 py-2.5 text-sm font-medium bg-theme-accent text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 {{ $compact ? 'whitespace-nowrap' : 'w-full' }}"
                 >
                     <span x-show="!loading">Subscribe</span>
                     <span x-show="loading" class="flex items-center justify-center">
-                        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
