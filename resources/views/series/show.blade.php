@@ -69,7 +69,7 @@
         </div>
 
         <!-- Photo Grid -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
             @if($series->photos->count() > 0)
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     @foreach($series->photos as $photo)
@@ -100,7 +100,7 @@
         <!-- Related Series -->
         @if($relatedSeries->count() > 0)
             <div class="bg-theme-secondary py-16">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <h2 class="text-2xl font-bold text-theme-primary mb-8">More Series</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         @foreach($relatedSeries as $related)

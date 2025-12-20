@@ -558,7 +558,7 @@
                                                 </div>
                                                 <div>
                                                     <p class="font-medium text-gray-900">Google AI</p>
-                                                    <p class="text-xs text-gray-500">Gemini Pro</p>
+                                                    <p class="text-xs text-gray-500">Gemini 2.0 Flash</p>
                                                 </div>
                                             </div>
                                         </div>

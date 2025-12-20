@@ -145,7 +145,7 @@
     <div class="min-h-screen">
         <!-- Navigation Bar -->
         <div class="bg-theme-secondary border-b border-theme">
-            <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="max-w-screen-2xl mx-auto px-4 py-3">
                 <div class="flex items-center justify-between">
                     <!-- Back to Gallery -->
                     <a href="{{ route('photos.index') }}" class="inline-flex items-center gap-2 text-theme-secondary hover:text-theme-primary transition">
@@ -195,7 +195,7 @@
 
         <!-- Photo Display -->
         <div class="relative bg-black" x-data="imageModal()">
-            <div class="max-w-7xl mx-auto">
+            <div class="max-w-screen-2xl mx-auto">
                 <div class="relative aspect-[16/10] md:aspect-[16/9]">
                     <img src="{{ $photo->primary_url }}"
                          alt="{{ $photo->title }}"
@@ -320,24 +320,6 @@
                 }
             }
         </script>
-
-        <!-- Before/After Comparison Slider -->
-        @if ($photo->hasBeforeImage())
-            <div class="max-w-7xl mx-auto px-4 py-8">
-                <h2 class="text-xl font-semibold mb-4 flex items-center text-theme-primary">
-                    <svg class="w-5 h-5 mr-2 text-theme-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
-                    </svg>
-                    Before & After Comparison
-                </h2>
-                <x-before-after-slider
-                    :before-image="$photo->before_display_url"
-                    :after-image="$photo->primary_url"
-                    before-label="Before"
-                    after-label="After"
-                />
-            </div>
-        @endif
 
         <!-- Photo Info -->
         <div class="max-w-4xl mx-auto px-4 py-12">
@@ -565,6 +547,13 @@
                                 </div>
                             @endif
 
+                            @if ($exif['lens'])
+                                <div class="flex items-start">
+                                    <dt class="text-theme-muted w-24 shrink-0">Lens</dt>
+                                    <dd class="text-theme-secondary">{{ $exif['lens'] }}</dd>
+                                </div>
+                            @endif
+
                             @if ($exif['aperture'])
                                 <div class="flex items-start">
                                     <dt class="text-theme-muted w-24 shrink-0">Aperture</dt>
@@ -613,60 +602,34 @@
                                 <dd class="text-theme-secondary">{{ $photo->captured_at->format('M j, Y') }}</dd>
                             </div>
                             @endif
+                            @if ($photo->category)
+                            <div class="flex items-start">
+                                <dt class="text-theme-muted w-24 shrink-0">Category</dt>
+                                <dd><a href="{{ route('category.show', $photo->category) }}" class="text-theme-accent hover:underline">{{ $photo->category->name }}</a></dd>
+                            </div>
+                            @endif
+                            @if ($photo->gallery && $photo->gallery->is_published)
+                            <div class="flex items-start">
+                                <dt class="text-theme-muted w-24 shrink-0">Gallery</dt>
+                                <dd><a href="{{ route('gallery.show', $photo->gallery) }}" class="text-theme-accent hover:underline">{{ $photo->gallery->name }}</a></dd>
+                            </div>
+                            @endif
+                            @if ($photo->tags->count() > 0)
+                            <div class="flex items-start">
+                                <dt class="text-theme-muted w-24 shrink-0">Tags</dt>
+                                <dd class="flex flex-wrap gap-1">
+                                    @foreach ($photo->tags->take(5) as $tag)
+                                        <a href="{{ route('tag.show', $tag) }}" class="text-xs px-2 py-0.5 rounded bg-theme-tertiary text-theme-secondary hover:text-theme-accent">{{ $tag->name }}</a>
+                                    @endforeach
+                                    @if ($photo->tags->count() > 5)
+                                        <span class="text-xs text-theme-muted">+{{ $photo->tags->count() - 5 }}</span>
+                                    @endif
+                                </dd>
+                            </div>
+                            @endif
                         </dl>
                     </div>
 
-                    <!-- Download Options -->
-                    <div class="bg-theme-card border border-theme rounded-lg p-6" x-data="{ showOptions: false }">
-                        <h3 class="text-lg font-medium mb-4 flex items-center text-theme-primary">
-                            <svg class="w-5 h-5 mr-2 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                            Download Photo
-                        </h3>
-
-                        <div class="space-y-2">
-                            <a href="{{ route('photos.download', ['photo' => $photo, 'format' => 'webp']) }}"
-                               class="flex items-center justify-between w-full px-4 py-2 text-sm rounded-lg bg-theme-tertiary hover:bg-theme-hover text-theme-secondary hover:text-theme-primary transition">
-                                <span class="flex items-center">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    WebP Format
-                                </span>
-                                <span class="text-xs text-theme-muted">Smaller file</span>
-                            </a>
-
-                            <a href="{{ route('photos.download', ['photo' => $photo, 'format' => 'jpeg']) }}"
-                               class="flex items-center justify-between w-full px-4 py-2 text-sm rounded-lg bg-theme-tertiary hover:bg-theme-hover text-theme-secondary hover:text-theme-primary transition">
-                                <span class="flex items-center">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    JPEG Format
-                                </span>
-                                <span class="text-xs text-theme-muted">Compatible</span>
-                            </a>
-                        </div>
-
-                        <p class="mt-3 text-xs text-theme-muted">
-                            Downloads include watermark. Max 10 downloads/hour.
-                        </p>
-                    </div>
-
-                    <!-- Buy Print -->
-                    <div class="bg-theme-card border border-theme rounded-lg p-6">
-                        <h3 class="text-lg font-medium mb-4 flex items-center text-theme-primary">
-                            <svg class="w-5 h-5 mr-2 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                            </svg>
-                            Buy a Print
-                        </h3>
-                        <p class="text-sm text-theme-muted mb-4">Get this photograph as a museum-quality print for your home or office.</p>
-                        <a href="{{ route('print.options', $photo) }}" class="block w-full text-center btn-theme-primary py-3 rounded-lg font-medium transition">
-                            View Print Options
-                        </a>
-                    </div>
                 </div>
             </div>
 

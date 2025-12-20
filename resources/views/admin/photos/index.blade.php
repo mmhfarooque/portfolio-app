@@ -4,18 +4,22 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Photos') }}
             </h2>
-            <div class="flex gap-3">
-                <a href="{{ route('admin.photos.bulk-edit') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded inline-flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <div class="flex gap-2">
+                <!-- Bulk Edit -->
+                <a href="{{ route('admin.photos.bulk-edit') }}"
+                   class="inline-flex items-center justify-center w-10 h-10 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition shadow-sm"
+                   title="Bulk Edit">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
-                    Bulk Edit
                 </a>
-                <a href="{{ route('admin.photos.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                <!-- Upload Photos -->
+                <a href="{{ route('admin.photos.create') }}"
+                   class="inline-flex items-center justify-center w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-sm"
+                   title="Upload Photos">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Upload Photos
                 </a>
             </div>
         </div>
@@ -86,12 +90,22 @@
                             <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
                             <input type="text" name="search" id="search" value="{{ request('search') }}" placeholder="Search by title..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
-                        <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                            Filter
+                        <!-- Filter Button -->
+                        <button type="submit"
+                                class="inline-flex items-center justify-center w-10 h-10 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition shadow-sm"
+                                title="Apply Filters">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
                         </button>
                         @if (request()->hasAny(['status', 'category', 'search']))
-                            <a href="{{ route('admin.photos.index') }}" class="text-gray-600 hover:text-gray-800 py-2 px-4">
-                                Clear Filters
+                            <!-- Clear Filters Button -->
+                            <a href="{{ route('admin.photos.index') }}"
+                               class="inline-flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition"
+                               title="Clear Filters">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
                             </a>
                         @endif
                     </form>
@@ -113,25 +127,57 @@
 
                         <span class="text-gray-400">|</span>
 
-                        <!-- Quick Actions -->
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" @click="showModal('status')" :disabled="selectedCount === 0" class="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Set Status
+                        <!-- Quick Actions (Icon Buttons) -->
+                        <div class="flex flex-wrap gap-1">
+                            <!-- Set Status -->
+                            <button type="button" @click="showModal('status')" :disabled="selectedCount === 0"
+                                    class="inline-flex items-center justify-center w-9 h-9 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    title="Set Status">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
                             </button>
-                            <button type="button" @click="showModal('category')" :disabled="selectedCount === 0" class="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Set Category
+                            <!-- Set Category -->
+                            <button type="button" @click="showModal('category')" :disabled="selectedCount === 0"
+                                    class="inline-flex items-center justify-center w-9 h-9 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    title="Set Category">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                </svg>
                             </button>
-                            <button type="button" @click="showModal('gallery')" :disabled="selectedCount === 0" class="px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Set Gallery
+                            <!-- Set Gallery -->
+                            <button type="button" @click="showModal('gallery')" :disabled="selectedCount === 0"
+                                    class="inline-flex items-center justify-center w-9 h-9 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    title="Set Gallery">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                </svg>
                             </button>
-                            <button type="button" @click="showModal('tags')" :disabled="selectedCount === 0" class="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Add Tags
+                            <!-- Add Tags -->
+                            <button type="button" @click="showModal('tags')" :disabled="selectedCount === 0"
+                                    class="inline-flex items-center justify-center w-9 h-9 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    title="Add Tags">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9"/>
+                                </svg>
                             </button>
-                            <button type="button" @click="showModal('location')" :disabled="selectedCount === 0" class="px-3 py-1.5 text-sm bg-teal-100 text-teal-700 rounded hover:bg-teal-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Set Location
+                            <!-- Set Location -->
+                            <button type="button" @click="showModal('location')" :disabled="selectedCount === 0"
+                                    class="inline-flex items-center justify-center w-9 h-9 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    title="Set Location">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
                             </button>
-                            <button type="button" @click="showModal('delete')" :disabled="selectedCount === 0" class="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                Delete
+                            <!-- Delete -->
+                            <button type="button" @click="showModal('delete')" :disabled="selectedCount === 0"
+                                    class="inline-flex items-center justify-center w-9 h-9 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    title="Delete Selected">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -164,13 +210,18 @@
                                         <p class="text-sm font-medium text-gray-900 truncate">{{ $photo->title }}</p>
                                         <div class="flex items-center gap-2 mt-1 flex-wrap">
                                             @if ($photo->status === 'processing')
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">
-                                                    <svg class="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    {{ $photo->processing_stage_text ?? 'Processing' }}
-                                                </span>
+                                                <div class="flex flex-col gap-1">
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                        <svg class="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        {{ $photo->processing_stage_text ?? 'Processing' }}
+                                                    </span>
+                                                    @if ($photo->processing_duration)
+                                                        <span class="text-xs text-gray-500">{{ $photo->processing_duration }} total</span>
+                                                    @endif
+                                                </div>
                                             @elseif ($photo->status === 'failed')
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                                                     <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -472,30 +523,37 @@
         function processingStatus() {
             return {
                 processingCount: 0,
+                previousProcessingCount: 0,
                 failedCount: 0,
                 photos: [],
                 pollInterval: null,
+                hadProcessingPhotos: false,
 
                 init() {
                     this.refreshStatus();
-                    // Poll every 5 seconds while there are processing photos
+                    // Poll every 2 seconds for faster updates
                     this.pollInterval = setInterval(() => {
-                        if (this.processingCount > 0) {
-                            this.refreshStatus();
-                        }
-                    }, 5000);
+                        this.refreshStatus();
+                    }, 2000);
                 },
 
                 async refreshStatus() {
                     try {
                         const response = await fetch('{{ route("admin.photos.processing-status") }}');
                         const data = await response.json();
+
+                        this.previousProcessingCount = this.processingCount;
                         this.processingCount = data.processing_count;
                         this.failedCount = data.failed_count;
                         this.photos = data.photos;
 
-                        // If processing is done and we had processing photos, refresh the page
-                        if (this.processingCount === 0 && this.photos.length > 0 && this.photos.some(p => p.is_complete)) {
+                        // Track if we ever had processing photos
+                        if (this.processingCount > 0) {
+                            this.hadProcessingPhotos = true;
+                        }
+
+                        // Auto-refresh when processing completes (count goes from >0 to 0)
+                        if (this.hadProcessingPhotos && this.previousProcessingCount > 0 && this.processingCount === 0) {
                             window.location.reload();
                         }
                     } catch (e) {

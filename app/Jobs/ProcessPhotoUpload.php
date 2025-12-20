@@ -41,20 +41,58 @@ class ProcessPhotoUpload implements ShouldQueue
     public function handle(PhotoProcessingService $photoService): void
     {
         $startTime = microtime(true);
+        $filePath = $this->tempFilePath;
 
         try {
             // Verify temp file still exists
-            if (!file_exists($this->tempFilePath)) {
-                throw new \Exception("Temp file not found: {$this->tempFilePath}");
+            if (!file_exists($filePath)) {
+                throw new \Exception("Temp file not found: {$filePath}");
             }
 
             LoggingService::debug('photo.queue_processing', "Processing queued photo: {$this->photo->id}");
 
-            // Update status to show processing is active
-            $this->photo->update(['processing_stage' => 'reading_image']);
+            // Handle HEIC/HEIF conversion first
+            $this->photo->update(['processing_stage' => 'converting']);
+            $mimeType = $this->photo->mime_type;
+            $isHeic = in_array($mimeType, ['image/heic', 'image/heif']) ||
+                      in_array(strtolower(pathinfo($this->originalFilename, PATHINFO_EXTENSION)), ['heic', 'heif']);
 
-            // Read the image (may have been converted from HEIC)
-            $image = \Intervention\Image\Laravel\Facades\Image::read($this->tempFilePath);
+            if ($isHeic) {
+                $convertedPath = $this->convertHeicToJpeg($filePath);
+                if ($convertedPath) {
+                    @unlink($filePath);
+                    $filePath = $convertedPath;
+                    LoggingService::debug('photo.heic_converted', "Converted HEIC to JPEG: {$this->originalFilename}");
+                }
+            }
+
+            // Extract EXIF data
+            $this->photo->update(['processing_stage' => 'extracting_metadata']);
+            $exifData = $this->extractExifData($filePath);
+            $gpsData = $this->extractGpsCoordinates($filePath);
+
+            // Reverse geocode location
+            $locationName = null;
+            if ($gpsData['latitude'] && $gpsData['longitude']) {
+                $locationName = $photoService->reverseGeocode($gpsData['latitude'], $gpsData['longitude']);
+            }
+
+            // Read image for dimensions
+            $this->photo->update(['processing_stage' => 'reading_image']);
+            $image = \Intervention\Image\Laravel\Facades\Image::read($filePath);
+            $width = $image->width();
+            $height = $image->height();
+
+            // Update photo with extracted metadata
+            $this->photo->update([
+                'width' => $width,
+                'height' => $height,
+                'exif_data' => $exifData,
+                'latitude' => $gpsData['latitude'],
+                'longitude' => $gpsData['longitude'],
+                'location_name' => $locationName,
+                'captured_at' => $this->getCaptureDate($exifData),
+            ]);
 
             // Generate image versions
             $this->photo->update(['processing_stage' => 'generating_versions']);
@@ -62,15 +100,18 @@ class ProcessPhotoUpload implements ShouldQueue
 
             // Generate and store image hashes for duplicate detection
             $this->photo->update(['processing_stage' => 'generating_hashes']);
-            $this->generateHashes($photoService);
+            $this->generateHashes($filePath);
 
-            // Apply AI analysis
-            $this->photo->update(['processing_stage' => 'ai_analysis']);
-            $this->applyAIAnalysis($photoService);
+            // Apply AI analysis (only if AI is enabled)
+            $aiService = new \App\Services\AIImageService();
+            if ($aiService->isEnabled()) {
+                $this->photo->update(['processing_stage' => 'ai_analysis']);
+                $this->applyAIAnalysis($photoService);
+            }
 
             // Clean up temp file
-            if (file_exists($this->tempFilePath)) {
-                @unlink($this->tempFilePath);
+            if (file_exists($filePath)) {
+                @unlink($filePath);
             }
 
             // Update status to draft (processing complete)
@@ -97,8 +138,8 @@ class ProcessPhotoUpload implements ShouldQueue
             ]);
 
             // Clean up temp file
-            if (file_exists($this->tempFilePath)) {
-                @unlink($this->tempFilePath);
+            if (file_exists($filePath)) {
+                @unlink($filePath);
             }
 
             LoggingService::photoUploadFailed(
@@ -108,6 +149,97 @@ class ProcessPhotoUpload implements ShouldQueue
             );
 
             throw $e;
+        }
+    }
+
+    /**
+     * Convert HEIC/HEIF to JPEG.
+     */
+    protected function convertHeicToJpeg(string $filePath): ?string
+    {
+        $outputPath = $filePath . '.jpg';
+        $command = sprintf(
+            'magick %s -quality 95 %s 2>&1',
+            escapeshellarg($filePath),
+            escapeshellarg($outputPath)
+        );
+        exec($command, $output, $returnCode);
+
+        if ($returnCode === 0 && file_exists($outputPath)) {
+            return $outputPath;
+        }
+        return null;
+    }
+
+    /**
+     * Extract EXIF data from image.
+     */
+    protected function extractExifData(string $filePath): ?array
+    {
+        try {
+            $exif = @exif_read_data($filePath, 'ANY_TAG', true);
+            if (!$exif) return null;
+
+            return [
+                'Make' => $exif['IFD0']['Make'] ?? null,
+                'Model' => $exif['IFD0']['Model'] ?? null,
+                'ExposureTime' => $exif['EXIF']['ExposureTime'] ?? null,
+                'FNumber' => isset($exif['EXIF']['FNumber']) ? $this->evalFraction($exif['EXIF']['FNumber']) : null,
+                'ISO' => $exif['EXIF']['ISOSpeedRatings'] ?? null,
+                'FocalLength' => isset($exif['EXIF']['FocalLength']) ? $this->evalFraction($exif['EXIF']['FocalLength']) : null,
+                'DateTimeOriginal' => $exif['EXIF']['DateTimeOriginal'] ?? null,
+                'LensModel' => $exif['EXIF']['UndefinedTag:0xA434'] ?? $exif['EXIF']['LensModel'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extract GPS coordinates from image.
+     */
+    protected function extractGpsCoordinates(string $filePath): array
+    {
+        $result = ['latitude' => null, 'longitude' => null];
+        try {
+            $exif = @exif_read_data($filePath, 'GPS', true);
+            if (!$exif || !isset($exif['GPS'])) return $result;
+
+            $gps = $exif['GPS'];
+            if (isset($gps['GPSLatitude'], $gps['GPSLatitudeRef'], $gps['GPSLongitude'], $gps['GPSLongitudeRef'])) {
+                $result['latitude'] = $this->gpsToDecimal($gps['GPSLatitude'], $gps['GPSLatitudeRef']);
+                $result['longitude'] = $this->gpsToDecimal($gps['GPSLongitude'], $gps['GPSLongitudeRef']);
+            }
+        } catch (\Exception $e) {}
+        return $result;
+    }
+
+    protected function gpsToDecimal(array $coordinate, string $hemisphere): float
+    {
+        $degrees = $this->evalFraction($coordinate[0]);
+        $minutes = $this->evalFraction($coordinate[1]);
+        $seconds = $this->evalFraction($coordinate[2]);
+        $decimal = $degrees + ($minutes / 60) + ($seconds / 3600);
+        return ($hemisphere === 'S' || $hemisphere === 'W') ? -$decimal : $decimal;
+    }
+
+    protected function evalFraction($value): float
+    {
+        if (is_numeric($value)) return (float) $value;
+        if (is_string($value) && str_contains($value, '/')) {
+            $parts = explode('/', $value);
+            return count($parts) === 2 && $parts[1] != 0 ? $parts[0] / $parts[1] : 0;
+        }
+        return 0;
+    }
+
+    protected function getCaptureDate(?array $exifData): ?\DateTime
+    {
+        if (!$exifData || empty($exifData['DateTimeOriginal'])) return null;
+        try {
+            return new \DateTime($exifData['DateTimeOriginal']);
+        } catch (\Exception $e) {
+            return null;
         }
     }
 
@@ -128,10 +260,10 @@ class ProcessPhotoUpload implements ShouldQueue
     /**
      * Generate image hashes for duplicate detection.
      */
-    protected function generateHashes(PhotoProcessingService $photoService): void
+    protected function generateHashes(string $filePath): void
     {
         $hashService = new \App\Services\ImageHashService();
-        $hashes = $hashService->generateHashes($this->tempFilePath);
+        $hashes = $hashService->generateHashes($filePath);
 
         $this->photo->update([
             'file_hash' => $hashes['file_hash'],

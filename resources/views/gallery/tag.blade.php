@@ -2,7 +2,7 @@
     <x-slot name="title">{{ $tag->name }} - {{ config('app.name', 'Photography Portfolio') }}</x-slot>
 
     <div class="min-h-screen py-20 px-4">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-screen-2xl mx-auto">
             <!-- Header -->
             <div class="text-center mb-12">
                 <p class="text-gray-400 mb-2">Tagged with</p>

@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust Cloudflare proxy for HTTPS detection
+        $middleware->trustProxies(at: '*');
+
         // Exclude Stripe webhook from CSRF verification
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
@@ -48,11 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 );
             } catch (Throwable $loggingException) {
                 // If logging fails, don't prevent the original exception from being handled
-                // Fall back to standard Laravel logging
-                \Log::error('Failed to log exception to database', [
-                    'original_exception' => $e->getMessage(),
-                    'logging_exception' => $loggingException->getMessage(),
-                ]);
+                // Use error_log instead of Log facade (facade may not be available)
+                error_log('Failed to log exception to database: ' . $e->getMessage() . ' | Logging error: ' . $loggingException->getMessage());
             }
 
             return false; // Continue with default exception handling

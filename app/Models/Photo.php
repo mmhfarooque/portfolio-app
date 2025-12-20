@@ -19,8 +19,6 @@ class Photo extends Model
         'display_path',
         'thumbnail_path',
         'watermarked_path',
-        'before_display_path',
-        'before_thumbnail_path',
         'exif_data',
         'latitude',
         'longitude',
@@ -134,14 +132,6 @@ class Photo extends Model
     }
 
     /**
-     * Check if photo has a before image (for before/after comparison).
-     */
-    public function hasBeforeImage(): bool
-    {
-        return !empty($this->before_display_path);
-    }
-
-    /**
      * Increment the view count.
      */
     public function incrementViews(): void
@@ -195,17 +185,6 @@ class Photo extends Model
     }
 
     /**
-     * Get the before image URL (with CDN support).
-     */
-    public function getBeforeDisplayUrlAttribute(): ?string
-    {
-        if (!$this->before_display_path) {
-            return null;
-        }
-        return $this->getCdnUrl($this->before_display_path);
-    }
-
-    /**
      * Get URL with CDN support if configured.
      */
     protected function getCdnUrl(string $path): string
@@ -228,6 +207,7 @@ class Photo extends Model
 
         return [
             'camera' => $exif['Make'] ?? null ? ($exif['Make'] . ' ' . ($exif['Model'] ?? '')) : null,
+            'lens' => $exif['LensModel'] ?? $exif['Lens'] ?? $exif['LensInfo'] ?? null,
             'aperture' => isset($exif['FNumber']) ? 'f/' . $exif['FNumber'] : null,
             'shutter_speed' => $exif['ExposureTime'] ?? null,
             'iso' => isset($exif['ISOSpeedRatings']) ? 'ISO ' . $exif['ISOSpeedRatings'] : null,
@@ -258,14 +238,59 @@ class Photo extends Model
     public function getProcessingStageTextAttribute(): ?string
     {
         return match ($this->processing_stage) {
+            'queued' => 'Queued',
+            'converting' => 'Converting format...',
+            'extracting_metadata' => 'Reading EXIF data...',
             'reading_image' => 'Reading image...',
-            'generating_versions' => 'Generating image versions...',
-            'generating_hashes' => 'Creating image hash...',
-            'ai_analysis' => 'Analyzing with AI...',
-            'error' => 'Processing failed',
+            'generating_versions' => 'Creating thumbnails...',
+            'generating_hashes' => 'Creating hash...',
+            'ai_analysis' => 'AI analysis...',
+            'error' => 'Failed',
             null => null,
             default => 'Processing...',
         };
+    }
+
+    /**
+     * Get elapsed processing time in human-readable format.
+     */
+    public function getProcessingElapsedAttribute(): ?string
+    {
+        if ($this->status !== 'processing') {
+            return null;
+        }
+
+        $seconds = now()->diffInSeconds($this->updated_at);
+
+        if ($seconds < 60) {
+            return $seconds . 's';
+        }
+
+        $minutes = floor($seconds / 60);
+        $remainingSeconds = $seconds % 60;
+
+        return $minutes . 'm ' . $remainingSeconds . 's';
+    }
+
+    /**
+     * Get total processing time (from creation to now or completion).
+     */
+    public function getProcessingDurationAttribute(): ?string
+    {
+        if ($this->status !== 'processing') {
+            return null;
+        }
+
+        $seconds = now()->diffInSeconds($this->created_at);
+
+        if ($seconds < 60) {
+            return $seconds . 's';
+        }
+
+        $minutes = floor($seconds / 60);
+        $remainingSeconds = $seconds % 60;
+
+        return $minutes . 'm ' . $remainingSeconds . 's';
     }
 
     /**
