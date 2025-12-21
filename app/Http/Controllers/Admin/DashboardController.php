@@ -12,10 +12,12 @@ use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
         // Photo statistics
         $totalPhotos = Photo::count();
@@ -111,28 +113,45 @@ class DashboardController extends Controller
             ->where('created_at', '>=', now()->subDays(30))
             ->count();
 
-        return view('dashboard', compact(
-            'totalPhotos',
-            'publishedPhotos',
-            'draftPhotos',
-            'photosByCategory',
-            'totalCategories',
-            'totalGalleries',
-            'totalTags',
-            'storageUsed',
-            'recentPhotos',
-            'recentActivity',
-            'photosThisMonth',
-            'photosLastMonth',
-            'growthPercent',
-            // New analytics
-            'totalViews',
-            'mostViewedPhotos',
-            'viewsByCategory',
-            'viewsChartData',
-            'unreadContacts',
-            'downloadsCount'
-        ));
+        return Inertia::render('Admin/Dashboard', [
+            'stats' => [
+                'totalPhotos' => $totalPhotos,
+                'publishedPhotos' => $publishedPhotos,
+                'draftPhotos' => $draftPhotos,
+                'photosThisMonth' => $photosThisMonth,
+                'photosLastMonth' => $photosLastMonth,
+                'growthPercent' => $growthPercent,
+                'totalViews' => $totalViews,
+                'downloadsCount' => $downloadsCount,
+                'unreadContacts' => $unreadContacts,
+                'totalCategories' => $totalCategories,
+                'totalGalleries' => $totalGalleries,
+                'totalTags' => $totalTags,
+            ],
+            'storageUsed' => $storageUsed,
+            'photosByCategory' => $photosByCategory,
+            'viewsByCategory' => $viewsByCategory,
+            'viewsChartData' => $viewsChartData,
+            'recentPhotos' => $recentPhotos->map(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'created_at' => $photo->created_at->diffForHumans(),
+                'category' => $photo->category?->name,
+            ]),
+            'mostViewedPhotos' => $mostViewedPhotos->map(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'views' => $photo->views,
+            ]),
+            'recentActivity' => $recentActivity->map(fn($log) => [
+                'id' => $log->id,
+                'type' => $log->type,
+                'message' => $log->message,
+                'created_at' => $log->created_at->diffForHumans(),
+            ]),
+        ]);
     }
 
     /**

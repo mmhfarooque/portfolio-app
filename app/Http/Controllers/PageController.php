@@ -9,6 +9,8 @@ use App\Services\LoggingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PageController extends Controller
 {
@@ -22,19 +24,21 @@ class PageController extends Controller
     /**
      * Display the about page.
      */
-    public function about()
+    public function about(): Response
     {
         $content = Setting::get('about_content', '');
 
-        return view('pages.about', compact('content'));
+        return Inertia::render('Public/About', [
+            'content' => $content,
+        ]);
     }
 
     /**
      * Display the contact page.
      */
-    public function contact()
+    public function contact(): Response
     {
-        return view('pages.contact');
+        return Inertia::render('Public/Contact');
     }
 
     /**

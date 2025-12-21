@@ -8,6 +8,8 @@ use App\Services\PaymentService;
 use App\Services\PrintService;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CheckoutController extends Controller
 {
@@ -19,7 +21,7 @@ class CheckoutController extends Controller
     /**
      * Show checkout page for a product.
      */
-    public function show(Request $request, Photo $photo)
+    public function show(Request $request, Photo $photo): Response
     {
         if ($photo->status !== 'published') {
             abort(404);
@@ -39,7 +41,7 @@ class CheckoutController extends Controller
         }
 
         if (!$selectedProduct) {
-            return redirect()->route('print.options', $photo)->with('error', 'Please select a product.');
+            return Inertia::location(route('print.options', $photo->slug));
         }
 
         $isPaymentConfigured = $this->paymentService->isConfigured();
@@ -55,19 +57,24 @@ class CheckoutController extends Controller
         $tax = $this->paymentService->calculateTax($subtotal);
         $total = $subtotal + $tax;
 
-        return view('checkout.show', compact(
-            'photo',
-            'selectedProduct',
-            'productId',
-            'productName',
-            'productType',
-            'price',
-            'shipping',
-            'tax',
-            'total',
-            'isPaymentConfigured',
-            'stripePublicKey'
-        ));
+        return Inertia::render('Public/Checkout/Show', [
+            'photo' => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_path' => $photo->thumbnail_path,
+            ],
+            'selectedProduct' => $selectedProduct,
+            'productId' => $productId,
+            'productName' => $productName,
+            'productType' => $productType,
+            'price' => $price,
+            'shipping' => $shipping,
+            'tax' => $tax,
+            'total' => $total,
+            'isPaymentConfigured' => $isPaymentConfigured,
+            'stripePublicKey' => $stripePublicKey,
+        ]);
     }
 
     /**
@@ -163,7 +170,7 @@ class CheckoutController extends Controller
     /**
      * Handle payment confirmation.
      */
-    public function confirm(Request $request, Order $order)
+    public function confirm(Request $request, Order $order): Response
     {
         // Verify payment status with Stripe
         if ($order->payment_intent_id) {
@@ -186,7 +193,27 @@ class CheckoutController extends Controller
             }
         }
 
-        return view('checkout.confirmation', compact('order'));
+        $order->load('photo');
+
+        return Inertia::render('Public/Checkout/Confirmation', [
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+                'product_name' => $order->product_name,
+                'product_type' => $order->product_type,
+                'total' => $order->total,
+                'customer_name' => $order->customer_name,
+                'customer_email' => $order->customer_email,
+                'license_key' => $order->license_key,
+                'photo' => $order->photo ? [
+                    'title' => $order->photo->title,
+                    'slug' => $order->photo->slug,
+                    'thumbnail_path' => $order->photo->thumbnail_path,
+                ] : null,
+            ],
+        ]);
     }
 
     /**

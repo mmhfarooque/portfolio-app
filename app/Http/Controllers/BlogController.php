@@ -6,13 +6,15 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BlogController extends Controller
 {
     /**
      * Display a listing of blog posts.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = Post::published()
             ->with(['user', 'category', 'tags'])
@@ -42,26 +44,62 @@ class BlogController extends Controller
             });
         }
 
-        $posts = $query->paginate(12)->withQueryString();
+        $posts = $query->paginate(12)->withQueryString()->through(fn($post) => [
+            'id' => $post->id,
+            'title' => $post->title,
+            'slug' => $post->slug,
+            'excerpt' => $post->excerpt,
+            'featured_image' => $post->featured_image,
+            'published_at' => $post->published_at?->format('M d, Y'),
+            'reading_time' => $post->reading_time,
+            'category' => $post->category ? [
+                'name' => $post->category->name,
+                'slug' => $post->category->slug,
+            ] : null,
+            'user' => $post->user ? [
+                'name' => $post->user->name,
+            ] : null,
+        ]);
 
         $categories = Category::withCount(['posts' => function ($query) {
             $query->published();
-        }])->orderBy('name')->get();
+        }])->orderBy('name')->get()->map(fn($cat) => [
+            'id' => $cat->id,
+            'name' => $cat->name,
+            'slug' => $cat->slug,
+            'posts_count' => $cat->posts_count,
+        ]);
 
         $tags = Tag::withCount(['posts' => function ($query) {
             $query->published();
-        }])->orderBy('name')->get();
+        }])->orderBy('name')->get()->map(fn($tag) => [
+            'id' => $tag->id,
+            'name' => $tag->name,
+            'slug' => $tag->slug,
+            'posts_count' => $tag->posts_count,
+        ]);
 
-        $currentCategory = $request->category ? Category::where('slug', $request->category)->first() : null;
-        $currentTag = $request->tag ? Tag::where('slug', $request->tag)->first() : null;
+        $currentCategory = $request->category ? Category::where('slug', $request->category)->first(['id', 'name', 'slug']) : null;
+        $currentTag = $request->tag ? Tag::where('slug', $request->tag)->first(['id', 'name', 'slug']) : null;
 
-        return view('blog.index', compact('posts', 'categories', 'tags', 'currentCategory', 'currentTag'));
+        return Inertia::render('Public/Blog/Index', [
+            'posts' => $posts,
+            'categories' => $categories,
+            'tags' => $tags,
+            'currentCategory' => $currentCategory,
+            'currentTag' => $currentTag,
+            'filters' => [
+                'category' => $request->category,
+                'tag' => $request->tag,
+                'search' => $request->search,
+            ],
+        ]);
     }
 
     /**
      * Display a single blog post.
      */
-    public function show(Post $post)
+    public function show(Post $post): Response
     {
         if ($post->status !== 'published') {
             abort(404);
@@ -83,7 +121,15 @@ class BlogController extends Controller
             })
             ->latest('published_at')
             ->take(3)
-            ->get();
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'title' => $p->title,
+                'slug' => $p->slug,
+                'excerpt' => $p->excerpt,
+                'featured_image' => $p->featured_image,
+                'published_at' => $p->published_at?->format('M d, Y'),
+            ]);
 
         // Get previous and next posts
         $previousPost = Post::published()
@@ -97,7 +143,7 @@ class BlogController extends Controller
             })
             ->orderBy('published_at', 'asc')
             ->orderBy('id', 'desc')
-            ->first();
+            ->first(['id', 'title', 'slug']);
 
         $nextPost = Post::published()
             ->where('id', '!=', $post->id)
@@ -110,8 +156,36 @@ class BlogController extends Controller
             })
             ->orderBy('published_at', 'desc')
             ->orderBy('id', 'asc')
-            ->first();
+            ->first(['id', 'title', 'slug']);
 
-        return view('blog.show', compact('post', 'relatedPosts', 'previousPost', 'nextPost'));
+        return Inertia::render('Public/Blog/Show', [
+            'post' => [
+                'id' => $post->id,
+                'title' => $post->title,
+                'slug' => $post->slug,
+                'excerpt' => $post->excerpt,
+                'content' => $post->content,
+                'featured_image' => $post->featured_image,
+                'published_at' => $post->published_at?->format('M d, Y'),
+                'reading_time' => $post->reading_time,
+                'views' => $post->views,
+                'seo_title' => $post->seo_title,
+                'meta_description' => $post->meta_description,
+                'category' => $post->category ? [
+                    'name' => $post->category->name,
+                    'slug' => $post->category->slug,
+                ] : null,
+                'tags' => $post->tags->map(fn($tag) => [
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                ]),
+                'user' => $post->user ? [
+                    'name' => $post->user->name,
+                ] : null,
+            ],
+            'relatedPosts' => $relatedPosts,
+            'previousPost' => $previousPost,
+            'nextPost' => $nextPost,
+        ]);
     }
 }

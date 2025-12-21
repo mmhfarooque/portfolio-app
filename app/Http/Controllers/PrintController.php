@@ -11,6 +11,8 @@ use App\Services\LoggingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PrintController extends Controller
 {
@@ -21,7 +23,7 @@ class PrintController extends Controller
     /**
      * Show print options for a photo.
      */
-    public function show(Photo $photo)
+    public function show(Photo $photo): Response
     {
         // Only show for published photos
         if ($photo->status !== 'published') {
@@ -31,7 +33,17 @@ class PrintController extends Controller
         $products = $this->printService->getProducts();
         $isApiConfigured = $this->printService->isConfigured();
 
-        return view('print.options', compact('photo', 'products', 'isApiConfigured'));
+        return Inertia::render('Public/Print/Options', [
+            'photo' => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'display_path' => $photo->display_path,
+            ],
+            'products' => $products,
+            'isApiConfigured' => $isApiConfigured,
+        ]);
     }
 
     /**

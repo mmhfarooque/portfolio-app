@@ -6,19 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class TagController extends Controller
 {
     /**
      * Display a listing of tags.
      */
-    public function index()
+    public function index(): Response
     {
         $tags = Tag::withCount('photos')
             ->orderBy('name')
             ->get();
 
-        return view('admin.tags.index', compact('tags'));
+        return Inertia::render('Admin/Tags/Index', [
+            'tags' => $tags
+        ]);
     }
 
     /**

@@ -7,6 +7,8 @@ use App\Models\ABTest;
 use App\Services\ABTestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ABTestController extends Controller
 {
@@ -20,7 +22,7 @@ class ABTestController extends Controller
     /**
      * Display A/B tests dashboard.
      */
-    public function index()
+    public function index(): Response
     {
         $tests = ABTest::latest()->paginate(20);
 
@@ -30,15 +32,18 @@ class ABTestController extends Controller
             'completed' => ABTest::where('status', 'completed')->count(),
         ];
 
-        return view('admin.abtests.index', compact('tests', 'stats'));
+        return Inertia::render('Admin/ABTests/Index', [
+            'tests' => $tests,
+            'stats' => $stats,
+        ]);
     }
 
     /**
      * Show form to create a new test.
      */
-    public function create()
+    public function create(): Response
     {
-        return view('admin.abtests.create');
+        return Inertia::render('Admin/ABTests/Create');
     }
 
     /**
@@ -68,23 +73,28 @@ class ABTestController extends Controller
     /**
      * Show test details and results.
      */
-    public function show(ABTest $abtest)
+    public function show(ABTest $abtest): Response
     {
         $results = $this->abTestService->getTestResults($abtest);
 
-        return view('admin.abtests.show', compact('abtest', 'results'));
+        return Inertia::render('Admin/ABTests/Show', [
+            'abtest' => $abtest,
+            'results' => $results,
+        ]);
     }
 
     /**
      * Edit test settings.
      */
-    public function edit(ABTest $abtest)
+    public function edit(ABTest $abtest): Response
     {
         if ($abtest->isRunning()) {
             return back()->with('error', 'Cannot edit a running test.');
         }
 
-        return view('admin.abtests.edit', compact('abtest'));
+        return Inertia::render('Admin/ABTests/Edit', [
+            'abtest' => $abtest,
+        ]);
     }
 
     /**

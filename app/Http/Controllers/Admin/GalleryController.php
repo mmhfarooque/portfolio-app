@@ -6,16 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Gallery;
 use App\Models\Photo;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class GalleryController extends Controller
 {
     /**
      * Display a listing of galleries.
      */
-    public function index()
+    public function index(): Response
     {
         $galleries = Gallery::where('user_id', auth()->id())
             ->withCount('photos')
@@ -23,15 +26,17 @@ class GalleryController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.galleries.index', compact('galleries'));
+        return Inertia::render('Admin/Galleries/Index', [
+            'galleries' => $galleries
+        ]);
     }
 
     /**
      * Show the form for creating a new gallery.
      */
-    public function create()
+    public function create(): Response
     {
-        return view('admin.galleries.create');
+        return Inertia::render('Admin/Galleries/Create');
     }
 
     /**
@@ -100,23 +105,28 @@ class GalleryController extends Controller
     /**
      * Display the specified gallery with its photos.
      */
-    public function show(Gallery $gallery)
+    public function show(Gallery $gallery): Response
     {
         $this->authorize('view', $gallery);
 
         $photos = $gallery->photos()->latest()->paginate(24);
 
-        return view('admin.galleries.show', compact('gallery', 'photos'));
+        return Inertia::render('Admin/Galleries/Show', [
+            'gallery' => $gallery,
+            'photos' => $photos
+        ]);
     }
 
     /**
      * Show the form for editing the specified gallery.
      */
-    public function edit(Gallery $gallery)
+    public function edit(Gallery $gallery): Response
     {
         $this->authorize('update', $gallery);
 
-        return view('admin.galleries.edit', compact('gallery'));
+        return Inertia::render('Admin/Galleries/Edit', [
+            'gallery' => $gallery
+        ]);
     }
 
     /**

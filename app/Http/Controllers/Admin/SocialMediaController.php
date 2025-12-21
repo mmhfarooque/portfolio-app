@@ -8,6 +8,8 @@ use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Services\SocialMediaService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SocialMediaController extends Controller
 {
@@ -21,7 +23,7 @@ class SocialMediaController extends Controller
     /**
      * Display social media dashboard.
      */
-    public function index()
+    public function index(): Response
     {
         $platforms = $this->socialService->getAvailablePlatforms();
 
@@ -37,19 +39,27 @@ class SocialMediaController extends Controller
             'failed' => SocialPost::failed()->count(),
         ];
 
-        return view('admin.social.index', compact('platforms', 'recentPosts', 'stats'));
+        return Inertia::render('Admin/Social/Index', [
+            'platforms' => $platforms,
+            'recentPosts' => $recentPosts,
+            'stats' => $stats,
+        ]);
     }
 
     /**
      * Show form to create a new social post.
      */
-    public function create(Request $request)
+    public function create(Request $request): Response
     {
         $platforms = $this->socialService->getAvailablePlatforms();
         $photos = Photo::published()->latest()->take(50)->get();
         $selectedPhoto = $request->photo_id ? Photo::find($request->photo_id) : null;
 
-        return view('admin.social.create', compact('platforms', 'photos', 'selectedPhoto'));
+        return Inertia::render('Admin/Social/Create', [
+            'platforms' => $platforms,
+            'photos' => $photos,
+            'selectedPhoto' => $selectedPhoto,
+        ]);
     }
 
     /**
@@ -90,11 +100,13 @@ class SocialMediaController extends Controller
     /**
      * View a single social post.
      */
-    public function show(SocialPost $socialPost)
+    public function show(SocialPost $socialPost): Response
     {
         $socialPost->load(['photo', 'post']);
 
-        return view('admin.social.show', compact('socialPost'));
+        return Inertia::render('Admin/Social/Show', [
+            'socialPost' => $socialPost,
+        ]);
     }
 
     /**
@@ -129,12 +141,15 @@ class SocialMediaController extends Controller
     /**
      * Show connected accounts.
      */
-    public function accounts()
+    public function accounts(): Response
     {
         $accounts = SocialAccount::with('user')->get();
         $platforms = $this->socialService->getAvailablePlatforms();
 
-        return view('admin.social.accounts', compact('accounts', 'platforms'));
+        return Inertia::render('Admin/Social/Accounts', [
+            'accounts' => $accounts,
+            'platforms' => $platforms,
+        ]);
     }
 
     /**

@@ -5,31 +5,36 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CategoryController extends Controller
 {
     /**
      * Display a listing of categories.
      */
-    public function index()
+    public function index(): Response
     {
         $categories = Category::withCount('photos')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        return view('admin.categories.index', compact('categories'));
+        return Inertia::render('Admin/Categories/Index', [
+            'categories' => $categories
+        ]);
     }
 
     /**
      * Show the form for creating a new category.
      */
-    public function create()
+    public function create(): Response
     {
-        return view('admin.categories.create');
+        return Inertia::render('Admin/Categories/Create');
     }
 
     /**
@@ -65,9 +70,11 @@ class CategoryController extends Controller
     /**
      * Show the form for editing the specified category.
      */
-    public function edit(Category $category)
+    public function edit(Category $category): Response
     {
-        return view('admin.categories.edit', compact('category'));
+        return Inertia::render('Admin/Categories/Edit', [
+            'category' => $category
+        ]);
     }
 
     /**

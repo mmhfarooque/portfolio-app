@@ -12,6 +12,8 @@ use App\Services\PhotoProcessingService;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PhotoController extends Controller
 {
@@ -22,7 +24,7 @@ class PhotoController extends Controller
     /**
      * Display a listing of photos.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = Photo::with(['category', 'gallery', 'tags'])
             ->where('user_id', auth()->id())
@@ -43,24 +45,61 @@ class PhotoController extends Controller
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
-        $photos = $query->paginate(24);
-        $categories = Category::orderBy('name')->get();
-        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get();
-        $tags = Tag::orderBy('name')->get();
+        $photos = $query->paginate(24)->through(fn($photo) => [
+            'id' => $photo->id,
+            'title' => $photo->title,
+            'slug' => $photo->slug,
+            'thumbnail_path' => $photo->thumbnail_path,
+            'status' => $photo->status,
+            'processing_stage' => $photo->processing_stage,
+            'views' => $photo->views,
+            'is_featured' => $photo->is_featured,
+            'created_at' => $photo->created_at->format('M j, Y'),
+            'category' => $photo->category ? [
+                'id' => $photo->category->id,
+                'name' => $photo->category->name,
+            ] : null,
+            'gallery' => $photo->gallery ? [
+                'id' => $photo->gallery->id,
+                'name' => $photo->gallery->name,
+            ] : null,
+            'tags' => $photo->tags->map(fn($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+            ]),
+        ]);
 
-        return view('admin.photos.index', compact('photos', 'categories', 'galleries', 'tags'));
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get(['id', 'name']);
+        $tags = Tag::orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('Admin/Photos/Index', [
+            'photos' => $photos,
+            'categories' => $categories,
+            'galleries' => $galleries,
+            'tags' => $tags,
+            'filters' => [
+                'status' => $request->status,
+                'category' => $request->category,
+                'search' => $request->search,
+            ],
+        ]);
     }
 
     /**
      * Show the form for creating a new photo.
      */
-    public function create()
+    public function create(): Response
     {
-        $categories = Category::orderBy('name')->get();
-        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get();
-        $tags = Tag::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get(['id', 'name']);
+        $tags = Tag::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.photos.create', compact('categories', 'galleries', 'tags'));
+        return Inertia::render('Admin/Photos/Create', [
+            'categories' => $categories,
+            'galleries' => $galleries,
+            'tags' => $tags,
+        ]);
     }
 
     /**
@@ -177,25 +216,98 @@ class PhotoController extends Controller
     /**
      * Display the specified photo.
      */
-    public function show(Photo $photo)
+    public function show(Photo $photo): Response
     {
         $this->authorize('view', $photo);
 
-        return view('admin.photos.show', compact('photo'));
+        $photo->load(['category', 'gallery', 'tags']);
+
+        return Inertia::render('Admin/Photos/Show', [
+            'photo' => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'description' => $photo->description,
+                'story' => $photo->story,
+                'location_name' => $photo->location_name,
+                'seo_title' => $photo->seo_title,
+                'meta_description' => $photo->meta_description,
+                'status' => $photo->status,
+                'is_featured' => $photo->is_featured,
+                'views' => $photo->views,
+                'display_path' => $photo->display_path,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'watermarked_path' => $photo->watermarked_path,
+                'original_filename' => $photo->original_filename,
+                'file_size' => $photo->file_size,
+                'width' => $photo->width,
+                'height' => $photo->height,
+                'exif_data' => $photo->exif_data,
+                'formatted_exif' => $photo->formatted_exif,
+                'processing_stage' => $photo->processing_stage,
+                'processing_error' => $photo->processing_error,
+                'created_at' => $photo->created_at->format('M j, Y g:i A'),
+                'updated_at' => $photo->updated_at->format('M j, Y g:i A'),
+                'category' => $photo->category ? [
+                    'id' => $photo->category->id,
+                    'name' => $photo->category->name,
+                ] : null,
+                'gallery' => $photo->gallery ? [
+                    'id' => $photo->gallery->id,
+                    'name' => $photo->gallery->name,
+                ] : null,
+                'tags' => $photo->tags->map(fn($tag) => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                ]),
+            ],
+        ]);
     }
 
     /**
      * Show the form for editing the specified photo.
      */
-    public function edit(Photo $photo)
+    public function edit(Photo $photo): Response
     {
         $this->authorize('update', $photo);
 
-        $categories = Category::orderBy('name')->get();
-        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get();
-        $tags = Tag::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get(['id', 'name']);
+        $tags = Tag::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.photos.edit', compact('photo', 'categories', 'galleries', 'tags'));
+        return Inertia::render('Admin/Photos/Edit', [
+            'photo' => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'description' => $photo->description,
+                'story' => $photo->story,
+                'location_name' => $photo->location_name,
+                'seo_title' => $photo->seo_title,
+                'meta_description' => $photo->meta_description,
+                'category_id' => $photo->category_id,
+                'gallery_id' => $photo->gallery_id,
+                'status' => $photo->status,
+                'is_featured' => $photo->is_featured,
+                'views' => $photo->views,
+                'display_path' => $photo->display_path,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'watermarked_path' => $photo->watermarked_path,
+                'original_filename' => $photo->original_filename,
+                'file_size' => $photo->file_size,
+                'width' => $photo->width,
+                'height' => $photo->height,
+                'exif_data' => $photo->exif_data,
+                'formatted_exif' => $photo->formatted_exif,
+                'processing_stage' => $photo->processing_stage,
+                'processing_error' => $photo->processing_error,
+                'created_at' => $photo->created_at->format('M j, Y g:i A'),
+                'tag_ids' => $photo->tags->pluck('id'),
+            ],
+            'categories' => $categories,
+            'galleries' => $galleries,
+            'tags' => $tags,
+        ]);
     }
 
     /**
@@ -427,7 +539,7 @@ class PhotoController extends Controller
     /**
      * Show bulk edit page.
      */
-    public function bulkEdit(Request $request)
+    public function bulkEdit(Request $request): Response
     {
         $query = Photo::with(['category', 'gallery', 'tags'])
             ->where('user_id', auth()->id())
@@ -443,12 +555,46 @@ class PhotoController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        $photos = $query->paginate(50);
-        $categories = Category::orderBy('name')->get();
-        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get();
-        $tags = Tag::orderBy('name')->get();
+        $photos = $query->paginate(50)->through(fn($photo) => [
+            'id' => $photo->id,
+            'title' => $photo->title,
+            'slug' => $photo->slug,
+            'description' => $photo->description,
+            'location_name' => $photo->location_name,
+            'thumbnail_path' => $photo->thumbnail_path,
+            'status' => $photo->status,
+            'is_featured' => $photo->is_featured,
+            'category_id' => $photo->category_id,
+            'gallery_id' => $photo->gallery_id,
+            'category' => $photo->category ? [
+                'id' => $photo->category->id,
+                'name' => $photo->category->name,
+            ] : null,
+            'gallery' => $photo->gallery ? [
+                'id' => $photo->gallery->id,
+                'name' => $photo->gallery->name,
+            ] : null,
+            'tags' => $photo->tags->map(fn($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+            ]),
+            'tag_ids' => $photo->tags->pluck('id'),
+        ]);
 
-        return view('admin.photos.bulk-edit', compact('photos', 'categories', 'galleries', 'tags'));
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $galleries = Gallery::where('user_id', auth()->id())->orderBy('name')->get(['id', 'name']);
+        $tags = Tag::orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('Admin/Photos/BulkEdit', [
+            'photos' => $photos,
+            'categories' => $categories,
+            'galleries' => $galleries,
+            'tags' => $tags,
+            'filters' => [
+                'status' => $request->status,
+                'category' => $request->category,
+            ],
+        ]);
     }
 
     /**
@@ -794,6 +940,68 @@ class PhotoController extends Controller
     }
 
     /**
+     * Replace the image for an existing photo.
+     */
+    public function replaceImage(Request $request, Photo $photo)
+    {
+        $this->authorize('update', $photo);
+
+        $request->validate([
+            'image' => 'required|file|mimes:jpg,jpeg,png,webp,avif|max:51200', // 50MB max
+        ]);
+
+        $file = $request->file('image');
+
+        try {
+            // Delete old image files
+            $this->photoService->deletePhotoFiles($photo);
+
+            // Determine processing mode
+            $useQueue = config('queue.default') !== 'sync';
+
+            if ($useQueue) {
+                // Store temp file and queue for processing
+                $tempPath = $file->store('temp', 'local');
+                $tempFullPath = storage_path('app/' . $tempPath);
+
+                // Reset photo status
+                $photo->update([
+                    'status' => 'processing',
+                    'processing_stage' => 'queued',
+                    'processing_error' => null,
+                    'display_path' => null,
+                    'thumbnail_path' => null,
+                    'watermarked_path' => null,
+                ]);
+
+                // Dispatch job
+                ProcessPhotoUpload::dispatch(
+                    $photo,
+                    $tempFullPath,
+                    $file->getClientOriginalName()
+                );
+
+                return redirect()
+                    ->route('admin.photos.edit', $photo)
+                    ->with('success', 'Image queued for processing. Refresh to see the updated photo.');
+            } else {
+                // Synchronous processing
+                $this->photoService->reprocessPhoto($photo, $file);
+
+                return redirect()
+                    ->route('admin.photos.edit', $photo)
+                    ->with('success', 'Image replaced successfully.');
+            }
+        } catch (\Exception $e) {
+            LoggingService::error('photo.replace_failed', 'Failed to replace photo image: ' . $e->getMessage(), $photo);
+
+            return redirect()
+                ->route('admin.photos.edit', $photo)
+                ->with('error', 'Failed to replace image: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Validate slug for uniqueness and similarity.
      */
     public function validateSlug(Request $request)
@@ -830,17 +1038,19 @@ class PhotoController extends Controller
         }
 
         // Check for similar slugs (using LIKE for partial matches)
-        $similarSlugs = Photo::where('slug', 'like', '%' . $slug . '%')
-            ->orWhere('slug', 'like', $slug . '%')
-            ->orWhere('slug', 'like', '%' . $slug)
+        $similarSlugs = Photo::where(function ($q) use ($slug) {
+                $q->where('slug', 'like', '%' . $slug . '%')
+                  ->orWhere('slug', 'like', $slug . '%')
+                  ->orWhere('slug', 'like', '%' . $slug);
+            })
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
             ->limit(5)
             ->get(['id', 'title', 'slug']);
 
-        // Calculate similarity and filter
+        // Calculate similarity and filter (exclude 100% matches - that's the same item)
         $similar = $similarSlugs->filter(function ($photo) use ($slug) {
             similar_text($slug, $photo->slug, $percent);
-            return $percent > 60; // More than 60% similar
+            return $percent > 60 && $percent < 100; // Similar but not exact same
         })->map(function ($photo) use ($slug) {
             similar_text($slug, $photo->slug, $percent);
             return [
@@ -886,20 +1096,18 @@ class PhotoController extends Controller
 
         // Check for similar titles
         $words = explode(' ', strtolower($title));
-        $query = Photo::query();
-
-        foreach ($words as $word) {
-            if (strlen($word) > 3) {
-                $query->orWhere('title', 'like', '%' . $word . '%');
-            }
-        }
-
-        $similarTitles = $query
+        $similarTitles = Photo::where(function ($q) use ($words) {
+                foreach ($words as $word) {
+                    if (strlen($word) > 3) {
+                        $q->orWhere('title', 'like', '%' . $word . '%');
+                    }
+                }
+            })
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
             ->limit(10)
             ->get(['id', 'title', 'slug']);
 
-        // Calculate similarity
+        // Calculate similarity (exclude 100% matches - that's the same item)
         $similar = $similarTitles->map(function ($photo) use ($title) {
             similar_text(strtolower($title), strtolower($photo->title), $percent);
             return [
@@ -907,7 +1115,7 @@ class PhotoController extends Controller
                 'slug' => $photo->slug,
                 'similarity' => round($percent),
             ];
-        })->filter(fn($item) => $item['similarity'] > 50)
+        })->filter(fn($item) => $item['similarity'] > 50 && $item['similarity'] < 100)
           ->sortByDesc('similarity')
           ->values()
           ->take(3);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\Photo;
 use App\Services\AIImageService;
 use App\Services\ThemeService;
 use App\Services\LoggingService;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SettingController extends Controller
 {
@@ -22,14 +25,54 @@ class SettingController extends Controller
     /**
      * Display the settings page.
      */
-    public function index()
+    public function index(): Response
     {
         $settings = Setting::all()->groupBy('group');
 
         // Get theme data
         $currentTheme = $this->themeService->getCurrentTheme();
+        $themes = config('themes.themes', []);
 
-        return view('admin.settings.index', compact('settings', 'currentTheme'));
+        // Transform settings for Vue
+        $settingsData = [];
+        foreach ($settings as $group => $groupSettings) {
+            $settingsData[$group] = [];
+            foreach ($groupSettings as $setting) {
+                $settingsData[$group][$setting->key] = $setting->value;
+            }
+        }
+
+        // Watermark settings
+        $watermarkSettings = [
+            'enabled' => Setting::get('watermark_enabled', '1') === '1',
+            'type' => Setting::get('watermark_type', 'text'),
+            'text' => Setting::get('watermark_text', '© Photography Portfolio'),
+            'position' => Setting::get('watermark_position', 'bottom-right'),
+            'opacity' => (int) Setting::get('watermark_opacity', '40'),
+            'size' => (int) Setting::get('watermark_size', '24'),
+            'imageSize' => (int) Setting::get('watermark_image_size', '15'),
+            'image' => Setting::get('watermark_image'),
+        ];
+
+        // AI settings
+        $aiSettings = [
+            'enabled' => Setting::get('ai_enabled', '0') === '1',
+            'provider' => Setting::get('ai_provider', 'google'),
+            'googleKey' => Setting::get('google_ai_api_key', ''),
+            'openaiKey' => Setting::get('openai_api_key', ''),
+            'claudeKey' => Setting::get('claude_api_key', ''),
+            'autoTitle' => Setting::get('ai_auto_title', '1') === '1',
+            'autoDescription' => Setting::get('ai_auto_description', '1') === '1',
+        ];
+
+        return Inertia::render('Admin/Settings/Index', [
+            'settings' => $settingsData,
+            'currentTheme' => $currentTheme,
+            'themes' => $themes,
+            'watermarkSettings' => $watermarkSettings,
+            'aiSettings' => $aiSettings,
+            'photoCount' => Photo::count(),
+        ]);
     }
 
     /**

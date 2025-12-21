@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ContactController extends Controller
 {
@@ -19,7 +21,7 @@ class ContactController extends Controller
     /**
      * Display a listing of contacts.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = Contact::query()->latest();
 
@@ -38,21 +40,50 @@ class ContactController extends Controller
             });
         }
 
-        $contacts = $query->paginate(20);
+        $contacts = $query->paginate(20)->through(fn($contact) => [
+            'id' => $contact->id,
+            'name' => $contact->name,
+            'email' => $contact->email,
+            'subject' => $contact->subject,
+            'status' => $contact->status,
+            'created_at' => $contact->created_at->format('M j, Y g:i A'),
+        ]);
+
         $unreadCount = Contact::unread()->count();
 
-        return view('admin.contacts.index', compact('contacts', 'unreadCount'));
+        return Inertia::render('Admin/Contacts/Index', [
+            'contacts' => $contacts,
+            'unreadCount' => $unreadCount,
+            'filters' => [
+                'status' => $request->status,
+                'search' => $request->search,
+            ],
+        ]);
     }
 
     /**
      * Display the specified contact.
      */
-    public function show(Contact $contact)
+    public function show(Contact $contact): Response
     {
         // Mark as read when viewed
         $contact->markAsRead();
 
-        return view('admin.contacts.show', compact('contact'));
+        return Inertia::render('Admin/Contacts/Show', [
+            'contact' => [
+                'id' => $contact->id,
+                'name' => $contact->name,
+                'email' => $contact->email,
+                'phone' => $contact->phone,
+                'subject' => $contact->subject,
+                'message' => $contact->message,
+                'status' => $contact->status,
+                'ip_address' => $contact->ip_address,
+                'user_agent' => $contact->user_agent,
+                'created_at' => $contact->created_at->format('M j, Y g:i A'),
+                'replied_at' => $contact->replied_at?->format('M j, Y g:i A'),
+            ],
+        ]);
     }
 
     /**

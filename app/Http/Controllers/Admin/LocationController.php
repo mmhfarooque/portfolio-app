@@ -7,19 +7,38 @@ use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class LocationController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
-        $locations = Location::withCount('nearbyPhotos')->orderBy('name')->paginate(20);
+        $locations = Location::withCount('nearbyPhotos')
+            ->orderBy('name')
+            ->paginate(20)
+            ->through(fn($location) => [
+                'id' => $location->id,
+                'name' => $location->name,
+                'slug' => $location->slug,
+                'city' => $location->city,
+                'state' => $location->state,
+                'country' => $location->country,
+                'latitude' => $location->latitude,
+                'longitude' => $location->longitude,
+                'cover_image' => $location->cover_image,
+                'is_featured' => $location->is_featured,
+                'nearby_photos_count' => $location->nearby_photos_count,
+            ]);
 
-        return view('admin.locations.index', compact('locations'));
+        return Inertia::render('Admin/Locations/Index', [
+            'locations' => $locations,
+        ]);
     }
 
-    public function create()
+    public function create(): Response
     {
-        return view('admin.locations.create');
+        return Inertia::render('Admin/Locations/Create');
     }
 
     public function store(Request $request)
@@ -56,9 +75,27 @@ class LocationController extends Controller
             ->with('success', 'Location added successfully.');
     }
 
-    public function edit(Location $location)
+    public function edit(Location $location): Response
     {
-        return view('admin.locations.edit', compact('location'));
+        return Inertia::render('Admin/Locations/Edit', [
+            'location' => [
+                'id' => $location->id,
+                'name' => $location->name,
+                'slug' => $location->slug,
+                'description' => $location->description,
+                'latitude' => $location->latitude,
+                'longitude' => $location->longitude,
+                'address' => $location->address,
+                'city' => $location->city,
+                'state' => $location->state,
+                'country' => $location->country,
+                'tips' => $location->tips,
+                'best_time' => $location->best_time,
+                'amenities' => $location->amenities,
+                'cover_image' => $location->cover_image,
+                'is_featured' => $location->is_featured,
+            ],
+        ]);
     }
 
     public function update(Request $request, Location $location)

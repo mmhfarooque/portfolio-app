@@ -9,8 +9,7 @@
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
         "@tailwindcss/vite": "^4.0.0",
-        "alpinejs": "^3.4.2",
-        "autoprefixer": "^10.4.2",
+                "autoprefixer": "^10.4.2",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
@@ -26,7 +25,11 @@
         "@editorjs/list": "^2.0.9",
         "@editorjs/paragraph": "^2.11.7",
         "@editorjs/quote": "^2.7.6",
+        "@inertiajs/vue3": "^2.3.4",
+        "@vitejs/plugin-vue": "^6.0.3",
         "grapesjs": "^0.22.14",
-        "grapesjs-preset-webpage": "^1.0.3"
+        "grapesjs-preset-webpage": "^1.0.3",
+        "vue": "^3.5.26",
+        "ziggy-js": "^2.6.0"
     }
 }

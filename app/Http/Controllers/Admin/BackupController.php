@@ -8,13 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use App\Services\LoggingService;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class BackupController extends Controller
 {
     /**
      * Display backup settings and status.
      */
-    public function index()
+    public function index(): Response
     {
         $isConfigured = config('filesystems.disks.b2.key') && config('filesystems.disks.b2.bucket');
         $lastBackupAt = Setting::get('last_backup_at');
@@ -27,12 +29,12 @@ class BackupController extends Controller
         // Get storage usage
         $storageStats = $this->getStorageStats();
 
-        return view('admin.settings.backup', compact(
-            'isConfigured',
-            'lastBackupAt',
-            'lastBackupStats',
-            'storageStats'
-        ));
+        return Inertia::render('Admin/Backup/Index', [
+            'isConfigured' => $isConfigured,
+            'lastBackupAt' => $lastBackupAt,
+            'lastBackupStats' => $lastBackupStats,
+            'storageStats' => $storageStats,
+        ]);
     }
 
     /**
