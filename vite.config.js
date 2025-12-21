@@ -22,4 +22,14 @@ export default defineConfig({
             '@': '/resources/js',
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-vue': ['vue', '@inertiajs/vue3'],
+                    'vendor-ziggy': ['ziggy-js'],
+                },
+            },
+        },
+    },
 });
