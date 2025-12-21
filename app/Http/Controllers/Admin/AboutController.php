@@ -6,23 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class AboutController extends Controller
 {
     /**
      * Show the GrapesJS editor for the About page.
      */
-    public function editor()
+    public function editor(): Response
     {
         $content = Setting::get('about_content', $this->getDefaultContent());
 
-        return view('admin.about.editor', compact('content'));
+        return Inertia::render('Admin/About/Editor', [
+            'content' => $content,
+        ]);
     }
 
     /**
      * Show the Editor.js editor for the About page or Profile bio.
      */
-    public function editorJs(Request $request)
+    public function editorJs(Request $request): Response
     {
         $target = $request->query('target', 'about');
         $editorData = null;
@@ -37,7 +41,10 @@ class AboutController extends Controller
             $editorData = json_decode($editorData, true);
         }
 
-        return view('admin.about.editorjs', compact('editorData', 'target'));
+        return Inertia::render('Admin/About/EditorJs', [
+            'editorData' => $editorData,
+            'target' => $target,
+        ]);
     }
 
     /**

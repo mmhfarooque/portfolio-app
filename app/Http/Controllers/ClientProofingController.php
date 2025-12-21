@@ -39,7 +39,7 @@ class ClientProofingController extends Controller
     /**
      * Get all selections for the current session.
      */
-    public function index(Request $request)
+    public function index(Request $request): \Inertia\Response
     {
         $selections = ClientSelection::forSession()
             ->with(['photo', 'gallery'])
@@ -51,9 +51,40 @@ class ClientProofingController extends Controller
         // Group by gallery if applicable
         $groupedSelections = $selections->groupBy(function ($selection) {
             return $selection->gallery_id ?? 0;
-        });
+        })->map(function ($items, $galleryId) {
+            $gallery = $items->first()->gallery;
+            return [
+                'gallery' => $gallery ? [
+                    'id' => $gallery->id,
+                    'name' => $gallery->name,
+                ] : null,
+                'photos' => $items->map(fn($s) => [
+                    'id' => $s->id,
+                    'photo' => [
+                        'id' => $s->photo->id,
+                        'title' => $s->photo->title,
+                        'slug' => $s->photo->slug,
+                        'thumbnail_path' => $s->photo->thumbnail_path,
+                    ],
+                    'created_at' => $s->created_at->format('M d, Y'),
+                ]),
+            ];
+        })->values();
 
-        return view('client.selections', compact('selections', 'groupedSelections', 'selectionCount'));
+        return \Inertia\Inertia::render('Public/Client/Selections', [
+            'selections' => $selections->map(fn($s) => [
+                'id' => $s->id,
+                'photo' => [
+                    'id' => $s->photo->id,
+                    'title' => $s->photo->title,
+                    'slug' => $s->photo->slug,
+                    'thumbnail_path' => $s->photo->thumbnail_path,
+                ],
+                'gallery' => $s->gallery ? ['name' => $s->gallery->name] : null,
+            ]),
+            'groupedSelections' => $groupedSelections,
+            'selectionCount' => $selectionCount,
+        ]);
     }
 
     /**

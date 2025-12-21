@@ -4,13 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Photo;
 use App\Models\Setting;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class FrontPageController extends Controller
 {
     /**
      * Display the front page / homepage with CV/Resume layout.
      */
-    public function index()
+    public function index(): Response
     {
         // Get profile settings
         $profile = [
@@ -68,7 +70,20 @@ class FrontPageController extends Controller
                 ->get();
         }
 
-        return view('front-page', compact('profile', 'contact', 'social', 'skills', 'featuredPhotos'));
+        return Inertia::render('Public/Home', [
+            'profile' => $profile,
+            'contact' => $contact,
+            'social' => $social,
+            'skills' => $skills,
+            'featuredPhotos' => $featuredPhotos->map(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'display_path' => $photo->display_path,
+                'category' => $photo->category?->name,
+            ]),
+        ]);
     }
 
     /**

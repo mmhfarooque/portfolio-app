@@ -4,13 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Gallery;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ClientGalleryController extends Controller
 {
     /**
      * View client gallery via access token.
      */
-    public function view(string $token)
+    public function view(string $token): Response
     {
         $gallery = Gallery::where('access_token', $token)
             ->with(['photos' => function ($query) {
@@ -20,18 +22,51 @@ class ClientGalleryController extends Controller
 
         // Check if expired
         if ($gallery->isExpired()) {
-            return view('client-gallery.expired', compact('gallery'));
+            return Inertia::render('Public/ClientGallery/Expired', [
+                'gallery' => [
+                    'name' => $gallery->name,
+                ],
+            ]);
         }
 
         // Check if password protected and not already authenticated
-        if ($gallery->isPasswordProtected() && !$gallery->hasAccess()) {
-            return view('client-gallery.password', compact('gallery', 'token'));
+        $needsPassword = $gallery->isPasswordProtected() && !$gallery->hasAccess();
+
+        if ($needsPassword) {
+            return Inertia::render('Public/ClientGallery/Password', [
+                'gallery' => [
+                    'name' => $gallery->name,
+                ],
+                'token' => $token,
+            ]);
         }
 
         // Record the view
         $gallery->recordView();
 
-        return view('client-gallery.view', compact('gallery'));
+        // Get current selections from session
+        $sessionKey = "client_selections_{$gallery->id}";
+        $selections = session($sessionKey, []);
+
+        return Inertia::render('Public/ClientGallery/View', [
+            'gallery' => [
+                'id' => $gallery->id,
+                'name' => $gallery->name,
+                'description' => $gallery->description,
+                'allow_downloads' => $gallery->allow_downloads,
+                'allow_selections' => $gallery->allow_selections,
+                'selection_limit' => $gallery->selection_limit,
+            ],
+            'photos' => $gallery->photos->map(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'display_path' => $photo->display_path,
+            ]),
+            'token' => $token,
+            'selections' => $selections,
+        ]);
     }
 
     /**
@@ -164,7 +199,7 @@ class ClientGalleryController extends Controller
     /**
      * Submit selections for client gallery.
      */
-    public function submitSelections(Request $request, string $token)
+    public function submitSelections(Request $request, string $token): Response
     {
         $gallery = Gallery::where('access_token', $token)->firstOrFail();
 
@@ -205,8 +240,10 @@ class ClientGalleryController extends Controller
         // Clear session
         session()->forget($sessionKey);
 
-        return view('client-gallery.submitted', [
-            'gallery' => $gallery,
+        return Inertia::render('Public/ClientGallery/Submitted', [
+            'gallery' => [
+                'name' => $gallery->name,
+            ],
             'selectedCount' => count($selections),
         ]);
     }

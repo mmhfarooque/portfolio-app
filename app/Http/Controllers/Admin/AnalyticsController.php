@@ -6,13 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\ReferralVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class AnalyticsController extends Controller
 {
     /**
      * Display referral analytics dashboard.
      */
-    public function referrals(Request $request)
+    public function referrals(Request $request): Response
     {
         $days = $request->get('days', 30);
         $startDate = now()->subDays($days);
@@ -98,20 +100,20 @@ class AnalyticsController extends Controller
             ->pluck('count', 'conversion_type')
             ->toArray();
 
-        return view('admin.analytics.referrals', compact(
-            'days',
-            'totalVisits',
-            'utmVisits',
-            'conversions',
-            'conversionRate',
-            'topSources',
-            'topReferrers',
-            'topCampaigns',
-            'dailyVisits',
-            'deviceBreakdown',
-            'browserBreakdown',
-            'topLandingPages',
-            'conversionsByType'
-        ));
+        return Inertia::render('Admin/Analytics/Referrals', [
+            'days' => $days,
+            'totalVisits' => $totalVisits,
+            'utmVisits' => $utmVisits,
+            'conversions' => $conversions,
+            'conversionRate' => $conversionRate,
+            'topSources' => $topSources,
+            'topReferrers' => $topReferrers,
+            'topCampaigns' => $topCampaigns,
+            'dailyVisits' => $dailyVisits,
+            'deviceBreakdown' => $deviceBreakdown,
+            'browserBreakdown' => $browserBreakdown,
+            'topLandingPages' => $topLandingPages,
+            'conversionsByType' => $conversionsByType,
+        ]);
     }
 }

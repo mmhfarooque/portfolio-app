@@ -9,17 +9,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Laravel\Facades\Image;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class FrontpageController extends Controller
 {
     /**
      * Display the frontpage settings.
      */
-    public function index()
+    public function index(): Response
     {
-        $settings = Setting::all()->groupBy('group');
+        $settings = Setting::all()->groupBy('group')->map(function ($group) {
+            return $group->mapWithKeys(function ($setting) {
+                return [$setting->key => [
+                    'id' => $setting->id,
+                    'key' => $setting->key,
+                    'value' => $setting->value,
+                    'type' => $setting->type,
+                    'group' => $setting->group,
+                ]];
+            });
+        });
 
-        return view('admin.frontpage.index', compact('settings'));
+        return Inertia::render('Admin/Frontpage/Index', [
+            'settings' => $settings,
+        ]);
     }
 
     /**

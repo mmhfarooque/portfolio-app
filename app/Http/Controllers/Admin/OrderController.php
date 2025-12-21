@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class OrderController extends Controller
 {
     /**
      * Display a listing of orders.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = Order::with('photo')->latest();
 
@@ -40,7 +42,22 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $query->paginate(20);
+        $orders = $query->paginate(20)->through(fn($order) => [
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer_name,
+            'customer_email' => $order->customer_email,
+            'product_type' => $order->product_type,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+            'total' => $order->total,
+            'created_at' => $order->created_at->format('M j, Y g:i A'),
+            'photo' => $order->photo ? [
+                'id' => $order->photo->id,
+                'title' => $order->photo->title,
+                'thumbnail_path' => $order->photo->thumbnail_path,
+            ] : null,
+        ]);
 
         // Stats
         $stats = [
@@ -50,17 +67,56 @@ class OrderController extends Controller
             'revenue' => Order::where('payment_status', 'paid')->sum('total'),
         ];
 
-        return view('admin.orders.index', compact('orders', 'stats'));
+        return Inertia::render('Admin/Orders/Index', [
+            'orders' => $orders,
+            'stats' => $stats,
+            'filters' => [
+                'status' => $request->status,
+                'payment_status' => $request->payment_status,
+                'product_type' => $request->product_type,
+                'search' => $request->search,
+            ],
+        ]);
     }
 
     /**
      * Display a specific order.
      */
-    public function show(Order $order)
+    public function show(Order $order): Response
     {
         $order->load('photo');
 
-        return view('admin.orders.show', compact('order'));
+        return Inertia::render('Admin/Orders/Show', [
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'customer_name' => $order->customer_name,
+                'customer_email' => $order->customer_email,
+                'customer_phone' => $order->customer_phone,
+                'product_type' => $order->product_type,
+                'product_options' => $order->product_options,
+                'quantity' => $order->quantity,
+                'price' => $order->price,
+                'total' => $order->total,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+                'payment_method' => $order->payment_method,
+                'stripe_payment_intent' => $order->stripe_payment_intent,
+                'shipping_address' => $order->shipping_address,
+                'tracking_number' => $order->tracking_number,
+                'tracking_url' => $order->tracking_url,
+                'notes' => $order->notes,
+                'created_at' => $order->created_at->format('M j, Y g:i A'),
+                'updated_at' => $order->updated_at->format('M j, Y g:i A'),
+                'photo' => $order->photo ? [
+                    'id' => $order->photo->id,
+                    'title' => $order->photo->title,
+                    'slug' => $order->photo->slug,
+                    'thumbnail_path' => $order->photo->thumbnail_path,
+                    'display_path' => $order->photo->display_path,
+                ] : null,
+            ],
+        ]);
     }
 
     /**

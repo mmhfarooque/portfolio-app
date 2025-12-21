@@ -7,13 +7,15 @@ use App\Models\Photo;
 use App\Models\Series;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SeriesController extends Controller
 {
     /**
      * Display a listing of series.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = Series::with('user')->withCount('photos');
 
@@ -29,17 +31,34 @@ class SeriesController extends Controller
             });
         }
 
-        $series = $query->latest()->paginate(15)->withQueryString();
+        $series = $query->latest()->paginate(15)->through(fn($item) => [
+            'id' => $item->id,
+            'title' => $item->title,
+            'slug' => $item->slug,
+            'description' => $item->description,
+            'cover_image' => $item->cover_image,
+            'status' => $item->status,
+            'is_featured' => $item->is_featured,
+            'photos_count' => $item->photos_count,
+            'project_date' => $item->project_date?->format('M j, Y'),
+            'created_at' => $item->created_at->format('M j, Y'),
+        ]);
 
-        return view('admin.series.index', compact('series'));
+        return Inertia::render('Admin/Series/Index', [
+            'series' => $series,
+            'filters' => [
+                'status' => $request->status,
+                'search' => $request->search,
+            ],
+        ]);
     }
 
     /**
      * Show the form for creating a new series.
      */
-    public function create()
+    public function create(): Response
     {
-        return view('admin.series.create');
+        return Inertia::render('Admin/Series/Create');
     }
 
     /**
@@ -83,7 +102,7 @@ class SeriesController extends Controller
     /**
      * Show the form for editing the specified series.
      */
-    public function edit(Series $series)
+    public function edit(Series $series): Response
     {
         $series->load(['photos' => function ($query) {
             $query->orderByPivot('sort_order');
@@ -97,7 +116,33 @@ class SeriesController extends Controller
             ->take(50)
             ->get();
 
-        return view('admin.series.edit', compact('series', 'availablePhotos'));
+        return Inertia::render('Admin/Series/Edit', [
+            'series' => [
+                'id' => $series->id,
+                'title' => $series->title,
+                'slug' => $series->slug,
+                'description' => $series->description,
+                'story' => $series->story,
+                'project_date' => $series->project_date?->format('Y-m-d'),
+                'location' => $series->location,
+                'status' => $series->status,
+                'is_featured' => $series->is_featured,
+                'cover_image' => $series->cover_image,
+                'seo_title' => $series->seo_title,
+                'meta_description' => $series->meta_description,
+                'photos' => $series->photos->map(fn($photo) => [
+                    'id' => $photo->id,
+                    'title' => $photo->title,
+                    'thumbnail_path' => $photo->thumbnail_path,
+                    'sort_order' => $photo->pivot->sort_order,
+                ]),
+            ],
+            'availablePhotos' => $availablePhotos->map(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'thumbnail_path' => $photo->thumbnail_path,
+            ]),
+        ]);
     }
 
     /**

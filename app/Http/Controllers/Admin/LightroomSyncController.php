@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\LightroomSyncService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class LightroomSyncController extends Controller
 {
@@ -18,15 +20,15 @@ class LightroomSyncController extends Controller
     /**
      * Display Lightroom sync page.
      */
-    public function index()
+    public function index(): Response
     {
-        return view('admin.lightroom.index');
+        return Inertia::render('Admin/LightroomSync/Index');
     }
 
     /**
      * Process uploaded XMP files.
      */
-    public function process(Request $request)
+    public function process(Request $request): Response
     {
         $request->validate([
             'xmp_files' => 'required|array',
@@ -45,7 +47,9 @@ class LightroomSyncController extends Controller
             $options
         );
 
-        return view('admin.lightroom.results', compact('results'));
+        return Inertia::render('Admin/LightroomSync/Results', [
+            'results' => $results,
+        ]);
     }
 
     /**

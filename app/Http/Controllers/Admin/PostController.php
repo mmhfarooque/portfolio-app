@@ -11,13 +11,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PostController extends Controller
 {
     /**
      * Display a listing of posts.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = Post::with(['category', 'tags'])
             ->where('user_id', auth()->id())
@@ -41,18 +43,24 @@ class PostController extends Controller
         $posts = $query->paginate(20);
         $categories = Category::orderBy('name')->get();
 
-        return view('admin.posts.index', compact('posts', 'categories'));
+        return Inertia::render('Admin/Posts/Index', [
+            'posts' => $posts,
+            'categories' => $categories
+        ]);
     }
 
     /**
      * Show the form for creating a new post.
      */
-    public function create()
+    public function create(): Response
     {
         $categories = Category::orderBy('name')->get();
         $tags = Tag::orderBy('name')->get();
 
-        return view('admin.posts.create', compact('categories', 'tags'));
+        return Inertia::render('Admin/Posts/Create', [
+            'categories' => $categories,
+            'tags' => $tags
+        ]);
     }
 
     /**
@@ -104,14 +112,18 @@ class PostController extends Controller
     /**
      * Show the form for editing the specified post.
      */
-    public function edit(Post $post)
+    public function edit(Post $post): Response
     {
         $this->authorize('update', $post);
 
         $categories = Category::orderBy('name')->get();
         $tags = Tag::orderBy('name')->get();
 
-        return view('admin.posts.edit', compact('post', 'categories', 'tags'));
+        return Inertia::render('Admin/Posts/Edit', [
+            'post' => $post->load('tags'),
+            'categories' => $categories,
+            'tags' => $tags
+        ]);
     }
 
     /**

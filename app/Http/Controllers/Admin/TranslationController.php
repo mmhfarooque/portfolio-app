@@ -7,6 +7,8 @@ use App\Models\Photo;
 use App\Models\Post;
 use App\Services\TranslationService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class TranslationController extends Controller
 {
@@ -20,7 +22,7 @@ class TranslationController extends Controller
     /**
      * Display translations dashboard.
      */
-    public function index()
+    public function index(): Response
     {
         $locales = $this->translationService->getLocales();
 
@@ -51,19 +53,28 @@ class TranslationController extends Controller
                 return $post;
             });
 
-        return view('admin.translations.index', compact('locales', 'photos', 'posts'));
+        return Inertia::render('Admin/Translations/Index', [
+            'locales' => $locales,
+            'photos' => $photos,
+            'posts' => $posts,
+        ]);
     }
 
     /**
      * Edit translations for a photo.
      */
-    public function editPhoto(Photo $photo)
+    public function editPhoto(Photo $photo): Response
     {
         $locales = $this->translationService->getLocales();
         $translations = $this->translationService->getAllTranslations($photo);
         $fields = ['title', 'description', 'meta_description'];
 
-        return view('admin.translations.edit-photo', compact('photo', 'locales', 'translations', 'fields'));
+        return Inertia::render('Admin/Translations/EditPhoto', [
+            'photo' => $photo,
+            'locales' => $locales,
+            'translations' => $translations,
+            'fields' => $fields,
+        ]);
     }
 
     /**
@@ -92,13 +103,18 @@ class TranslationController extends Controller
     /**
      * Edit translations for a post.
      */
-    public function editPost(Post $post)
+    public function editPost(Post $post): Response
     {
         $locales = $this->translationService->getLocales();
         $translations = $this->translationService->getAllTranslations($post);
         $fields = ['title', 'excerpt', 'content', 'meta_description'];
 
-        return view('admin.translations.edit-post', compact('post', 'locales', 'translations', 'fields'));
+        return Inertia::render('Admin/Translations/EditPost', [
+            'post' => $post,
+            'locales' => $locales,
+            'translations' => $translations,
+            'fields' => $fields,
+        ]);
     }
 
     /**

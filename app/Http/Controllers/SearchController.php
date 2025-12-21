@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\SearchService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SearchController extends Controller
 {
@@ -17,7 +19,7 @@ class SearchController extends Controller
     /**
      * Display search page with results.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $filters = $request->only([
             'q', 'category', 'tag', 'camera', 'lens',
@@ -29,7 +31,11 @@ class SearchController extends Controller
         $photos = $this->searchService->search($filters);
         $filterOptions = $this->searchService->getFilterOptions();
 
-        return view('search.index', compact('photos', 'filters', 'filterOptions'));
+        return Inertia::render('Public/Search', [
+            'photos' => $photos,
+            'filters' => $filters,
+            'filterOptions' => $filterOptions,
+        ]);
     }
 
     /**

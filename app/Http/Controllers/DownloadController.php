@@ -114,12 +114,20 @@ class DownloadController extends Controller
     /**
      * Show download options page.
      */
-    public function options(Photo $photo)
+    public function options(Photo $photo): \Inertia\Response
     {
         if ($photo->status !== 'published') {
             abort(404);
         }
 
-        return view('download.options', compact('photo'));
+        return \Inertia\Inertia::render('Public/Download/Options', [
+            'photo' => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_path' => $photo->thumbnail_path,
+                'display_path' => $photo->display_path,
+            ],
+        ]);
     }
 }

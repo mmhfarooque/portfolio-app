@@ -51,11 +51,11 @@ class NewsletterController extends Controller
     /**
      * Confirm subscription.
      */
-    public function confirm(string $token)
+    public function confirm(string $token): \Inertia\Response
     {
         $result = $this->newsletterService->confirm($token);
 
-        return view('newsletter.confirmed', [
+        return \Inertia\Inertia::render('Public/Newsletter/Confirmed', [
             'success' => $result['success'],
             'message' => $result['message'],
         ]);
@@ -64,11 +64,11 @@ class NewsletterController extends Controller
     /**
      * Unsubscribe from newsletter.
      */
-    public function unsubscribe(string $token)
+    public function unsubscribe(string $token): \Inertia\Response
     {
         $result = $this->newsletterService->unsubscribe($token);
 
-        return view('newsletter.unsubscribed', [
+        return \Inertia\Inertia::render('Public/Newsletter/Unsubscribed', [
             'success' => $result['success'],
             'message' => $result['message'],
         ]);

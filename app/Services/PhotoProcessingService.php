@@ -1192,6 +1192,91 @@ class PhotoProcessingService
     }
 
     /**
+     * Reprocess an existing photo with a new image file.
+     * Used for replacing images on the edit page.
+     */
+    public function reprocessPhoto(Photo $photo, $file): void
+    {
+        // Get current settings
+        $maxWidth = (int) Setting::get('max_image_width', 1920);
+        $quality = (int) Setting::get('image_quality', 92);
+        $avifQuality = $this->mapWebpToAvifQuality($quality);
+
+        // Generate unique filename
+        $uuid = Str::uuid();
+        $extension = 'avif';
+
+        // Read image
+        $image = Image::read($file);
+        $originalWidth = $image->width();
+        $originalHeight = $image->height();
+
+        // Extract EXIF from new image
+        $exifData = $this->extractExifData($file);
+
+        // Resize if needed
+        if ($image->width() > $maxWidth) {
+            $image->scale(width: $maxWidth);
+        }
+
+        // Create directories
+        Storage::disk('public')->makeDirectory('photos/display');
+        Storage::disk('public')->makeDirectory('photos/thumbnails');
+        Storage::disk('public')->makeDirectory('photos/watermarked');
+
+        // Save display version
+        $displayPath = "photos/display/{$uuid}.{$extension}";
+        $image->toAvif($avifQuality)->save(
+            storage_path('app/public/' . $displayPath)
+        );
+
+        // Generate thumbnail
+        $thumbnailImage = clone $image;
+        $thumbnailImage->cover(400, 300);
+        $thumbnailPath = "photos/thumbnails/{$uuid}.webp";
+        $thumbnailImage->toWebp(85)->save(
+            storage_path('app/public/' . $thumbnailPath)
+        );
+
+        // Generate watermarked version
+        $watermarkedPath = "photos/watermarked/{$uuid}.{$extension}";
+        $this->applyWatermark($image);
+        $image->toAvif($avifQuality)->save(
+            storage_path('app/public/' . $watermarkedPath)
+        );
+
+        // Update photo record
+        $photo->update([
+            'display_path' => $displayPath,
+            'thumbnail_path' => $thumbnailPath,
+            'watermarked_path' => $watermarkedPath,
+            'width' => $originalWidth,
+            'height' => $originalHeight,
+            'file_size' => $file->getSize(),
+            'exif_data' => $exifData,
+            'status' => 'published',
+            'processing_stage' => null,
+            'processing_error' => null,
+        ]);
+
+        // Update GPS if available in new image
+        if (isset($exifData['GPSLatitude']) && isset($exifData['GPSLongitude'])) {
+            $latitude = $this->convertGpsToDecimal($exifData['GPSLatitude'], $exifData['GPSLatitudeRef'] ?? 'N');
+            $longitude = $this->convertGpsToDecimal($exifData['GPSLongitude'], $exifData['GPSLongitudeRef'] ?? 'E');
+            $photo->update([
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+            ]);
+        }
+
+        LoggingService::activity(
+            'photo.image_replaced',
+            "Replaced image for photo: {$photo->title}",
+            $photo
+        );
+    }
+
+    /**
      * Delete all files associated with a photo.
      */
     public function deletePhotoFiles(Photo $photo): void

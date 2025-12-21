@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# Deploy script for mfaruk.com Photography Portfolio
-# Usage: ./deploy.sh [--no-cache] [--quick]
+# Deploy script for mfaruk.com Photography Portfolio (HestiaCP)
+# Usage: ./deploy.sh [--quick]
+#
+# HestiaCP Structure:
+#   public_html/ = Laravel app root (contains app/, bootstrap/, vendor/, etc.)
+#   public_html/index.php, .htaccess = copied from public/ folder
+#   storage/ = symlinked to private/portfolio-app/storage
 
 set -e
 
@@ -10,26 +15,23 @@ REMOTE_PATH="/home/mfaruk/web/mfaruk.com/public_html"
 LOCAL_PATH="$(dirname "$0")"
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${GREEN}=== Deploying to mfaruk.com ===${NC}"
+echo -e "${GREEN}=== Deploying to mfaruk.com (HestiaCP) ===${NC}"
 
 # Parse arguments
-NO_CACHE=false
 QUICK=false
 for arg in "$@"; do
     case $arg in
-        --no-cache) NO_CACHE=true ;;
         --quick) QUICK=true ;;
     esac
 done
 
-# Step 1: Sync files
+# Step 1: Sync Laravel app files (without --delete to preserve server-specific files)
 echo -e "${YELLOW}Syncing files to server...${NC}"
-rsync -avz --delete \
+rsync -avz \
     --exclude='.git' \
     --exclude='.gitignore' \
     --exclude='node_modules' \
@@ -48,16 +50,32 @@ if [ "$QUICK" = true ]; then
     exit 0
 fi
 
-# Step 2: Run composer and artisan commands on server
+# Step 2: Run server-side setup for HestiaCP flat structure
 echo -e "${YELLOW}Running server-side commands...${NC}"
 ssh $SERVER << 'ENDSSH'
 cd /home/mfaruk/web/mfaruk.com/public_html
+
+# Copy public folder contents to document root (HestiaCP serves from public_html directly)
+echo "Setting up HestiaCP flat structure..."
+cp -f public/.htaccess ./ 2>/dev/null || true
+cp -f public/index.php ./
+cp -f public/favicon.ico ./ 2>/dev/null || true
+cp -f public/robots.txt ./ 2>/dev/null || true
+cp -f public/.user.ini ./ 2>/dev/null || true
+cp -rf public/build ./ 2>/dev/null || true
+
+# Create app-path.php to tell index.php where Laravel is
+echo "<?php return __DIR__;" > app-path.php
+
+# Ensure storage symlink points to storage/app/public (for web access to uploaded files)
+rm -f storage 2>/dev/null || true
+ln -sf /home/mfaruk/web/mfaruk.com/private/portfolio-app/storage/app/public storage
 
 # Install dependencies (production only)
 echo "Installing composer dependencies..."
 composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
 
-# Run migrations if any
+# Run migrations
 echo "Running migrations..."
 php artisan migrate --force
 
@@ -69,9 +87,8 @@ php artisan view:cache
 
 # Set correct permissions
 chown -R mfaruk:www-data .
-find . -type f -exec chmod 644 {} \;
-find . -type d -exec chmod 755 {} \;
 chmod -R 775 bootstrap/cache
+chmod -R 775 storage 2>/dev/null || true
 
 echo "Server-side setup complete!"
 ENDSSH
