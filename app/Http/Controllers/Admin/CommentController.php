@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlockedEmail;
 use App\Models\PhotoComment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -158,5 +159,63 @@ class CommentController extends Controller
         $reply->photo->incrementApprovedCommentsCount();
 
         return back()->with('success', 'Reply posted.');
+    }
+
+    /**
+     * Block email address from commenting.
+     */
+    public function blockEmail(Request $request, PhotoComment $comment)
+    {
+        $email = $comment->guest_email;
+
+        if (!$email) {
+            return back()->with('error', 'No email address to block.');
+        }
+
+        BlockedEmail::blockEmail($email, 'Blocked from admin comments panel', Auth::id());
+
+        // Also reject all pending comments from this email
+        PhotoComment::where('guest_email', $email)
+            ->where('status', PhotoComment::STATUS_PENDING)
+            ->update(['status' => PhotoComment::STATUS_REJECTED]);
+
+        return back()->with('success', "Email {$email} has been blocked.");
+    }
+
+    /**
+     * Unblock an email address.
+     */
+    public function unblockEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        if (BlockedEmail::unblockEmail($validated['email'])) {
+            return back()->with('success', "Email {$validated['email']} has been unblocked.");
+        }
+
+        return back()->with('error', 'Email was not in the blocked list.');
+    }
+
+    /**
+     * List blocked emails.
+     */
+    public function blockedEmails(): Response
+    {
+        $blockedEmails = BlockedEmail::with('blockedByUser:id,name')
+            ->latest()
+            ->paginate(50)
+            ->through(fn ($blocked) => [
+                'id' => $blocked->id,
+                'email' => $blocked->email,
+                'reason' => $blocked->reason,
+                'blocked_by' => $blocked->blockedByUser?->name ?? 'System',
+                'created_at' => $blocked->created_at->format('M j, Y g:i A'),
+            ]);
+
+        return Inertia::render('Admin/Comments/BlockedEmails', [
+            'blockedEmails' => $blockedEmails,
+        ]);
     }
 }
