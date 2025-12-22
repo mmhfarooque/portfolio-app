@@ -11,6 +11,10 @@ const props = defineProps({
     initialLikesCount: {
         type: Number,
         default: 0
+    },
+    overlay: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -78,9 +82,11 @@ const formattedCount = computed(() => {
         :disabled="isLoading"
         class="group flex items-center gap-2 px-4 py-2.5 rounded-full transition-all duration-200"
         :class="[
-            liked
-                ? (isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-500')
-                : (isDark ? 'bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-red-400' : 'bg-gray-100 text-gray-500 hover:text-red-500'),
+            overlay
+                ? (liked ? 'bg-black/50 backdrop-blur-md text-red-400' : 'bg-black/50 backdrop-blur-md text-white hover:text-red-400 hover:bg-black/70')
+                : (liked
+                    ? (isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-500')
+                    : (isDark ? 'bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-red-400' : 'bg-gray-100 text-gray-500 hover:text-red-500')),
             isLoading ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer hover:scale-105'
         ]"
     >

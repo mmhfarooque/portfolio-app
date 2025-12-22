@@ -60,7 +60,9 @@ Route::get('/tag/{tag:slug}', [GalleryController::class, 'tag'])->name('tag.show
 Route::prefix('photo/{photo:slug}')->group(function () {
     Route::post('/like', [PhotoInteractionController::class, 'toggleLike'])->name('photos.like');
     Route::get('/like/check', [PhotoInteractionController::class, 'checkLike'])->name('photos.like.check');
-    Route::post('/comment', [PhotoInteractionController::class, 'storeComment'])->name('photos.comment');
+    Route::post('/comment/request-otp', [PhotoInteractionController::class, 'requestOtp'])->name('photos.comment.request-otp');
+    Route::post('/comment/verify-otp', [PhotoInteractionController::class, 'verifyOtp'])->name('photos.comment.verify-otp');
+    Route::post('/comment/resend-otp', [PhotoInteractionController::class, 'resendOtp'])->name('photos.comment.resend-otp');
     Route::get('/comments', [PhotoInteractionController::class, 'getComments'])->name('photos.comments');
 });
 
@@ -264,6 +266,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('comments/bulk-approve', [AdminCommentController::class, 'bulkApprove'])->name('comments.bulk-approve');
     Route::delete('comments/{comment}', [AdminCommentController::class, 'destroy'])->name('comments.destroy');
     Route::post('comments/{comment}/reply', [AdminCommentController::class, 'reply'])->name('comments.reply');
+    Route::post('comments/{comment}/block-email', [AdminCommentController::class, 'blockEmail'])->name('comments.block-email');
+    Route::get('comments/blocked-emails', [AdminCommentController::class, 'blockedEmails'])->name('comments.blocked-emails');
+    Route::post('comments/unblock-email', [AdminCommentController::class, 'unblockEmail'])->name('comments.unblock-email');
 
     // Orders
     Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');

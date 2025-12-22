@@ -46,6 +46,12 @@ const markAsSpam = (id) => {
     router.post(route('admin.comments.spam', id), {}, { preserveScroll: true });
 };
 
+const blockEmail = (comment) => {
+    if (confirm(`Are you sure you want to block "${comment.author_email}"? This will also reject all pending comments from this email.`)) {
+        router.post(route('admin.comments.block-email', comment.id), {}, { preserveScroll: true });
+    }
+};
+
 const deleteComment = (id) => {
     if (confirm('Are you sure you want to delete this comment?')) {
         router.delete(route('admin.comments.destroy', id), { preserveScroll: true });
@@ -118,11 +124,22 @@ const getStatusBadgeClass = (commentStatus) => {
                         Manage photo comments and replies
                     </p>
                 </div>
-                <div v-if="pendingCount > 0" class="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="text-sm font-medium text-yellow-800">{{ pendingCount }} pending review</span>
+                <div class="flex items-center gap-3">
+                    <Link
+                        :href="route('admin.comments.blocked-emails')"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        Blocked Emails
+                    </Link>
+                    <div v-if="pendingCount > 0" class="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-sm font-medium text-yellow-800">{{ pendingCount }} pending review</span>
+                    </div>
                 </div>
             </div>
 
@@ -316,6 +333,16 @@ const getStatusBadgeClass = (commentStatus) => {
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                    </svg>
+                                </button>
+                                <button
+                                    v-if="comment.author_email"
+                                    @click="blockEmail(comment)"
+                                    class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                    title="Block email"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                                     </svg>
                                 </button>
                                 <button
