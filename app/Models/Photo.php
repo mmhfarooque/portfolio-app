@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Photo extends Model
 {
@@ -36,6 +37,8 @@ class Photo extends Model
         'status',
         'is_featured',
         'views',
+        'likes_count',
+        'comments_count',
         'captured_at',
         'processing_stage',
         'processing_error',
@@ -89,6 +92,95 @@ class Photo extends Model
         return $this->belongsToMany(Series::class, 'photo_series')
             ->withPivot(['sort_order', 'caption'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get the likes for this photo.
+     */
+    public function likes(): HasMany
+    {
+        return $this->hasMany(PhotoLike::class);
+    }
+
+    /**
+     * Get the comments for this photo.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(PhotoComment::class);
+    }
+
+    /**
+     * Get approved comments for this photo.
+     */
+    public function approvedComments(): HasMany
+    {
+        return $this->hasMany(PhotoComment::class)
+            ->where('status', PhotoComment::STATUS_APPROVED);
+    }
+
+    /**
+     * Get top-level approved comments for this photo.
+     */
+    public function topLevelApprovedComments(): HasMany
+    {
+        return $this->hasMany(PhotoComment::class)
+            ->where('status', PhotoComment::STATUS_APPROVED)
+            ->whereNull('parent_id');
+    }
+
+    /**
+     * Check if photo has been liked by session/IP.
+     */
+    public function hasBeenLikedBy(string $sessionId, string $ipAddress): bool
+    {
+        return PhotoLike::hasLiked($this->id, $sessionId, $ipAddress);
+    }
+
+    /**
+     * Increment the likes count.
+     */
+    public function incrementLikesCount(): void
+    {
+        $this->increment('likes_count');
+    }
+
+    /**
+     * Decrement the likes count.
+     */
+    public function decrementLikesCount(): void
+    {
+        if ($this->likes_count > 0) {
+            $this->decrement('likes_count');
+        }
+    }
+
+    /**
+     * Increment the approved comments count.
+     */
+    public function incrementApprovedCommentsCount(): void
+    {
+        $this->increment('comments_count');
+    }
+
+    /**
+     * Decrement the approved comments count.
+     */
+    public function decrementApprovedCommentsCount(): void
+    {
+        if ($this->comments_count > 0) {
+            $this->decrement('comments_count');
+        }
+    }
+
+    /**
+     * Sync the comments count with actual approved comments.
+     */
+    public function syncCommentsCount(): void
+    {
+        $this->update([
+            'comments_count' => $this->approvedComments()->count(),
+        ]);
     }
 
     /**

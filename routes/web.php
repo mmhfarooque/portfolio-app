@@ -23,7 +23,9 @@ use App\Http\Controllers\Admin\SocialMediaController as AdminSocialController;
 use App\Http\Controllers\Admin\ABTestController as AdminABTestController;
 use App\Http\Controllers\Admin\SeoAuditController as AdminSeoController;
 use App\Http\Controllers\Admin\TranslationController as AdminTranslationController;
+use App\Http\Controllers\Admin\CommentController as AdminCommentController;
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\PhotoInteractionController;
 use App\Http\Controllers\ClientProofingController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\FrontPageController;
@@ -53,6 +55,14 @@ Route::get('/category/{category:slug}', [GalleryController::class, 'category'])-
 Route::get('/gallery/{gallery:slug}', [GalleryController::class, 'gallery'])->name('gallery.show');
 Route::post('/gallery/{gallery:slug}/unlock', [GalleryController::class, 'verifyGalleryPassword'])->name('gallery.unlock');
 Route::get('/tag/{tag:slug}', [GalleryController::class, 'tag'])->name('tag.show');
+
+// Photo interactions (likes & comments)
+Route::prefix('photo/{photo:slug}')->group(function () {
+    Route::post('/like', [PhotoInteractionController::class, 'toggleLike'])->name('photos.like');
+    Route::get('/like/check', [PhotoInteractionController::class, 'checkLike'])->name('photos.like.check');
+    Route::post('/comment', [PhotoInteractionController::class, 'storeComment'])->name('photos.comment');
+    Route::get('/comments', [PhotoInteractionController::class, 'getComments'])->name('photos.comments');
+});
 
 // Photo download routes
 Route::get('/photo/{photo:slug}/download/{format?}', [DownloadController::class, 'download'])
@@ -245,6 +255,15 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::delete('contacts/{contact}', [AdminContactController::class, 'destroy'])->name('contacts.destroy');
     Route::post('contacts/bulk-delete', [AdminContactController::class, 'bulkDelete'])->name('contacts.bulk-delete');
     Route::post('contacts/archive-old', [AdminContactController::class, 'archiveOld'])->name('contacts.archive-old');
+
+    // Comments
+    Route::get('comments', [AdminCommentController::class, 'index'])->name('comments.index');
+    Route::post('comments/{comment}/approve', [AdminCommentController::class, 'approve'])->name('comments.approve');
+    Route::post('comments/{comment}/reject', [AdminCommentController::class, 'reject'])->name('comments.reject');
+    Route::post('comments/{comment}/spam', [AdminCommentController::class, 'spam'])->name('comments.spam');
+    Route::post('comments/bulk-approve', [AdminCommentController::class, 'bulkApprove'])->name('comments.bulk-approve');
+    Route::delete('comments/{comment}', [AdminCommentController::class, 'destroy'])->name('comments.destroy');
+    Route::post('comments/{comment}/reply', [AdminCommentController::class, 'reply'])->name('comments.reply');
 
     // Orders
     Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
