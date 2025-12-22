@@ -234,6 +234,8 @@ class GalleryController extends Controller
                 'description' => $photo->description,
                 'story' => $photo->story,
                 'location_name' => $photo->location_name,
+                'latitude' => $photo->latitude,
+                'longitude' => $photo->longitude,
                 'display_path' => $photo->display_path,
                 'watermarked_path' => $photo->watermarked_path,
                 'width' => $photo->width,

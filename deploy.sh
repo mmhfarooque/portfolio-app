@@ -64,8 +64,8 @@ cp -f public/robots.txt ./ 2>/dev/null || true
 cp -f public/.user.ini ./ 2>/dev/null || true
 cp -rf public/build ./ 2>/dev/null || true
 
-# Create app-path.php to tell index.php where Laravel is
-echo "<?php return __DIR__;" > app-path.php
+# Create app-path.php to tell index.php where Laravel is (must point to private/portfolio-app)
+echo '<?php return "/home/mfaruk/web/mfaruk.com/private/portfolio-app";' > app-path.php
 
 # Ensure storage symlink points to storage/app/public (for web access to uploaded files)
 rm -f storage 2>/dev/null || true
