@@ -239,6 +239,8 @@ class GalleryController extends Controller
                 'width' => $photo->width,
                 'height' => $photo->height,
                 'views' => $photo->views,
+                'likes_count' => $photo->likes_count ?? 0,
+                'comments_count' => $photo->comments_count ?? 0,
                 'formatted_exif' => $photo->formatted_exif,
                 'seo_title' => $photo->seo_title,
                 'meta_description' => $photo->meta_description,
