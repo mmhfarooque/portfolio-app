@@ -4,13 +4,22 @@ Reference document for maintaining consistency when adding or updating content.
 
 ---
 
-## SEO Character Limits
+## SEO Character Limits (STRICT - MUST FOLLOW)
+
+**Only these two fields have hard limits:**
 
 | Field | Max Characters | Notes |
 |-------|----------------|-------|
-| SEO Title | 70 | Displayed in search results, browser tabs |
-| Meta Description | 160 | Displayed in search results snippet |
-| Slug | 60 | URL-friendly, lowercase, hyphens only |
+| **SEO Title** | **70** | Displayed in search results, browser tabs |
+| **Meta Description** | **160** | Displayed in search results snippet |
+
+**WARNING**: If SEO Title > 70 or Meta Description > 160, the photo may not display correctly on the homepage!
+
+**No limits on:**
+- Title (display title - can be long)
+- Slug (URL - keep reasonable)
+- Description (short summary)
+- Story (narrative - can be multiple paragraphs)
 
 ### SEO Title Best Practices
 - Include primary keyword near the beginning
@@ -68,21 +77,39 @@ Reference document for maintaining consistency when adding or updating content.
 
 ## Content Writing Style
 
+### Voice & Tone
+Write as **Mahmud the photographer** sharing his work, NOT as a travel brochure.
+
+**AVOID these AI-sounding words:**
+- "stunning", "breathtaking", "extraordinary", "spectacular"
+- "world-renowned", "internationally acclaimed"
+- "captured with", "the exceptional lens"
+- "Instagram-worthy"
+
+**USE personal, authentic voice:**
+- "I came here on a whim..."
+- "What struck me first was..."
+- "The morning light was perfect..."
+- "I spent most of my time in..."
+
 ### Titles
-- Descriptive but concise
+- Descriptive, can be any length
 - Include location when relevant
 - Capitalize major words
 
 ### Descriptions
-- 1-2 sentences
+- 1-3 sentences
 - What the photo shows
 - Where it was taken
+- NO word limits
 
 ### Stories
 - HTML formatted (`<p>` tags)
 - 2-4 paragraphs
-- Include: context, location significance, photographic details
-- Can mention technical aspects (lighting, composition)
+- Personal narrative - your experience taking the photo
+- What drew you to the location/subject
+- The moment, the light, the feeling
+- NO word limits
 
 ---
 

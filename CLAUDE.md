@@ -15,15 +15,22 @@ When user shares a photo URL and says `/photo-seo`, execute this workflow:
 3. **Research location** if GPS exists (use coordinates to identify place)
 4. **Generate SEO content** following these STRICT limits:
 
-| Field | Max Length | Format |
-|-------|------------|--------|
-| `title` | 60 chars | Descriptive, includes location |
-| `slug` | 60 chars | lowercase-with-hyphens |
-| `description` | 160 chars | What the photo shows |
-| `seo_title` | **70 chars** | Primary Keyword \| Secondary |
-| `meta_description` | **160 chars** | Compelling, keyword-rich |
-| `location_name` | 100 chars | Full location with country |
-| `story` | 500-1000 chars | HTML `<p>` tags, 2-4 paragraphs |
+| Field | Limit | Notes |
+|-------|-------|-------|
+| `title` | No limit | Descriptive, includes location |
+| `slug` | No limit | lowercase-with-hyphens, SEO-friendly |
+| `description` | No limit | What the photo shows, 1-3 sentences |
+| `seo_title` | **70 chars MAX** | Primary Keyword \| Secondary |
+| `meta_description` | **160 chars MAX** | Compelling, keyword-rich |
+| `location_name` | No limit | Full location with country |
+| `story` | No limit | HTML `<p>` tags, 2-4 paragraphs, PERSONAL voice |
+
+### WRITING STYLE (Critical!)
+- Write like a **photographer sharing their work**, not a travel brochure
+- **AVOID**: "extraordinary", "stunning", "breathtaking", "world-renowned", "internationally acclaimed"
+- **AVOID**: "captured with [camera]", "the exceptional lens", "Instagram-worthy"
+- **USE**: Personal observations, what drew you to the shot, the moment, the feeling
+- **TONE**: Conversational, authentic, like talking to a friend about your trip
 
 5. **Add 10-15 tags** related to: location, subject, style, mood, season
 6. **Set status** to `published` if ready
@@ -293,46 +300,30 @@ Ensure `GalleryController@show` passes `latitude` and `longitude` to the view.
 
 ## SEO CONTENT PROMPT
 
-When generating SEO content for a photo, use this template:
+When generating SEO content for a photo:
 
-```
-PHOTO ANALYSIS:
-- Subject: [What is in the photo]
-- Location: [GPS lookup or user provided]
-- Mood: [Serene, dramatic, vibrant, etc.]
-- Style: [Landscape, portrait, macro, etc.]
-- Season/Time: [If apparent]
+### ONLY THESE HAVE CHARACTER LIMITS:
+- `seo_title` - **MAX 70 characters** (count before saving!)
+- `meta_description` - **MAX 160 characters** (count before saving!)
 
-GENERATED CONTENT:
+### NO LIMITS (but keep reasonable):
+- `title` - Descriptive, can be long
+- `slug` - SEO-friendly URL
+- `description` - 1-3 sentences about the photo
+- `story` - 2-4 paragraphs, HTML with `<p>` tags
+- `location_name` - Full location
 
-Title (≤60 chars):
-[Descriptive title including location]
+### WRITING VOICE:
+Write as **Mahmud the photographer**, not a travel website:
+- ❌ "This stunning vista showcases the breathtaking beauty..."
+- ❌ "Captured with the exceptional XF 23mm lens..."
+- ❌ "Instagram-worthy destination..."
+- ✅ "I came here on a whim, looking for something different..."
+- ✅ "The morning light was perfect, soft and golden..."
+- ✅ "What struck me first wasn't any single flower..."
 
-Slug (≤60 chars):
-[lowercase-hyphenated-url]
-
-Description (≤160 chars):
-[Brief description of what the photo shows]
-
-SEO Title (≤70 chars): ⚠️ COUNT CAREFULLY
-[Primary Keyword | Secondary Keyword]
-
-Meta Description (≤160 chars): ⚠️ COUNT CAREFULLY
-[Compelling description with keywords, encourages clicks]
-
-Location Name:
-[Specific Place, City, Region, Country]
-
-Story (HTML, 2-4 paragraphs):
-<p>First paragraph about the location/subject...</p>
-<p>Second paragraph about the experience/significance...</p>
-<p>Optional third paragraph with additional context...</p>
-
-Tags (10-15):
-[tag1], [tag2], [tag3], ...
-
-Status: published
-```
+### TAGS:
+Add 10-15 tags covering: location, subject, mood, style, season
 
 ---
 
