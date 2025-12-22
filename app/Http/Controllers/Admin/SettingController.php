@@ -194,10 +194,7 @@ class SettingController extends Controller
         $theme = $request->input('site_theme');
 
         if (!$theme) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No theme specified'
-            ], 400);
+            return back()->with('error', 'No theme specified');
         }
 
         $this->themeService->setTheme($theme);
@@ -206,11 +203,7 @@ class SettingController extends Controller
 
         LoggingService::settingsUpdated(['site_theme']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Theme applied successfully',
-            'theme' => $theme
-        ]);
+        return back()->with('success', 'Theme applied successfully');
     }
 
     /**

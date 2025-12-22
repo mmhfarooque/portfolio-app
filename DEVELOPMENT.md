@@ -169,50 +169,72 @@ $image->toPng()->save($path);
 
 ## Frontend Patterns
 
-### Alpine.js Components
+### Vue 3 Components (Composition API)
 
-Use `x-data` with methods for interactive components:
+Use Vue 3 with Composition API and `<script setup>`:
 
-```html
-<div x-data="{
-    open: false,
-    toggle() { this.open = !this.open },
-    async save() {
-        const response = await fetch(...);
-        // handle response
-    }
-}">
-```
+```vue
+<script setup>
+import { ref, computed } from 'vue';
 
-### Section Save Buttons
+const open = ref(false);
+const toggle = () => open.value = !open.value;
+</script>
 
-Use the `<x-section-save-button />` component for AJAX saves within forms:
-
-```html
-<form method="POST" action="{{ route('admin.settings.update') }}">
-    @csrf
-    <div class="bg-white p-6">
-        <div class="flex justify-between">
-            <h3>Section Title</h3>
-            <x-section-save-button />
-        </div>
-        <!-- form fields -->
+<template>
+    <div>
+        <button @click="toggle">Toggle</button>
+        <div v-show="open">Content</div>
     </div>
-</form>
+</template>
 ```
 
-### Media Picker
+### Inertia.js Forms
 
-Use the `<x-media-picker />` component for image selection:
+Use Inertia's `useForm` for form handling:
 
-```html
-<x-media-picker
-    name="profile_image"
-    label="Profile Photo"
-    :current-image="$currentImage"
-    :value="$imagePath"
-    preview-class="w-32 h-32 rounded-full"
-/>
+```vue
+<script setup>
+import { useForm } from '@inertiajs/vue3';
+
+const form = useForm({
+    name: '',
+    email: '',
+});
+
+const submit = () => {
+    form.post(route('settings.update'));
+};
+</script>
+```
+
+### Click Outside Detection
+
+For dropdown components, use proper Vue 3 click-outside detection:
+
+```vue
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+
+const open = ref(false);
+const dropdownRef = ref(null);
+
+const closeOnClickOutside = (event) => {
+    if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+        open.value = false;
+    }
+};
+
+onMounted(() => document.addEventListener('click', closeOnClickOutside));
+onUnmounted(() => document.removeEventListener('click', closeOnClickOutside));
+</script>
+
+<template>
+    <div ref="dropdownRef">
+        <button @click="open = !open">Menu</button>
+        <div v-show="open">Dropdown content</div>
+    </div>
+</template>
 ```
 
 ---

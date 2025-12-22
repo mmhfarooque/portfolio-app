@@ -221,7 +221,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Settings
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
-    Route::put('settings', [AdminSettingController::class, 'update'])->name('settings.update');
+    Route::post('settings', [AdminSettingController::class, 'update'])->name('settings.update');
     Route::post('settings/theme', [AdminSettingController::class, 'updateTheme'])->name('settings.update-theme');
     Route::post('settings/validate-ai-api', [AdminSettingController::class, 'validateAiApiKey'])->name('settings.validate-ai-api');
     Route::post('settings/regenerate-watermarks', [AdminSettingController::class, 'regenerateWatermarks'])->name('settings.regenerate-watermarks');

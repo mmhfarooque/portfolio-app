@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import NavDropdown from '@/Components/NavDropdown.vue';
 import FlashMessages from '@/Components/FlashMessages.vue';
@@ -7,6 +7,7 @@ import FlashMessages from '@/Components/FlashMessages.vue';
 const page = usePage();
 const mobileMenuOpen = ref(false);
 const userDropdownOpen = ref(false);
+const userDropdownRef = ref(null);
 
 const user = computed(() => page.props.auth?.user);
 const userInitial = computed(() => user.value?.name?.charAt(0) || 'U');
@@ -23,6 +24,20 @@ const isRoute = (pattern) => {
 const logout = () => {
     router.post(route('logout'));
 };
+
+const closeUserDropdown = (event) => {
+    if (userDropdownRef.value && !userDropdownRef.value.contains(event.target)) {
+        userDropdownOpen.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', closeUserDropdown);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', closeUserDropdown);
+});
 </script>
 
 <template>
@@ -195,7 +210,7 @@ const logout = () => {
                         </a>
 
                         <!-- User Dropdown -->
-                        <div class="relative" @click.away="userDropdownOpen = false">
+                        <div class="relative" ref="userDropdownRef">
                             <button @click="userDropdownOpen = !userDropdownOpen" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
                                     {{ userInitial }}

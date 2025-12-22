@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -100,6 +100,8 @@ const replaceImage = () => {
         isReplacing.value = false;
         replaceFile.value = null;
         if (xhr.status >= 200 && xhr.status < 400) {
+            // Start polling immediately to show processing state
+            startPolling();
             router.reload();
         }
     };
@@ -124,6 +126,59 @@ const formatBytes = (bytes) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+// Auto-polling for processing status
+let pollInterval = null;
+const isPolling = ref(false);
+
+const startPolling = () => {
+    if (pollInterval) return;
+    isPolling.value = true;
+    pollInterval = setInterval(async () => {
+        try {
+            const response = await fetch(route('admin.photos.show', props.photo.id), {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.photo && data.photo.status !== 'processing') {
+                    stopPolling();
+                    router.reload();
+                }
+            }
+        } catch (e) {
+            // Ignore errors, keep polling
+        }
+    }, 2000);
+};
+
+const stopPolling = () => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+    isPolling.value = false;
+};
+
+// Start polling if photo is processing
+onMounted(() => {
+    if (props.photo.status === 'processing') {
+        startPolling();
+    }
+});
+
+// Also start polling after replace
+watch(() => props.photo.status, (newStatus) => {
+    if (newStatus === 'processing') {
+        startPolling();
+    } else {
+        stopPolling();
+    }
+});
+
+onUnmounted(() => {
+    stopPolling();
+});
 </script>
 
 <template>
@@ -272,12 +327,23 @@ const formatBytes = (bytes) => {
                                 <h3 class="font-medium text-gray-900">Image</h3>
                             </div>
                             <div class="p-4">
+                                <!-- Show image if available -->
                                 <img
                                     v-if="photo.display_path"
                                     :src="`/storage/${photo.display_path}`"
                                     :alt="photo.title"
                                     class="w-full rounded-lg"
                                 />
+                                <!-- Show processing spinner -->
+                                <div v-else-if="photo.status === 'processing' || isPolling" class="aspect-video bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg flex flex-col items-center justify-center">
+                                    <svg class="animate-spin h-10 w-10 text-blue-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-blue-600 font-medium">Processing image...</span>
+                                    <span class="text-blue-400 text-sm mt-1">This may take a moment</span>
+                                </div>
+                                <!-- Show no image placeholder -->
                                 <div v-else class="aspect-video bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
                                     <span>No image</span>
                                 </div>

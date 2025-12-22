@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ThemeService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,6 +36,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $themeService = app(ThemeService::class);
+        $currentTheme = $themeService->getCurrentTheme();
+        $themeConfig = $themeService->getTheme($currentTheme);
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -50,7 +55,13 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
-            'appName' => config('app.name'),
+            'appName' => \App\Models\Setting::get('photographer_name', config('app.name', 'Mahmud Farooque')),
+            'theme' => [
+                'name' => $currentTheme,
+                'colors' => $themeConfig['colors'] ?? [],
+                'styles' => $themeConfig['styles'] ?? [],
+                'isDark' => $themeConfig['is_dark'] ?? false,
+            ],
         ];
     }
 }

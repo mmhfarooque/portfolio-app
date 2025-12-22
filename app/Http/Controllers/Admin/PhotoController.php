@@ -216,11 +216,25 @@ class PhotoController extends Controller
     /**
      * Display the specified photo.
      */
-    public function show(Photo $photo): Response
+    public function show(Request $request, Photo $photo): Response|\Illuminate\Http\JsonResponse
     {
         $this->authorize('view', $photo);
 
         $photo->load(['category', 'gallery', 'tags']);
+
+        // Return JSON for AJAX status checks
+        if ($request->wantsJson()) {
+            return response()->json([
+                'photo' => [
+                    'id' => $photo->id,
+                    'status' => $photo->status,
+                    'processing_stage' => $photo->processing_stage,
+                    'processing_error' => $photo->processing_error,
+                    'display_path' => $photo->display_path,
+                    'thumbnail_path' => $photo->thumbnail_path,
+                ]
+            ]);
+        }
 
         return Inertia::render('Admin/Photos/Show', [
             'photo' => [
@@ -901,7 +915,7 @@ class PhotoController extends Controller
 
                 if (file_exists($displayPath)) {
                     // Create temp file for re-processing
-                    $tempPath = storage_path('app/temp/' . Str::uuid() . '.tmp');
+                    $tempPath = storage_path('app/private/temp/' . Str::uuid() . '.tmp');
                     if (!is_dir(dirname($tempPath))) {
                         mkdir(dirname($tempPath), 0755, true);
                     }
@@ -962,7 +976,7 @@ class PhotoController extends Controller
             if ($useQueue) {
                 // Store temp file and queue for processing
                 $tempPath = $file->store('temp', 'local');
-                $tempFullPath = storage_path('app/' . $tempPath);
+                $tempFullPath = storage_path('app/private/' . $tempPath);
 
                 // Reset photo status
                 $photo->update([

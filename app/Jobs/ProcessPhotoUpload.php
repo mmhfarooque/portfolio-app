@@ -44,6 +44,25 @@ class ProcessPhotoUpload implements ShouldQueue
         $filePath = $this->tempFilePath;
 
         try {
+            // Check if images already exist (from a previous partial attempt)
+            $this->photo->refresh();
+            if ($this->photo->display_path && $this->photo->thumbnail_path) {
+                // Images already generated - just mark as complete
+                $this->photo->update([
+                    'status' => 'draft',
+                    'processing_stage' => null,
+                    'processing_error' => null,
+                ]);
+
+                // Clean up temp file if it exists
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+
+                LoggingService::debug('photo.queue_processing', "Photo {$this->photo->id} already processed, marking complete");
+                return;
+            }
+
             // Verify temp file still exists
             if (!file_exists($filePath)) {
                 throw new \Exception("Temp file not found: {$filePath}");
@@ -83,6 +102,12 @@ class ProcessPhotoUpload implements ShouldQueue
             $width = $image->width();
             $height = $image->height();
 
+            // Generate and store image hashes for duplicate detection BEFORE any file operations
+            $this->photo->update(['processing_stage' => 'generating_hashes']);
+            if (file_exists($filePath)) {
+                $this->generateHashes($filePath);
+            }
+
             // Update photo with extracted metadata
             $this->photo->update([
                 'width' => $width,
@@ -97,10 +122,6 @@ class ProcessPhotoUpload implements ShouldQueue
             // Generate image versions
             $this->photo->update(['processing_stage' => 'generating_versions']);
             $this->generateImageVersions($photoService, $image);
-
-            // Generate and store image hashes for duplicate detection
-            $this->photo->update(['processing_stage' => 'generating_hashes']);
-            $this->generateHashes($filePath);
 
             // Apply AI analysis (only if AI is enabled)
             $aiService = new \App\Services\AIImageService();
@@ -130,22 +151,17 @@ class ProcessPhotoUpload implements ShouldQueue
             );
 
         } catch (\Throwable $e) {
-            // Mark photo as failed
+            // Update processing error but DON'T mark as failed yet (allow retries)
+            // DON'T delete temp file - retries need it
             $this->photo->update([
-                'status' => 'failed',
                 'processing_stage' => 'error',
                 'processing_error' => $e->getMessage(),
             ]);
 
-            // Clean up temp file
-            if (file_exists($filePath)) {
-                @unlink($filePath);
-            }
-
             LoggingService::photoUploadFailed(
                 $this->originalFilename,
-                $this->photo->file_size ?? 0,
-                $e
+                $e,
+                ['file_size' => $this->photo->file_size ?? 0, 'attempt' => $this->attempts()]
             );
 
             throw $e;

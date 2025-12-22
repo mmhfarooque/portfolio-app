@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
@@ -10,6 +10,53 @@ const props = defineProps({
     galleries: Array,
     tags: Array,
     filters: Object
+});
+
+// Check if any photos are processing
+const hasProcessingPhotos = computed(() => {
+    return props.photos.data.some(p => p.status === 'processing');
+});
+
+// Auto-polling for processing photos
+let pollInterval = null;
+const isPolling = ref(false);
+
+const startPolling = () => {
+    if (pollInterval) return;
+    isPolling.value = true;
+    console.log('[Photos] Starting auto-refresh polling...');
+    pollInterval = setInterval(() => {
+        console.log('[Photos] Polling for updates...');
+        router.reload({ preserveScroll: true });
+    }, 3000);
+};
+
+const stopPolling = () => {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+    isPolling.value = false;
+    console.log('[Photos] Stopped polling');
+};
+
+// Watch for processing photos and start/stop polling
+watch(hasProcessingPhotos, (hasProcessing) => {
+    if (hasProcessing) {
+        startPolling();
+    } else {
+        stopPolling();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    if (hasProcessingPhotos.value) {
+        startPolling();
+    }
+});
+
+onUnmounted(() => {
+    stopPolling();
 });
 
 const selectedPhotos = ref([]);
@@ -206,20 +253,30 @@ const getStatusBadgeClass = (status) => {
                             <!-- Photo -->
                             <Link :href="route('admin.photos.edit', photo.id)" class="block">
                                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative">
+                                    <!-- Show thumbnail if available -->
                                     <img
                                         v-if="photo.thumbnail_path"
                                         :src="`/storage/${photo.thumbnail_path}`"
                                         :alt="photo.title"
                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     />
+                                    <!-- Show processing spinner -->
+                                    <div v-else-if="photo.status === 'processing'" class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                                        <svg class="animate-spin h-8 w-8 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span class="text-xs text-blue-600 font-medium">Processing...</span>
+                                    </div>
+                                    <!-- Show placeholder for other cases -->
                                     <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
                                         <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
                                     </div>
 
-                                    <!-- Overlay with actions -->
-                                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <!-- Overlay with actions (only when not processing) -->
+                                    <div v-if="photo.status !== 'processing'" class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                         <Link
                                             :href="route('admin.photos.edit', photo.id)"
                                             class="p-2 bg-white rounded-full hover:bg-gray-100"

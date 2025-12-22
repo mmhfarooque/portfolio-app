@@ -99,7 +99,7 @@ const isDigitalProduct = props.order.product_type === 'license';
                 <Link href="/" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
                     Return Home
                 </Link>
-                <Link :href="route('gallery.index')" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                <Link :href="route('photos.index')" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
                     Continue Browsing
                 </Link>
             </div>
