@@ -246,6 +246,7 @@ class GalleryController extends Controller
                 'formatted_exif' => $photo->formatted_exif,
                 'seo_title' => $photo->seo_title,
                 'meta_description' => $photo->meta_description,
+                'captured_at' => $photo->captured_at?->toISOString(),
                 'category' => $photo->category ? [
                     'id' => $photo->category->id,
                     'name' => $photo->category->name,

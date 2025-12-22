@@ -32,6 +32,24 @@ const mapContainer = ref(null);
 const mapInstance = ref(null);
 const hasLocation = computed(() => props.photo.latitude && props.photo.longitude);
 
+// Format captured date
+const formattedDate = computed(() => {
+    if (!props.photo.captured_at) return null;
+    const date = new Date(props.photo.captured_at);
+    return {
+        date: date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }),
+        time: date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        })
+    };
+});
+
 const initMap = () => {
     if (!mapContainer.value || !window.L || !hasLocation.value) return;
 
@@ -445,6 +463,23 @@ const copyLink = () => {
                                             <p class="text-xs uppercase tracking-wide mt-0.5" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-500'">
                                                 ISO
                                             </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Shot Date & Time -->
+                                    <div v-if="formattedDate" class="mt-4 pt-4 border-t" :class="isDark ? 'border-[var(--border)]' : 'border-gray-100'">
+                                        <div class="flex items-center gap-3">
+                                            <svg class="w-4 h-4 flex-shrink-0" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <div>
+                                                <p class="text-sm font-medium" :class="isDark ? 'text-[var(--text-primary)]' : 'text-gray-900'">
+                                                    {{ formattedDate.date }}
+                                                </p>
+                                                <p class="text-xs" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-500'">
+                                                    {{ formattedDate.time }}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
