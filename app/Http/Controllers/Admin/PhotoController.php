@@ -348,7 +348,7 @@ class PhotoController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'gallery_id' => 'nullable|exists:galleries,id',
             'status' => 'required|in:draft,published',
-            'is_featured' => 'boolean',
+            'is_featured' => 'sometimes|boolean',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
         ], [
