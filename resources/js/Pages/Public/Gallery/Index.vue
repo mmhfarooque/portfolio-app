@@ -20,7 +20,7 @@ let searchTimeout = null;
 watch(search, (value) => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        router.get(route('gallery.index'), {
+        router.get(route('photos.index'), {
             search: value || undefined,
             category: props.filters.category || undefined,
             tag: props.filters.tag || undefined,
@@ -32,7 +32,7 @@ watch(search, (value) => {
 });
 
 const clearFilters = () => {
-    router.get(route('gallery.index'));
+    router.get(route('photos.index'));
 };
 </script>
 
@@ -72,7 +72,7 @@ const clearFilters = () => {
             <!-- Categories -->
             <div class="flex flex-wrap gap-2 mb-8">
                 <Link
-                    :href="route('gallery.index')"
+                    :href="route('photos.index')"
                     :class="[
                         'px-4 py-2 rounded-full text-sm font-medium transition',
                         !currentCategory && !currentTag ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -83,7 +83,7 @@ const clearFilters = () => {
                 <Link
                     v-for="category in categories"
                     :key="category.id"
-                    :href="route('gallery.index', { category: category.slug })"
+                    :href="route('photos.index', { category: category.slug })"
                     :class="[
                         'px-4 py-2 rounded-full text-sm font-medium transition',
                         currentCategory?.id === category.id ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

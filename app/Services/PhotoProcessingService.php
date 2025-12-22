@@ -144,7 +144,7 @@ class PhotoProcessingService
             ]);
 
             // Save temp file for background processing
-            $tempPath = storage_path('app/temp/' . Str::uuid() . '.tmp');
+            $tempPath = storage_path('app/private/temp/' . Str::uuid() . '.tmp');
             if (!is_dir(dirname($tempPath))) {
                 mkdir(dirname($tempPath), 0755, true);
             }
@@ -160,7 +160,7 @@ class PhotoProcessingService
                 'original_filename' => $originalFilename,
             ];
         } catch (\Throwable $e) {
-            LoggingService::photoUploadFailed($originalFilename, $file->getSize(), $e);
+            LoggingService::photoUploadFailed($originalFilename, $e, ['file_size' => $file->getSize()]);
             throw $e;
         }
     }

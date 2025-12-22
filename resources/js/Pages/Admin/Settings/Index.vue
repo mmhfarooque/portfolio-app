@@ -22,30 +22,29 @@ const selectedTheme = ref(props.currentTheme);
 const themeSaving = ref(false);
 const themeJustSaved = ref(false);
 
-const selectTheme = async (themeKey) => {
+const selectTheme = (themeKey) => {
     if (selectedTheme.value === themeKey) return;
     selectedTheme.value = themeKey;
     themeSaving.value = true;
 
-    try {
-        const response = await fetch(route('admin.settings.update-theme'), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ site_theme: themeKey })
-        });
-
-        if (response.ok) {
+    router.post(route('admin.settings.update-theme'), {
+        site_theme: themeKey
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
             themeJustSaved.value = true;
             setTimeout(() => themeJustSaved.value = false, 3000);
+            themeSaving.value = false;
+        },
+        onError: (errors) => {
+            console.error('Theme save failed:', errors);
+            themeSaving.value = false;
+        },
+        onFinish: () => {
+            themeSaving.value = false;
         }
-    } catch (e) {
-        console.error('Theme save failed:', e);
-    }
-    themeSaving.value = false;
+    });
 };
 
 // Main form
@@ -105,6 +104,29 @@ const submit = () => {
     form.post(route('admin.settings.update'), {
         forceFormData: true
     });
+};
+
+// Section-specific saving
+const sectionSaving = ref({});
+const sectionSaved = ref({});
+
+const saveSection = async (sectionName) => {
+    sectionSaving.value[sectionName] = true;
+
+    try {
+        await form.post(route('admin.settings.update'), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                sectionSaved.value[sectionName] = true;
+                setTimeout(() => sectionSaved.value[sectionName] = false, 3000);
+            }
+        });
+    } catch (e) {
+        console.error('Section save failed:', e);
+    }
+
+    sectionSaving.value[sectionName] = false;
 };
 
 // Watermark preview position styles
@@ -309,39 +331,57 @@ const reoptimizePhotos = async () => {
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <label
+                                <div
                                     v-for="(theme, key) in themes"
                                     :key="key"
-                                    class="cursor-pointer group"
-                                    @click="selectTheme(key)"
+                                    class="relative group cursor-pointer"
                                 >
-                                    <input type="radio" name="site_theme" :value="key" v-model="selectedTheme" class="sr-only peer" />
-                                    <div class="relative bg-white rounded-2xl border-2 transition-all overflow-hidden peer-checked:border-blue-500 peer-checked:ring-4 peer-checked:ring-blue-100 hover:border-gray-300 border-gray-200 group-hover:shadow-xl shadow-sm">
-                                        <div class="p-4">
-                                            <div class="flex items-start justify-between">
-                                                <div>
-                                                    <h4 class="font-bold text-gray-900">{{ theme.name }}</h4>
-                                                    <p class="text-sm text-gray-500 mt-0.5">{{ theme.description }}</p>
-                                                </div>
-                                                <span v-if="theme.is_dark" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-900 text-white">Dark</span>
-                                                <span v-else class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">Light</span>
-                                            </div>
-                                            <div class="flex items-center gap-2 mt-3">
-                                                <span class="text-xs text-gray-400 uppercase tracking-wide">Colors:</span>
-                                                <div class="flex gap-1">
-                                                    <div class="w-5 h-5 rounded-full ring-2 ring-white shadow" :style="{ backgroundColor: theme.preview?.bg || theme.colors?.['bg-primary'] }"></div>
-                                                    <div class="w-5 h-5 rounded-full ring-2 ring-white shadow" :style="{ backgroundColor: theme.preview?.accent || theme.colors?.accent }"></div>
-                                                    <div class="w-5 h-5 rounded-full ring-2 ring-white shadow" :style="{ backgroundColor: theme.preview?.text || theme.colors?.['text-primary'] }"></div>
-                                                </div>
+                                    <div :class="[
+                                        'relative rounded-2xl border-2 transition-all overflow-hidden',
+                                        selectedTheme === key
+                                            ? 'border-blue-500 ring-4 ring-blue-100'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                    ]">
+                                        <!-- Theme Card Content -->
+                                        <div class="p-5 text-center">
+                                            <h4 class="text-lg font-bold text-gray-900 mb-4">{{ theme.name }}</h4>
+                                            <div class="flex justify-center gap-2">
+                                                <div class="w-6 h-6 rounded-full ring-2 ring-white shadow-md" :style="{ backgroundColor: theme.colors?.['bg-primary'] || theme.preview?.bg }"></div>
+                                                <div class="w-6 h-6 rounded-full ring-2 ring-white shadow-md" :style="{ backgroundColor: theme.colors?.['bg-secondary'] || '#f5f5f4' }"></div>
+                                                <div class="w-6 h-6 rounded-full ring-2 ring-white shadow-md" :style="{ backgroundColor: theme.colors?.accent || theme.preview?.accent }"></div>
+                                                <div class="w-6 h-6 rounded-full ring-2 ring-white shadow-md" :style="{ backgroundColor: theme.colors?.['text-primary'] || theme.preview?.text }"></div>
+                                                <div class="w-6 h-6 rounded-full ring-2 ring-white shadow-md" :style="{ backgroundColor: theme.colors?.['text-secondary'] || '#666' }"></div>
                                             </div>
                                         </div>
+
+                                        <!-- Active Checkmark -->
                                         <div v-if="selectedTheme === key" class="absolute top-3 right-3 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                                             </svg>
                                         </div>
+
+                                        <!-- Hover Overlay -->
+                                        <div
+                                            class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+                                            @click="selectTheme(key)"
+                                        >
+                                            <button
+                                                type="button"
+                                                class="px-5 py-2.5 bg-white text-gray-900 font-semibold rounded-lg shadow-lg hover:bg-gray-100 transition transform hover:scale-105"
+                                            >
+                                                <span v-if="themeSaving && selectedTheme === key" class="flex items-center gap-2">
+                                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                                    </svg>
+                                                    Saving...
+                                                </span>
+                                                <span v-else>Select Theme</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -349,7 +389,15 @@ const reoptimizePhotos = async () => {
                     <!-- Branding Settings -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">Branding</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">Branding</h3>
+                                <button type="button" @click="saveSection('branding')" :disabled="sectionSaving.branding || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.branding" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.branding" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.branding ? 'Saved!' : 'Save' }}
+                                </button>
+                            </div>
                             <div class="space-y-4">
                                 <div>
                                     <InputLabel for="site_name" value="Site Name" />
@@ -370,7 +418,15 @@ const reoptimizePhotos = async () => {
                     <!-- Social Media Settings -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">Social Media & Links</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">Social Media & Links</h3>
+                                <button type="button" @click="saveSection('social')" :disabled="sectionSaving.social || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.social" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.social" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.social ? 'Saved!' : 'Save' }}
+                                </button>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <InputLabel for="social_instagram" value="Instagram" />
@@ -399,7 +455,15 @@ const reoptimizePhotos = async () => {
                     <!-- Contact Settings -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">Contact Information</h3>
+                                <button type="button" @click="saveSection('contact')" :disabled="sectionSaving.contact || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.contact" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.contact" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.contact ? 'Saved!' : 'Save' }}
+                                </button>
+                            </div>
                             <div class="space-y-4">
                                 <div>
                                     <InputLabel for="contact_email" value="Email" />
@@ -421,12 +485,20 @@ const reoptimizePhotos = async () => {
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-medium text-gray-900">Watermark</h3>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" v-model="form.watermark_enabled" class="sr-only peer" />
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    <span class="ml-3 text-sm font-medium text-gray-700">{{ form.watermark_enabled ? 'Enabled' : 'Disabled' }}</span>
-                                </label>
+                                <div class="flex items-center gap-4">
+                                    <h3 class="text-lg font-medium text-gray-900">Watermark</h3>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" v-model="form.watermark_enabled" class="sr-only peer" />
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-700">{{ form.watermark_enabled ? 'Enabled' : 'Disabled' }}</span>
+                                    </label>
+                                </div>
+                                <button type="button" @click="saveSection('watermark')" :disabled="sectionSaving.watermark || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.watermark" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.watermark" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.watermark ? 'Saved!' : 'Save' }}
+                                </button>
                             </div>
 
                             <div v-if="form.watermark_enabled" class="flex flex-col lg:flex-row gap-8">
@@ -521,14 +593,22 @@ const reoptimizePhotos = async () => {
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
                             <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-lg font-medium text-gray-900">AI Image Analysis</h3>
-                                    <p class="text-sm text-gray-500 mt-1">Automatically generate titles and descriptions</p>
+                                <div class="flex items-center gap-4">
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900">AI Image Analysis</h3>
+                                        <p class="text-sm text-gray-500 mt-1">Automatically generate titles and descriptions</p>
+                                    </div>
+                                    <button type="button" @click="form.ai_enabled = !form.ai_enabled" :class="form.ai_enabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'" class="px-4 py-2 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
+                                        <svg v-if="form.ai_enabled" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        {{ form.ai_enabled ? 'Enabled' : 'Disabled' }}
+                                    </button>
                                 </div>
-                                <button type="button" @click="form.ai_enabled = !form.ai_enabled" :class="form.ai_enabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'" class="px-4 py-2 text-white font-medium rounded-lg transition-colors flex items-center gap-2">
-                                    <svg v-if="form.ai_enabled" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                    <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                    {{ form.ai_enabled ? 'Enabled' : 'Disabled' }}
+                                <button type="button" @click="saveSection('ai')" :disabled="sectionSaving.ai || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.ai" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.ai" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.ai ? 'Saved!' : 'Save' }}
                                 </button>
                             </div>
 
@@ -622,8 +702,18 @@ const reoptimizePhotos = async () => {
                     <!-- Image Optimization -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-2">Image Optimization</h3>
-                            <p class="text-sm text-gray-500 mb-4">All images are automatically converted to WebP format</p>
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900">Image Optimization</h3>
+                                    <p class="text-sm text-gray-500 mt-1">All images are automatically converted to WebP format</p>
+                                </div>
+                                <button type="button" @click="saveSection('optimization')" :disabled="sectionSaving.optimization || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.optimization" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.optimization" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.optimization ? 'Saved!' : 'Save' }}
+                                </button>
+                            </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -661,7 +751,15 @@ const reoptimizePhotos = async () => {
                     <!-- SEO Settings -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
                         <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">SEO Settings</h3>
+                                <button type="button" @click="saveSection('seo')" :disabled="sectionSaving.seo || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.seo" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.seo" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.seo ? 'Saved!' : 'Save' }}
+                                </button>
+                            </div>
                             <div class="space-y-4">
                                 <div>
                                     <InputLabel for="seo_site_title" value="Site Title" />

@@ -4,16 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Photo;
 use App\Models\Setting;
+use App\Services\ThemeService;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FrontPageController extends Controller
 {
+    public function __construct(
+        protected ThemeService $themeService
+    ) {}
+
     /**
      * Display the front page / homepage with CV/Resume layout.
      */
     public function index(): Response
     {
+        // Get theme data
+        $currentTheme = $this->themeService->getCurrentTheme();
+        $theme = $this->themeService->getTheme($currentTheme);
+        $themeData = [
+            'name' => $currentTheme,
+            'colors' => $theme['colors'] ?? [],
+            'styles' => $theme['styles'] ?? [],
+            'isDark' => $theme['is_dark'] ?? false,
+        ];
+
         // Get profile settings
         $profile = [
             'image' => Setting::get('profile_image'),
@@ -75,6 +90,7 @@ class FrontPageController extends Controller
             'contact' => $contact,
             'social' => $social,
             'skills' => $skills,
+            'theme' => $themeData,
             'featuredPhotos' => $featuredPhotos->map(fn($photo) => [
                 'id' => $photo->id,
                 'title' => $photo->title,

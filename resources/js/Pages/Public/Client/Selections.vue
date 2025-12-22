@@ -97,7 +97,7 @@ const exportSelections = (format) => {
                 </svg>
                 <h3 class="mt-4 text-lg font-medium text-gray-900">No photos selected</h3>
                 <p class="mt-2 text-gray-500">Browse the gallery and select photos you'd like to save</p>
-                <Link :href="route('gallery.index')" class="mt-6 inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                <Link :href="route('photos.index')" class="mt-6 inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
                     Browse Gallery
                 </Link>
             </div>

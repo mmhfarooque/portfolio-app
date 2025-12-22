@@ -7,7 +7,7 @@ A professional photography portfolio and CV/Resume website built with Laravel 12
 ## Tech Stack
 
 - **Framework:** Laravel 12.x (PHP 8.2+)
-- **Frontend:** Blade Templates, Alpine.js, Tailwind CSS
+- **Frontend:** Vue 3, Inertia.js, Tailwind CSS
 - **Database:** MySQL/MariaDB
 - **Image Processing:** Intervention Image
 - **Build Tool:** Vite

@@ -16,8 +16,8 @@ return [
     */
     'themes' => [
         'dark' => [
-            'name' => 'Darkroom',
-            'description' => 'Cinematic dark theme inspired by the photographer\'s darkroom',
+            'name' => 'Dark',
+            'description' => 'Cinematic dark theme with warm amber accents',
             'preview' => [
                 'bg' => '#0c0c0c',
                 'accent' => '#d4a574',
@@ -70,55 +70,55 @@ return [
         ],
 
         'light' => [
-            'name' => 'Gallery',
-            'description' => 'Elegant museum gallery aesthetic for fine art photography',
+            'name' => 'Light',
+            'description' => 'Clean, bright and modern with blue accents',
             'preview' => [
-                'bg' => '#fafaf9',
-                'accent' => '#1e3a5f',
-                'text' => '#1c1917',
+                'bg' => '#ffffff',
+                'accent' => '#2563eb',
+                'text' => '#111827',
             ],
             'colors' => [
-                // Backgrounds - Warm gallery whites
-                'bg-primary' => '#fafaf9',
-                'bg-secondary' => '#f5f5f4',
-                'bg-tertiary' => '#e7e5e4',
+                // Backgrounds - Pure clean whites
+                'bg-primary' => '#ffffff',
+                'bg-secondary' => '#f9fafb',
+                'bg-tertiary' => '#f3f4f6',
                 'bg-card' => '#ffffff',
-                'bg-hover' => '#d6d3d1',
+                'bg-hover' => '#e5e7eb',
                 'bg-input' => '#ffffff',
 
-                // Text - Rich warm blacks
-                'text-primary' => '#1c1917',
-                'text-secondary' => '#57534e',
-                'text-muted' => '#a8a29e',
-                'text-inverse' => '#fafaf9',
+                // Text - Crisp dark grays
+                'text-primary' => '#111827',
+                'text-secondary' => '#4b5563',
+                'text-muted' => '#9ca3af',
+                'text-inverse' => '#ffffff',
 
-                // Borders - Subtle warm grays
-                'border' => '#d6d3d1',
-                'border-light' => '#e7e5e4',
+                // Borders - Light cool grays
+                'border' => '#e5e7eb',
+                'border-light' => '#f3f4f6',
 
-                // Accent - Deep sophisticated navy
-                'accent' => '#1e3a5f',
-                'accent-hover' => '#152a45',
-                'accent-light' => 'rgba(30, 58, 95, 0.08)',
+                // Accent - Vibrant blue
+                'accent' => '#2563eb',
+                'accent-hover' => '#1d4ed8',
+                'accent-light' => 'rgba(37, 99, 235, 0.1)',
 
                 // Status colors
-                'success' => '#166534',
-                'warning' => '#a16207',
-                'error' => '#b91c1c',
+                'success' => '#059669',
+                'warning' => '#d97706',
+                'error' => '#dc2626',
 
                 // Special
-                'overlay' => 'rgba(28, 25, 23, 0.6)',
-                'shadow' => 'rgba(28, 25, 23, 0.08)',
+                'overlay' => 'rgba(17, 24, 39, 0.5)',
+                'shadow' => 'rgba(0, 0, 0, 0.1)',
             ],
             'styles' => [
-                'font-family' => "'Crimson Pro', 'Libre Baskerville', Georgia, serif",
-                'font-heading' => "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
-                'border-radius' => '0.25rem',
-                'border-radius-lg' => '0.5rem',
-                'shadow-sm' => '0 1px 3px 0 rgba(28, 25, 23, 0.06)',
-                'shadow' => '0 4px 12px -2px rgba(28, 25, 23, 0.08), 0 2px 4px -1px rgba(28, 25, 23, 0.04)',
-                'shadow-lg' => '0 16px 32px -8px rgba(28, 25, 23, 0.12), 0 8px 16px -4px rgba(28, 25, 23, 0.06)',
-                'transition' => '250ms ease-out',
+                'font-family' => "'Inter', 'Segoe UI', system-ui, sans-serif",
+                'font-heading' => "'Inter', 'Segoe UI', system-ui, sans-serif",
+                'border-radius' => '0.5rem',
+                'border-radius-lg' => '0.75rem',
+                'shadow-sm' => '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                'shadow' => '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                'shadow-lg' => '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                'transition' => '150ms ease-out',
             ],
             'is_dark' => false,
         ],

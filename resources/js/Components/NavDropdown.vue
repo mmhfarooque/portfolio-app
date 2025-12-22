@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 defineProps({
     active: {
@@ -13,10 +13,25 @@ defineProps({
 });
 
 const open = ref(false);
+const dropdownRef = ref(null);
+
+const closeOnClickOutside = (event) => {
+    if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+        open.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', closeOnClickOutside);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', closeOnClickOutside);
+});
 </script>
 
 <template>
-    <div class="relative" @click.away="open = false">
+    <div class="relative" ref="dropdownRef">
         <button
             @click="open = !open"
             :class="[
