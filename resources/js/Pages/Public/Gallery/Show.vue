@@ -27,12 +27,80 @@ const handleScroll = () => {
     }
 };
 
+// Map functionality
+const mapContainer = ref(null);
+const mapInstance = ref(null);
+const hasLocation = computed(() => props.photo.latitude && props.photo.longitude);
+
+const initMap = () => {
+    if (!mapContainer.value || !window.L || !hasLocation.value) return;
+
+    const lat = props.photo.latitude;
+    const lng = props.photo.longitude;
+
+    mapInstance.value = L.map(mapContainer.value, {
+        zoomControl: false,
+        attributionControl: false
+    }).setView([lat, lng], 12);
+
+    // Use CartoDB dark tiles for dark mode, light for light mode
+    const tileUrl = isDark.value
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+    L.tileLayer(tileUrl, {
+        maxZoom: 19
+    }).addTo(mapInstance.value);
+
+    // Custom marker
+    const markerIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div class="w-8 h-8 bg-amber-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            </svg>
+        </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+    });
+
+    L.marker([lat, lng], { icon: markerIcon }).addTo(mapInstance.value);
+
+    // Add zoom control to bottom right
+    L.control.zoom({ position: 'bottomright' }).addTo(mapInstance.value);
+};
+
+const loadLeaflet = () => {
+    if (typeof L !== 'undefined') {
+        initMap();
+        return;
+    }
+
+    // Load Leaflet CSS
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    // Load Leaflet JS
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = initMap;
+    document.head.appendChild(script);
+};
+
 onMounted(() => {
     window.addEventListener('scroll', handleScroll);
+    if (hasLocation.value) {
+        loadLeaflet();
+    }
 });
 
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
+    if (mapInstance.value) {
+        mapInstance.value.remove();
+    }
 });
 
 // Format date
@@ -438,6 +506,41 @@ const copyLink = () => {
                                     </Link>
                                 </div>
                             </div>
+
+                            <!-- Location Map Card -->
+                            <div
+                                v-if="hasLocation"
+                                class="rounded-2xl overflow-hidden transition-colors"
+                                :class="isDark
+                                    ? 'bg-[var(--bg-secondary)] border border-[var(--border)]'
+                                    : 'bg-white border border-[var(--border,#e7e5e4)] shadow-sm'"
+                            >
+                                <div class="px-5 py-4 border-b" :class="isDark ? 'border-[var(--border)]' : 'border-gray-100'">
+                                    <div class="flex items-center justify-between">
+                                        <h3
+                                            class="text-xs font-semibold uppercase tracking-wider"
+                                            :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-400'"
+                                        >
+                                            Location
+                                        </h3>
+                                        <a
+                                            :href="`https://www.google.com/maps?q=${photo.latitude},${photo.longitude}`"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="text-xs font-medium transition-colors"
+                                            :class="isDark
+                                                ? 'text-[var(--accent)] hover:text-[var(--accent-hover)]'
+                                                : 'text-amber-600 hover:text-amber-700'"
+                                        >
+                                            Open in Maps
+                                        </a>
+                                    </div>
+                                    <p v-if="photo.location_name" class="text-sm mt-1" :class="isDark ? 'text-[var(--text-secondary)]' : 'text-gray-600'">
+                                        {{ photo.location_name }}
+                                    </p>
+                                </div>
+                                <div ref="mapContainer" class="h-48 w-full"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -496,3 +599,38 @@ const copyLink = () => {
         </div>
     </PublicLayout>
 </template>
+
+<style>
+/* Custom map marker styles */
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Leaflet controls styling */
+.leaflet-control-zoom a {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: #333 !important;
+    border: none !important;
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    font-size: 14px !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: white !important;
+}
+
+/* Dark mode map controls */
+:root[data-theme="dark"] .leaflet-control-zoom a,
+.dark .leaflet-control-zoom a {
+    background-color: rgba(40, 40, 40, 0.9) !important;
+    color: #fff !important;
+}
+
+:root[data-theme="dark"] .leaflet-control-zoom a:hover,
+.dark .leaflet-control-zoom a:hover {
+    background-color: rgba(60, 60, 60, 0.95) !important;
+}
+</style>
