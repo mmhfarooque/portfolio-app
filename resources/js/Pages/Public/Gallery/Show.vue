@@ -574,8 +574,9 @@ const copyLink = () => {
                             <div
                                 class="aspect-square rounded-2xl overflow-hidden ring-1 transition-all duration-300 group-hover:ring-2"
                                 :class="isDark
-                                    ? 'bg-[var(--bg-secondary)] ring-[var(--border)] group-hover:ring-[var(--accent)]'
-                                    : 'bg-gray-100 ring-gray-200 group-hover:ring-amber-400'"
+                                    ? 'ring-[var(--border)] group-hover:ring-[var(--accent)]'
+                                    : 'ring-gray-200 group-hover:ring-amber-400'"
+                                :style="{ backgroundColor: related.dominant_color || (isDark ? 'var(--bg-secondary)' : '#f3f4f6') }"
                             >
                                 <img
                                     :src="`/storage/${related.thumbnail_path}`"

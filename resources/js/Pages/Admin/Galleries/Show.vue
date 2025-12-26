@@ -98,7 +98,7 @@ const removePhoto = () => {
                                     class="relative group"
                                 >
                                     <Link :href="route('admin.photos.edit', photo.id)" class="block">
-                                        <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                                        <div class="aspect-square rounded-lg overflow-hidden" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
                                             <img
                                                 v-if="photo.thumbnail_path"
                                                 :src="`/storage/${photo.thumbnail_path}`"

@@ -102,7 +102,7 @@ const clearFilters = () => {
                     :href="route('photos.show', photo.slug)"
                     class="group"
                 >
-                    <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative">
+                    <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
                         <img
                             :src="`/storage/${photo.thumbnail_path}`"
                             :alt="photo.title"
