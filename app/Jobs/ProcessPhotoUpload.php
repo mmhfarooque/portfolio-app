@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Photo;
 use App\Services\PhotoProcessingService;
+use App\Services\BlurHashService;
 use App\Services\LoggingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -101,6 +102,10 @@ class ProcessPhotoUpload implements ShouldQueue
             $image = \Intervention\Image\Laravel\Facades\Image::read($filePath);
             $width = $image->width();
             $height = $image->height();
+
+            // Generate blur placeholder for LQIP
+            $this->photo->update(['processing_stage' => 'generating_placeholder']);
+            $this->generatePlaceholder($filePath);
 
             // Generate and store image hashes for duplicate detection BEFORE any file operations
             $this->photo->update(['processing_stage' => 'generating_hashes']);
@@ -284,6 +289,19 @@ class ProcessPhotoUpload implements ShouldQueue
         $this->photo->update([
             'file_hash' => $hashes['file_hash'],
             'image_hash' => $hashes['image_hash'],
+        ]);
+    }
+
+    /**
+     * Generate blur placeholder for LQIP (Low Quality Image Placeholder).
+     */
+    protected function generatePlaceholder(string $filePath): void
+    {
+        $blurHashService = new BlurHashService();
+        $placeholder = $blurHashService->generatePlaceholder($filePath);
+
+        $this->photo->update([
+            'dominant_color' => $placeholder['dominant_color'],
         ]);
     }
 

@@ -42,6 +42,8 @@ class Photo extends Model
         'captured_at',
         'processing_stage',
         'processing_error',
+        'blurhash',
+        'dominant_color',
     ];
 
     protected $casts = [
@@ -334,6 +336,7 @@ class Photo extends Model
             'converting' => 'Converting format...',
             'extracting_metadata' => 'Reading EXIF data...',
             'reading_image' => 'Reading image...',
+            'generating_placeholder' => 'Generating placeholder...',
             'generating_versions' => 'Creating thumbnails...',
             'generating_hashes' => 'Creating hash...',
             'ai_analysis' => 'AI analysis...',
