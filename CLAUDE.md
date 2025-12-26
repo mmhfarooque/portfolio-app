@@ -103,8 +103,28 @@ $photo = App\Models\Photo::where('slug', $slug)->orWhere('id', $id)->first();
 
 #### Step 2: Research Location (if GPS exists)
 - Use latitude/longitude to identify the exact location
+- **Reverse geocode** to find what's at that exact spot (restaurant, hotel, landmark, beach, etc.)
 - Research the place name, region, country
 - Find interesting facts about the location for the story
+
+#### Step 2b: Location Verification (ASK USER)
+**Before proceeding, ASK the user to confirm the location:**
+
+Example prompt:
+```
+📍 GPS coordinates: 12.0876, 102.3654
+
+I found this location belongs to:
+- **Property**: Po-Plar on the beach (Restaurant)
+- **Area**: White Sand Beach, Koh Chang
+- **Region**: Trat Province, Thailand
+
+Is this correct? Or was the photo taken at a different spot nearby?
+```
+
+**Wait for user confirmation before generating content.**
+
+If user provides correction (e.g., "it was at the restaurant next door" or "it's actually the beach, not the restaurant"), update location accordingly.
 
 #### Step 3: Assign Category
 **Pick the BEST matching category from existing ones:**
