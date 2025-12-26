@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Gallery;
 use App\Models\Photo;
+use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Http\Response;
 
@@ -28,7 +29,13 @@ class SitemapController extends Controller
 
         $tags = Tag::select(['slug', 'updated_at'])->get();
 
-        $content = view('sitemap', compact('photos', 'categories', 'galleries', 'tags'));
+        // Add blog posts to sitemap
+        $posts = Post::where('status', 'published')
+            ->select(['slug', 'updated_at'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $content = view('sitemap', compact('photos', 'categories', 'galleries', 'tags', 'posts'));
 
         return response($content)
             ->header('Content-Type', 'application/xml');

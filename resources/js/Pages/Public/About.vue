@@ -1,5 +1,6 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import SeoHead from '@/Components/SeoHead.vue';
 
 const props = defineProps({
     content: String
@@ -7,7 +8,16 @@ const props = defineProps({
 </script>
 
 <template>
-    <Head title="About" />
+    <SeoHead
+        title="About Mahmud Farooque - Photographer"
+        description="Learn about Mahmud Farooque, a photographer based in Bangladesh capturing landscapes, travel, and street photography from around the world."
+        type="website"
+        url="https://mfaruk.com/about"
+        :breadcrumbs="[
+            { name: 'Home', url: '/' },
+            { name: 'About' }
+        ]"
+    />
 
     <PublicLayout>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

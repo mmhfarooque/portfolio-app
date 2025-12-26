@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import SeoHead from '@/Components/SeoHead.vue';
 
 const props = defineProps({
     profile: Object,
@@ -29,7 +30,14 @@ const whatsappNumber = (num) => num ? num.replace(/[^0-9]/g, '') : '';
 </script>
 
 <template>
-    <Head :title="`${profile.name} - ${profile.title}`" />
+    <SeoHead
+        :title="`${profile.name} - ${profile.title}`"
+        :description="`Photography portfolio by ${profile.name}. ${profile.tagline || 'Capturing moments from around the world.'}`"
+        :image="profile.image"
+        :image-alt="`${profile.name} - Photographer`"
+        type="website"
+        url="https://mfaruk.com"
+    />
 
     <PublicLayout :theme="theme">
         <!-- Hero Section with Profile -->
