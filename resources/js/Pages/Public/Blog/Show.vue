@@ -1,5 +1,6 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import SeoHead from '@/Components/SeoHead.vue';
 
 const props = defineProps({
     post: Object,
@@ -10,7 +11,23 @@ const props = defineProps({
 </script>
 
 <template>
-    <Head :title="post.seo_title || post.title" />
+    <SeoHead
+        :title="post.seo_title || post.title"
+        :description="post.meta_description || post.excerpt"
+        :image="post.featured_image"
+        :image-alt="post.title"
+        type="article"
+        :url="`https://mfaruk.com/blog/${post.slug}`"
+        :published-time="post.published_at"
+        :modified-time="post.updated_at"
+        :article="post"
+        :breadcrumbs="[
+            { name: 'Home', url: '/' },
+            { name: 'Blog', url: '/blog' },
+            post.category ? { name: post.category.name, url: `/blog?category=${post.category.slug}` } : null,
+            { name: post.title }
+        ].filter(Boolean)"
+    />
 
     <PublicLayout>
         <article class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

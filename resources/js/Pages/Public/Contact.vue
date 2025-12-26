@@ -1,6 +1,7 @@
 <script setup>
 import { useForm, usePage } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import SeoHead from '@/Components/SeoHead.vue';
 
 const page = usePage();
 
@@ -20,7 +21,16 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Contact" />
+    <SeoHead
+        title="Contact Mahmud Farooque - Photography Inquiries"
+        description="Get in touch with Mahmud Farooque for photography inquiries, print purchases, or collaboration opportunities."
+        type="website"
+        url="https://mfaruk.com/contact"
+        :breadcrumbs="[
+            { name: 'Home', url: '/' },
+            { name: 'Contact' }
+        ]"
+    />
 
     <PublicLayout>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

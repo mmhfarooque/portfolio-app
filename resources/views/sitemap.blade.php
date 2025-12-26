@@ -86,4 +86,23 @@
     </url>
     @endforeach
 
+    {{-- Blog Index --}}
+    <url>
+        <loc>{{ $secure(route('blog.index')) }}</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    {{-- Blog Posts --}}
+    @if(isset($posts))
+    @foreach($posts as $post)
+    <url>
+        <loc>{{ $secure(route('blog.show', $post->slug)) }}</loc>
+        <lastmod>{{ $post->updated_at->toW3cString() }}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    @endforeach
+    @endif
+
 </urlset>

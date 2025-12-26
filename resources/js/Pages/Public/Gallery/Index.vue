@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import SeoHead from '@/Components/SeoHead.vue';
 import Pagination from '@/Components/Pagination.vue';
 
 const props = defineProps({
@@ -37,7 +38,18 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <Head title="Gallery" />
+    <SeoHead
+        :title="currentCategory ? `${currentCategory.name} Photos` : currentTag ? `Photos tagged ${currentTag.name}` : 'Photo Gallery'"
+        :description="currentCategory ? `Browse ${currentCategory.name} photography by Mahmud Farooque.` : currentTag ? `Photos tagged with ${currentTag.name}.` : 'Explore the photography gallery of Mahmud Farooque. Landscapes, travel, and street photography from around the world.'"
+        type="website"
+        :url="currentCategory ? `https://mfaruk.com/gallery?category=${currentCategory.slug}` : currentTag ? `https://mfaruk.com/gallery?tag=${currentTag.slug}` : 'https://mfaruk.com/gallery'"
+        :breadcrumbs="[
+            { name: 'Home', url: '/' },
+            { name: 'Gallery', url: '/gallery' },
+            currentCategory ? { name: currentCategory.name } : null,
+            currentTag ? { name: currentTag.name } : null
+        ].filter(Boolean)"
+    />
 
     <PublicLayout>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

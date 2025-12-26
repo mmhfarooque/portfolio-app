@@ -49,6 +49,94 @@ Check site status and recent errors.
 
 ---
 
+### `/content [photo-id or URL]`
+**Complete SEO & Content Package for a Photo**
+
+When user says `/content` with a photo ID or URL, execute this COMPLETE workflow:
+
+#### Step 1: Fetch Photo Data
+```php
+// If URL: extract slug from https://mfaruk.com/photo/slug-here
+// If ID: use directly
+$photo = App\Models\Photo::where('slug', $slug)->orWhere('id', $id)->first();
+```
+
+#### Step 2: Research Location (if GPS exists)
+- Use latitude/longitude to identify the exact location
+- Research the place name, region, country
+- Find interesting facts about the location for the story
+
+#### Step 3: Generate ALL Content Fields
+
+| Field | Action | Notes |
+|-------|--------|-------|
+| `title` | Generate | Descriptive, includes location |
+| `slug` | Generate | SEO-friendly, lowercase-with-hyphens |
+| `description` | Generate | 1-3 sentences about what's in the photo |
+| `seo_title` | Generate | **MAX 70 chars** - Primary Keyword \| Location |
+| `meta_description` | Generate | **MAX 160 chars** - Compelling, no fluff words |
+| `location_name` | Generate | Full location: City, Region, Country |
+| `story` | Generate | 2-4 paragraphs, HTML `<p>` tags, FIRST PERSON |
+| `tags` | Generate | 10-15 tags: location, subject, mood, style, season |
+| `status` | Set | `published` |
+
+#### Step 4: Writing Style Checklist
+Before saving, verify the story:
+- [ ] Uses "I", "me", "my" - first person perspective
+- [ ] Describes personal experience and feelings
+- [ ] NO words: "stunning", "breathtaking", "extraordinary", "vibrant"
+- [ ] NO phrases: "captured with", "Instagram-worthy", "must-see"
+- [ ] Sounds like talking to a friend, not a travel brochure
+- [ ] Mentions specific details (time of day, weather, what you were doing)
+
+#### Step 5: SEO Validation
+Before saving, verify:
+- [ ] `seo_title` ≤ 70 characters (count and confirm)
+- [ ] `meta_description` ≤ 160 characters (count and confirm)
+- [ ] No duplicate content from other photos
+
+#### Step 6: Save to Database
+```php
+$photo->update([
+    'title' => $title,
+    'slug' => $slug,
+    'description' => $description,
+    'seo_title' => $seoTitle,           // MUST be ≤ 70 chars
+    'meta_description' => $metaDesc,     // MUST be ≤ 160 chars
+    'location_name' => $locationName,
+    'story' => $story,
+    'status' => 'published',
+]);
+
+// Add tags
+$tagIds = [];
+foreach($tagNames as $name) {
+    $tag = App\Models\Tag::firstOrCreate(
+        ['slug' => Str::slug($name)],
+        ['name' => $name, 'type' => 'photo']
+    );
+    $tagIds[] = $tag->id;
+}
+$photo->tags()->sync($tagIds);
+```
+
+#### Step 7: Confirm Completion
+Report back:
+- Photo ID and URL
+- SEO title with character count
+- Meta description with character count
+- Number of tags added
+- Status: published
+
+**This command ensures the photo has:**
+- Full SEO optimization (Open Graph, Twitter Cards, JSON-LD are automatic via SeoHead.vue)
+- Personal, authentic story content
+- Proper location data
+- Complete tag coverage
+- Ready for social sharing
+
+---
+
 ## PROJECT OVERVIEW
 
 **Site**: https://mfaruk.com
@@ -233,8 +321,10 @@ portfolio-app/
 | File | Purpose |
 |------|---------|
 | `resources/js/Pages/Public/Gallery/Show.vue` | Single photo page (likes, comments, map) |
+| `resources/js/Components/SeoHead.vue` | **SEO component** - OG, Twitter, JSON-LD, canonical |
 | `app/Http/Controllers/GalleryController.php` | Photo page data (must include lat/lng) |
 | `app/Http/Controllers/PhotoInteractionController.php` | Like/comment API |
+| `app/Http/Controllers/SitemapController.php` | Sitemap generation (photos, blog, categories) |
 | `resources/views/app.blade.php` | Main HTML template (favicon, meta) |
 | `deploy.sh` | Production deployment |
 | `routes/web.php` | All route definitions |
@@ -363,12 +453,45 @@ The site uses Cloudflare CDN. For cache issues:
 
 | Date | Change |
 |------|--------|
+| 2025-12-26 | Added SeoHead.vue component (Open Graph, Twitter Cards, JSON-LD structured data) |
+| 2025-12-26 | Added `/content` command for complete photo SEO workflow |
+| 2025-12-26 | Updated sitemap to include blog posts |
+| 2025-12-26 | Rewrote photo stories to first-person personal voice |
+| 2025-12-26 | Added meta descriptions and canonical URLs to all public pages |
+| 2024-12-22 | Added shooting date/time to photo page sidebar |
 | 2024-12-22 | Added photo likes & comments with OTP verification |
 | 2024-12-22 | Added location map to photo pages (Leaflet) |
 | 2024-12-22 | Fixed favicon (black bg, golden M) |
 | 2024-12-22 | Added SEO content to all photos |
 | 2024-12-22 | Fixed deploy.sh app-path.php issue |
 | 2024-12-22 | Created CLAUDE.md project intelligence doc |
+
+---
+
+## SEO IMPLEMENTATION
+
+The site now has comprehensive SEO via `SeoHead.vue` component:
+
+### Automatic Features (no manual work needed):
+- **Open Graph tags**: og:title, og:description, og:image, og:url, og:type
+- **Twitter Cards**: summary_large_image with full metadata
+- **JSON-LD Structured Data**: ImageObject for photos, Article for blog posts
+- **Canonical URLs**: Prevents duplicate content issues
+- **Breadcrumb Schema**: For navigation trail in search results
+
+### Usage:
+```vue
+<SeoHead
+    :title="photo.seo_title"
+    :description="photo.meta_description"
+    :image="photo.display_path"
+    type="photo"
+    :photo="photo"
+    :breadcrumbs="[...]"
+/>
+```
+
+The component automatically generates all required meta tags and structured data.
 
 ---
 
@@ -380,5 +503,5 @@ The site uses Cloudflare CDN. For cache issues:
 
 ---
 
-*Last Updated: December 22, 2024*
+*Last Updated: December 26, 2025*
 *Update this file after every significant change*

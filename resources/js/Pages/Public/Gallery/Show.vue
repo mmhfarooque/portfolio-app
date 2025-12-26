@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import SeoHead from '@/Components/SeoHead.vue';
 import LikeButton from '@/Components/Photo/LikeButton.vue';
 import CommentSection from '@/Components/Photo/CommentSection.vue';
 
@@ -32,7 +33,7 @@ const mapContainer = ref(null);
 const mapInstance = ref(null);
 const hasLocation = computed(() => props.photo.latitude && props.photo.longitude);
 
-// Format captured date
+// Format captured date (use UTC to preserve original capture time from camera)
 const formattedDate = computed(() => {
     if (!props.photo.captured_at) return null;
     const date = new Date(props.photo.captured_at);
@@ -40,12 +41,14 @@ const formattedDate = computed(() => {
         date: date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: 'UTC'
         }),
         time: date.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
-            hour12: true
+            hour12: true,
+            timeZone: 'UTC'
         })
     };
 });
@@ -61,12 +64,8 @@ const initMap = () => {
         attributionControl: false
     }).setView([lat, lng], 12);
 
-    // Use CartoDB dark tiles for dark mode, light for light mode
-    const tileUrl = isDark.value
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-
-    L.tileLayer(tileUrl, {
+    // Always use colorful OpenStreetMap tiles regardless of theme
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
     }).addTo(mapInstance.value);
 
@@ -142,10 +141,21 @@ const copyLink = () => {
 </script>
 
 <template>
-    <Head>
-        <title>{{ photo.seo_title || photo.title }}</title>
-        <meta v-if="photo.meta_description" name="description" :content="photo.meta_description" />
-    </Head>
+    <SeoHead
+        :title="photo.seo_title || photo.title"
+        :description="photo.meta_description || photo.description"
+        :image="photo.watermarked_path || photo.display_path"
+        :image-alt="photo.title"
+        type="photo"
+        :url="`https://mfaruk.com/photo/${photo.slug}`"
+        :photo="photo"
+        :breadcrumbs="[
+            { name: 'Home', url: '/' },
+            { name: 'Gallery', url: '/gallery' },
+            photo.category ? { name: photo.category.name, url: `/gallery?category=${photo.category.slug}` } : null,
+            { name: photo.title }
+        ].filter(Boolean)"
+    />
 
     <PublicLayout>
         <!-- Hero Image Section - Full Width Dark Background -->
