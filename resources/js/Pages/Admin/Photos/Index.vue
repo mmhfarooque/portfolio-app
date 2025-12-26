@@ -252,7 +252,7 @@ const getStatusBadgeClass = (status) => {
 
                             <!-- Photo -->
                             <Link :href="route('admin.photos.edit', photo.id)" class="block">
-                                <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 relative">
+                                <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
                                     <!-- Show thumbnail if available -->
                                     <img
                                         v-if="photo.thumbnail_path"

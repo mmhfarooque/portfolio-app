@@ -21,7 +21,7 @@ class BlurHashService
 
             // Get dominant color by sampling center pixel
             $color = $tiny->pickColor(5, 5);
-            $hex = sprintf('#%02x%02x%02x', $color->red(), $color->green(), $color->blue());
+            $hex = sprintf('#%02x%02x%02x', $color->red()->toInt(), $color->green()->toInt(), $color->blue()->toInt());
 
             // Generate a simple gradient placeholder SVG
             $svg = $this->generateGradientSvg($imagePath, $image->width(), $image->height());
@@ -59,10 +59,10 @@ class BlurHashService
             $br = $tiny->pickColor(1, 1);
 
             $colors = [
-                sprintf('rgb(%d,%d,%d)', $tl->red(), $tl->green(), $tl->blue()),
-                sprintf('rgb(%d,%d,%d)', $tr->red(), $tr->green(), $tr->blue()),
-                sprintf('rgb(%d,%d,%d)', $bl->red(), $bl->green(), $bl->blue()),
-                sprintf('rgb(%d,%d,%d)', $br->red(), $br->green(), $br->blue()),
+                sprintf('rgb(%d,%d,%d)', $tl->red()->toInt(), $tl->green()->toInt(), $tl->blue()->toInt()),
+                sprintf('rgb(%d,%d,%d)', $tr->red()->toInt(), $tr->green()->toInt(), $tr->blue()->toInt()),
+                sprintf('rgb(%d,%d,%d)', $bl->red()->toInt(), $bl->green()->toInt(), $bl->blue()->toInt()),
+                sprintf('rgb(%d,%d,%d)', $br->red()->toInt(), $br->green()->toInt(), $br->blue()->toInt()),
             ];
 
             // Create simple gradient SVG
