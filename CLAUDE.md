@@ -19,12 +19,29 @@ ssh root@63.142.240.72 "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && 
 ```
 
 ### Current Photos (Dec 2025)
-| ID | Slug | Location |
-|----|------|----------|
-| 1 | monpura-sea-beach | Monpura Island, Bangladesh |
-| 11 | kashmir-tulip-garden | Srinagar, Kashmir, India |
-| 12 | swiss-sheep-farm-pattaya-thailand | Pattaya, Thailand |
-| 13 | nong-nooch-tropical-garden-pattaya-thailand | Pattaya, Thailand |
+| ID | Slug | Category | Gallery |
+|----|------|----------|---------|
+| 1 | monpura-sea-beach | Seascapes & Beaches | Coastal Collection |
+| 11 | kashmir-tulip-garden | Flora & Gardens | Kashmir Collection |
+| 12 | swiss-sheep-farm-pattaya-thailand | Landscapes | Thailand Collection |
+| 13 | nong-nooch-tropical-garden-pattaya-thailand | Flora & Gardens | Thailand Collection |
+| 14 | monsoon-view-po-plar-beach-koh-chang | Seascapes & Beaches | Thailand Collection |
+
+### Available Categories
+| ID | Name | Slug |
+|----|------|------|
+| 1 | Seascapes & Beaches | seascapes-beaches |
+| 2 | Sunsets & Golden Hour | sunsets-golden-hour |
+| 3 | Landscapes | landscapes |
+| 4 | Rivers & Waterways | rivers-waterways |
+| 5 | Flora & Gardens | flora-gardens |
+
+### Available Galleries
+| ID | Name | Slug |
+|----|------|------|
+| 1 | Coastal Collection | coastal-collection |
+| 2 | Kashmir Collection | kashmir-collection |
+| 3 | Thailand Collection | thailand-collection |
 
 ---
 
@@ -79,7 +96,7 @@ When user says `/content` with a photo ID or URL, execute this COMPLETE workflow
 
 #### Step 1: Fetch Photo Data
 ```php
-// If URL: extract slug from https://mfaruk.com/photo/slug-here
+// If URL: extract slug from https://mfaruk.com/photo/slug-here or admin URL
 // If ID: use directly
 $photo = App\Models\Photo::where('slug', $slug)->orWhere('id', $id)->first();
 ```
@@ -89,7 +106,43 @@ $photo = App\Models\Photo::where('slug', $slug)->orWhere('id', $id)->first();
 - Research the place name, region, country
 - Find interesting facts about the location for the story
 
-#### Step 3: Generate ALL Content Fields
+#### Step 3: Assign Category
+**Pick the BEST matching category from existing ones:**
+| ID | Category | Use for |
+|----|----------|---------|
+| 1 | Seascapes & Beaches | Ocean, sea, beach, coastal views |
+| 2 | Sunsets & Golden Hour | Sunset, sunrise, golden light shots |
+| 3 | Landscapes | Mountains, fields, rural, scenic views |
+| 4 | Rivers & Waterways | Rivers, lakes, waterfalls, streams |
+| 5 | Flora & Gardens | Flowers, gardens, plants, botanical |
+
+**If no category fits**, create a new one:
+```php
+$category = App\Models\Category::create([
+    'name' => 'New Category Name',
+    'slug' => Str::slug('New Category Name'),
+    'sort_order' => App\Models\Category::max('sort_order') + 1,
+]);
+```
+
+#### Step 4: Assign Gallery
+**Pick the BEST matching gallery based on location/trip:**
+| ID | Gallery | Use for |
+|----|---------|---------|
+| 1 | Coastal Collection | Bangladesh coastal photos |
+| 2 | Kashmir Collection | Kashmir, India photos |
+| 3 | Thailand Collection | Thailand photos |
+
+**If no gallery fits**, create a new one:
+```php
+$gallery = App\Models\Gallery::create([
+    'name' => 'New Gallery Name',
+    'slug' => Str::slug('New Gallery Name'),
+    'is_published' => true,
+]);
+```
+
+#### Step 5: Generate ALL Content Fields
 
 | Field | Action | Notes |
 |-------|--------|-------|
@@ -100,10 +153,13 @@ $photo = App\Models\Photo::where('slug', $slug)->orWhere('id', $id)->first();
 | `meta_description` | Generate | **MAX 160 chars** - Compelling, no fluff words |
 | `location_name` | Generate | Full location: City, Region, Country |
 | `story` | Generate | 2-4 paragraphs, HTML `<p>` tags, FIRST PERSON |
+| `category_id` | Assign | From Step 3 |
+| `gallery_id` | Assign | From Step 4 |
 | `tags` | Generate | 10-15 tags: location, subject, mood, style, season |
 | `status` | Set | `published` |
+| `is_featured` | Set | `true` (show on homepage) |
 
-#### Step 4: Writing Style Checklist
+#### Step 6: Writing Style Checklist
 Before saving, verify the story:
 - [ ] Uses "I", "me", "my" - first person perspective
 - [ ] Describes personal experience and feelings
@@ -112,13 +168,13 @@ Before saving, verify the story:
 - [ ] Sounds like talking to a friend, not a travel brochure
 - [ ] Mentions specific details (time of day, weather, what you were doing)
 
-#### Step 5: SEO Validation
+#### Step 7: SEO Validation
 Before saving, verify:
 - [ ] `seo_title` ≤ 70 characters (count and confirm)
 - [ ] `meta_description` ≤ 160 characters (count and confirm)
 - [ ] No duplicate content from other photos
 
-#### Step 6: Save to Database
+#### Step 8: Save to Database
 ```php
 $photo->update([
     'title' => $title,
@@ -128,10 +184,13 @@ $photo->update([
     'meta_description' => $metaDesc,     // MUST be ≤ 160 chars
     'location_name' => $locationName,
     'story' => $story,
+    'category_id' => $categoryId,        // From step 3
+    'gallery_id' => $galleryId,          // From step 4
     'status' => 'published',
+    'is_featured' => true,
 ]);
 
-// Add tags
+// Add tags (use existing or create new)
 $tagIds = [];
 foreach($tagNames as $name) {
     $tag = App\Models\Tag::firstOrCreate(
@@ -141,21 +200,31 @@ foreach($tagNames as $name) {
     $tagIds[] = $tag->id;
 }
 $photo->tags()->sync($tagIds);
+
+// Update category count
+if ($photo->category_id) {
+    App\Models\Category::find($photo->category_id)->updatePhotoCount();
+}
 ```
 
-#### Step 7: Confirm Completion
+#### Step 9: Confirm Completion
 Report back:
 - Photo ID and URL
+- **Category assigned** (existing or newly created)
+- **Gallery assigned** (existing or newly created)
 - SEO title with character count
 - Meta description with character count
-- Number of tags added
+- Number of tags added (list them)
 - Status: published
 
 **This command ensures the photo has:**
+- **Category** for gallery filtering and organization
+- **Gallery** for collection grouping
 - Full SEO optimization (Open Graph, Twitter Cards, JSON-LD are automatic via SeoHead.vue)
 - Personal, authentic story content
 - Proper location data
 - Complete tag coverage
+- Featured status for homepage display
 - Ready for social sharing
 
 ---
@@ -170,7 +239,9 @@ Report back:
 **Git Repo**: github.com/mmhfarooque/portfolio-app (main branch)
 
 ### Current Stats (as of Dec 26, 2025)
-- **Photos**: 4 published (all with SEO content and personal stories)
+- **Photos**: 5 published (all with SEO content, categories, galleries, and personal stories)
+- **Categories**: 5 (Seascapes, Sunsets, Landscapes, Rivers, Flora)
+- **Galleries**: 3 (Coastal, Kashmir, Thailand)
 - **Contact Email**: farooque7@gmail.com (receives form submissions)
 - **Features Active**: 12+ public features, full admin panel
 
@@ -482,6 +553,9 @@ The site uses Cloudflare CDN. For cache issues:
 
 | Date | Change |
 |------|--------|
+| 2025-12-26 | **Updated `/content` command to auto-assign categories and galleries** |
+| 2025-12-26 | Added available categories and galleries reference tables |
+| 2025-12-26 | Fixed missing categories on photos #13 and #14 |
 | 2025-12-26 | Added SeoHead.vue component (Open Graph, Twitter Cards, JSON-LD structured data) |
 | 2025-12-26 | Added `/content` command for complete photo SEO workflow |
 | 2025-12-26 | Updated sitemap to include blog posts |
