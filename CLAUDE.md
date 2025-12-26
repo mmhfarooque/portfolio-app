@@ -5,6 +5,29 @@
 
 ---
 
+## QUICK START (Resume Session)
+
+```bash
+# 1. Pull latest from git (if working from another machine)
+git pull origin main
+
+# 2. Check current photos
+ssh root@63.142.240.72 "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php artisan tinker --execute=\"App\\Models\\Photo::all(['id','title','slug','status'])->each(fn(\\\$p) => print(\\\$p->id.' | '.\\\$p->status.' | '.\\\$p->slug.PHP_EOL));\""
+
+# 3. Deploy changes
+./deploy.sh
+```
+
+### Current Photos (Dec 2025)
+| ID | Slug | Location |
+|----|------|----------|
+| 1 | monpura-sea-beach | Monpura Island, Bangladesh |
+| 11 | kashmir-tulip-garden | Srinagar, Kashmir, India |
+| 12 | swiss-sheep-farm-pattaya-thailand | Pattaya, Thailand |
+| 13 | nong-nooch-tropical-garden-pattaya-thailand | Pattaya, Thailand |
+
+---
+
 ## TRIGGER COMMANDS
 
 ### `/photo-seo [URL]`
@@ -144,6 +167,12 @@ Report back:
 **Stack**: Laravel 12 + Vue 3 + Inertia.js + Tailwind CSS
 **Database**: MySQL (production), SQLite (local)
 **Hosting**: HestiaCP on DigitalOcean (63.142.240.72)
+**Git Repo**: github.com/mmhfarooque/portfolio-app (main branch)
+
+### Current Stats (as of Dec 26, 2025)
+- **Photos**: 4 published (all with SEO content and personal stories)
+- **Contact Email**: farooque7@gmail.com (receives form submissions)
+- **Features Active**: 12+ public features, full admin panel
 
 ---
 
@@ -495,11 +524,54 @@ The component automatically generates all required meta tags and structured data
 
 ---
 
+## IMPORTANT SETTINGS
+
+### Database Settings (via Settings model)
+```php
+// Get a setting
+App\Models\Setting::get('contact_email');
+
+// Set a setting
+App\Models\Setting::set('contact_email', 'your@email.com');
+
+// Key settings:
+// - contact_email: Receives contact form submissions
+// - photographer_name: Site title/brand name
+// - about_content: About page content (JSON from Editor.js)
+```
+
+### Environment Variables (.env)
+Key variables on production server:
+- `DB_CONNECTION=mysql`
+- `MAIL_MAILER=smtp` (for contact form emails)
+- `APP_URL=https://mfaruk.com`
+
+---
+
+## GIT WORKFLOW
+
+```bash
+# After making changes locally:
+npm run build                    # Build frontend assets
+git add .                        # Stage changes
+git commit -m "Description"      # Commit
+git push origin main             # Push to GitHub
+./deploy.sh                      # Deploy to production
+
+# From another machine:
+git pull origin main             # Get latest changes
+npm install                      # Install dependencies
+npm run build                    # Rebuild assets
+```
+
+---
+
 ## CONTACT / OWNER
 
 **Site Owner**: Mahmud Farooque
-**Email**: (check .env for MAIL_FROM_ADDRESS)
+**Email**: farooque7@gmail.com
 **Domain**: mfaruk.com
+**GitHub**: github.com/mmhfarooque/portfolio-app
 
 ---
 
