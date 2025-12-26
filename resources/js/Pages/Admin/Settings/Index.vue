@@ -719,6 +719,11 @@ const reoptimizePhotos = async () => {
                                 <div>
                                     <InputLabel for="image_max_resolution" value="Max Resolution" />
                                     <select v-model="form.image_max_resolution" id="image_max_resolution" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                        <option value="800">800px (Small)</option>
+                                        <option value="1024">1024px (XGA)</option>
+                                        <option value="1280">1280px (HD)</option>
+                                        <option value="1440">1440px (HD+)</option>
+                                        <option value="1600">1600px (UXGA)</option>
                                         <option value="1920">1920px (Full HD)</option>
                                         <option value="2048">2048px (2K - Recommended)</option>
                                         <option value="2560">2560px (QHD)</option>
