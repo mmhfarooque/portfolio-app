@@ -145,6 +145,41 @@ Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'uns
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/sitemap-images.xml', [SitemapController::class, 'images'])->name('sitemap.images');
 
+// Dynamic robots.txt based on admin settings
+Route::get('/robots.txt', function () {
+    $allowCrawling = \App\Models\Setting::get('seo_robots_allow') === '1';
+
+    $content = "# Photography Portfolio - Robots.txt\n";
+    $content .= "# https://mfaruk.com\n\n";
+    $content .= "User-agent: *\n";
+
+    if ($allowCrawling) {
+        $content .= "Allow: /\n\n";
+        $content .= "# Sitemaps\n";
+        $content .= "Sitemap: https://mfaruk.com/sitemap.xml\n";
+        $content .= "Sitemap: https://mfaruk.com/sitemap-images.xml\n\n";
+        $content .= "# Disallow admin and auth pages\n";
+        $content .= "Disallow: /admin/\n";
+        $content .= "Disallow: /login\n";
+        $content .= "Disallow: /register\n";
+        $content .= "Disallow: /password/\n";
+        $content .= "Disallow: /dashboard\n";
+        $content .= "Disallow: /profile\n\n";
+        $content .= "# Disallow API endpoints\n";
+        $content .= "Disallow: /api/\n\n";
+        $content .= "# Allow all images to be indexed\n";
+        $content .= "Allow: /storage/photos/\n\n";
+        $content .= "# Crawl delay for politeness\n";
+        $content .= "Crawl-delay: 1\n";
+    } else {
+        $content .= "Disallow: /\n\n";
+        $content .= "# Site is currently hidden from search engines.\n";
+        $content .= "# Enable crawling from Admin > Settings > SEO when ready.\n";
+    }
+
+    return response($content, 200)->header('Content-Type', 'text/plain');
+})->name('robots');
+
 Route::get('/dashboard', [AdminDashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 

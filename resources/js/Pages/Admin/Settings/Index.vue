@@ -96,8 +96,13 @@ const form = useForm({
     seo_site_keywords: props.settings?.seo?.seo_site_keywords || '',
     seo_twitter_handle: props.settings?.seo?.seo_twitter_handle || '',
     seo_google_analytics: props.settings?.seo?.seo_google_analytics || '',
+    seo_gtm_id: props.settings?.seo?.seo_gtm_id || '',
+    seo_facebook_pixel: props.settings?.seo?.seo_facebook_pixel || '',
     seo_google_verification: props.settings?.seo?.seo_google_verification || '',
     seo_bing_verification: props.settings?.seo?.seo_bing_verification || '',
+    seo_custom_head_scripts: props.settings?.seo?.seo_custom_head_scripts || '',
+    seo_custom_body_scripts: props.settings?.seo?.seo_custom_body_scripts || '',
+    seo_robots_allow: props.settings?.seo?.seo_robots_allow === '1',
 });
 
 const submit = () => {
@@ -765,7 +770,26 @@ const reoptimizePhotos = async () => {
                                     {{ sectionSaved.seo ? 'Saved!' : 'Save' }}
                                 </button>
                             </div>
-                            <div class="space-y-4">
+                            <div class="space-y-6">
+                                <!-- Robots / Crawling Control -->
+                                <div class="p-4 rounded-lg" :class="form.seo_robots_allow ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium" :class="form.seo_robots_allow ? 'text-green-800' : 'text-yellow-800'">
+                                                {{ form.seo_robots_allow ? '✓ Search Engine Crawling Enabled' : '⚠ Search Engine Crawling Disabled' }}
+                                            </h4>
+                                            <p class="text-sm mt-1" :class="form.seo_robots_allow ? 'text-green-600' : 'text-yellow-600'">
+                                                {{ form.seo_robots_allow ? 'Google and other search engines can index your site.' : 'Your site is hidden from search engines. Enable when ready to go live.' }}
+                                            </p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" v-model="form.seo_robots_allow" class="sr-only peer" />
+                                            <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Basic SEO -->
                                 <div>
                                     <InputLabel for="seo_site_title" value="Site Title" />
                                     <TextInput id="seo_site_title" v-model="form.seo_site_title" class="mt-1 block w-full" maxlength="60" />
@@ -780,14 +804,64 @@ const reoptimizePhotos = async () => {
                                     <InputLabel for="seo_site_keywords" value="Keywords (comma separated)" />
                                     <TextInput id="seo_site_keywords" v-model="form.seo_site_keywords" class="mt-1 block w-full" placeholder="photography, landscape, nature" />
                                 </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <InputLabel for="seo_twitter_handle" value="Twitter/X Handle" />
-                                        <TextInput id="seo_twitter_handle" v-model="form.seo_twitter_handle" class="mt-1 block w-full" placeholder="@yourusername" />
+                                <div>
+                                    <InputLabel for="seo_twitter_handle" value="Twitter/X Handle" />
+                                    <TextInput id="seo_twitter_handle" v-model="form.seo_twitter_handle" class="mt-1 block w-full" placeholder="@yourusername" />
+                                </div>
+
+                                <!-- Analytics & Tracking -->
+                                <div class="border-t pt-6">
+                                    <h4 class="text-md font-medium text-gray-800 mb-4">Analytics & Tracking</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabel for="seo_google_analytics" value="Google Analytics ID" />
+                                            <TextInput id="seo_google_analytics" v-model="form.seo_google_analytics" class="mt-1 block w-full" placeholder="G-XXXXXXXXXX" />
+                                            <p class="text-xs text-gray-500 mt-1">GA4 Measurement ID</p>
+                                        </div>
+                                        <div>
+                                            <InputLabel for="seo_gtm_id" value="Google Tag Manager ID" />
+                                            <TextInput id="seo_gtm_id" v-model="form.seo_gtm_id" class="mt-1 block w-full" placeholder="GTM-XXXXXXX" />
+                                            <p class="text-xs text-gray-500 mt-1">Container ID from GTM</p>
+                                        </div>
+                                        <div>
+                                            <InputLabel for="seo_facebook_pixel" value="Facebook Pixel ID" />
+                                            <TextInput id="seo_facebook_pixel" v-model="form.seo_facebook_pixel" class="mt-1 block w-full" placeholder="XXXXXXXXXXXXXXXX" />
+                                            <p class="text-xs text-gray-500 mt-1">Meta Pixel ID (numbers only)</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <InputLabel for="seo_google_analytics" value="Google Analytics ID" />
-                                        <TextInput id="seo_google_analytics" v-model="form.seo_google_analytics" class="mt-1 block w-full" placeholder="G-XXXXXXXXXX" />
+                                </div>
+
+                                <!-- Site Verification -->
+                                <div class="border-t pt-6">
+                                    <h4 class="text-md font-medium text-gray-800 mb-4">Site Verification</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabel for="seo_google_verification" value="Google Search Console" />
+                                            <TextInput id="seo_google_verification" v-model="form.seo_google_verification" class="mt-1 block w-full" placeholder="google-site-verification code" />
+                                            <p class="text-xs text-gray-500 mt-1">Content value from meta tag</p>
+                                        </div>
+                                        <div>
+                                            <InputLabel for="seo_bing_verification" value="Bing Webmaster Tools" />
+                                            <TextInput id="seo_bing_verification" v-model="form.seo_bing_verification" class="mt-1 block w-full" placeholder="bing-site-verification code" />
+                                            <p class="text-xs text-gray-500 mt-1">Content value from meta tag</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Custom Scripts -->
+                                <div class="border-t pt-6">
+                                    <h4 class="text-md font-medium text-gray-800 mb-4">Custom Scripts</h4>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <InputLabel for="seo_custom_head_scripts" value="Custom Head Scripts" />
+                                            <textarea id="seo_custom_head_scripts" v-model="form.seo_custom_head_scripts" rows="4" class="mt-1 block w-full font-mono text-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" placeholder="<!-- Paste scripts to be added in <head> -->"></textarea>
+                                            <p class="text-xs text-gray-500 mt-1">Scripts added before closing &lt;/head&gt; tag</p>
+                                        </div>
+                                        <div>
+                                            <InputLabel for="seo_custom_body_scripts" value="Custom Body Scripts" />
+                                            <textarea id="seo_custom_body_scripts" v-model="form.seo_custom_body_scripts" rows="4" class="mt-1 block w-full font-mono text-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" placeholder="<!-- Paste scripts to be added before </body> -->"></textarea>
+                                            <p class="text-xs text-gray-500 mt-1">Scripts added before closing &lt;/body&gt; tag</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
