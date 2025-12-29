@@ -77,6 +77,11 @@ class SettingSeeder extends Seeder
             ['key' => 'seo_google_verification', 'value' => '', 'type' => 'text', 'group' => 'seo'],
             ['key' => 'seo_bing_verification', 'value' => '', 'type' => 'text', 'group' => 'seo'],
             ['key' => 'seo_google_analytics', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_gtm_id', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_facebook_pixel', 'value' => '', 'type' => 'text', 'group' => 'seo'],
+            ['key' => 'seo_custom_head_scripts', 'value' => '', 'type' => 'textarea', 'group' => 'seo'],
+            ['key' => 'seo_custom_body_scripts', 'value' => '', 'type' => 'textarea', 'group' => 'seo'],
+            ['key' => 'seo_robots_allow', 'value' => '0', 'type' => 'boolean', 'group' => 'seo'],
         ];
 
         foreach ($settings as $setting) {
