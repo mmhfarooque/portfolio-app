@@ -1363,17 +1363,20 @@ class PhotoProcessingService
             // Delete old files
             $this->deletePhotoFiles($photo);
 
-            // Generate new display version
-            $newDisplayPath = $this->generateResizedImage(
+            // Generate new display version (AVIF for best compression)
+            $avifFilename = pathinfo($webpFilename, PATHINFO_FILENAME) . '.avif';
+            $avifQuality = $this->mapWebpToAvifQuality($displaySettings['quality']);
+
+            $newDisplayPath = $this->generateResizedImageAvif(
                 $image,
-                $webpFilename,
+                $avifFilename,
                 'photos/display',
-                $displaySettings['width'],
-                $displaySettings['quality']
+                $displaySettings['max_dimension'],
+                $avifQuality
             );
             $photo->display_path = $newDisplayPath;
 
-            // Generate new thumbnail
+            // Generate new thumbnail (WebP for compatibility)
             $newThumbnailPath = $this->generateResizedImage(
                 $image,
                 $webpFilename,
@@ -1383,13 +1386,13 @@ class PhotoProcessingService
             );
             $photo->thumbnail_path = $newThumbnailPath;
 
-            // Generate new watermarked version
-            $newWatermarkedPath = $this->generateWatermarkedImage(
+            // Generate new watermarked version (AVIF for best compression)
+            $newWatermarkedPath = $this->generateWatermarkedImageAvif(
                 $image,
-                $webpFilename,
+                $avifFilename,
                 'photos/watermarked',
-                $displaySettings['width'],
-                $displaySettings['quality']
+                $displaySettings['max_dimension'],
+                $avifQuality
             );
             $photo->watermarked_path = $newWatermarkedPath;
 
