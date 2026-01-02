@@ -1344,19 +1344,25 @@ class PhotoProcessingService
 
     /**
      * Re-optimize a single photo with current settings.
-     * Regenerates all versions from the display file.
+     * Regenerates all versions from any available source file.
      */
     public function reoptimizePhoto(Photo $photo): bool
     {
-        $displayPath = storage_path('app/public/' . $photo->display_path);
+        // Try to find a source file - check display, watermarked, and original paths
+        $sourcePath = $this->findSourceFile($photo);
 
-        if (!file_exists($displayPath)) {
-            \Log::warning('Cannot reoptimize - display file not found', ['photo_id' => $photo->id]);
+        if (!$sourcePath) {
+            \Log::warning('Cannot reoptimize - no source file found', [
+                'photo_id' => $photo->id,
+                'display_path' => $photo->display_path,
+                'watermarked_path' => $photo->watermarked_path,
+                'original_path' => $photo->original_path,
+            ]);
             return false;
         }
 
         try {
-            $image = Image::read($displayPath);
+            $image = Image::read($sourcePath);
             $displaySettings = $this->getDisplaySettings();
             $webpFilename = Str::uuid() . '.webp';
 
@@ -1436,6 +1442,72 @@ class PhotoProcessingService
         );
 
         return $count;
+    }
+
+    /**
+     * Find a source file for reoptimization.
+     * Tries display_path, watermarked_path, and original_path with multiple extensions.
+     */
+    protected function findSourceFile(Photo $photo): ?string
+    {
+        $basePath = storage_path('app/public/');
+        $extensions = ['avif', 'webp', 'jpg', 'jpeg', 'png'];
+
+        // Paths to check in order of preference
+        $pathsToCheck = array_filter([
+            $photo->original_path,
+            $photo->display_path,
+            $photo->watermarked_path,
+        ]);
+
+        foreach ($pathsToCheck as $path) {
+            if (empty($path)) continue;
+
+            // Try the exact path first
+            $fullPath = $basePath . $path;
+            if (file_exists($fullPath)) {
+                \Log::debug('Found source file at exact path', ['path' => $path]);
+                return $fullPath;
+            }
+
+            // Try with different extensions
+            $pathWithoutExt = preg_replace('/\.[^.]+$/', '', $path);
+            foreach ($extensions as $ext) {
+                $testPath = $basePath . $pathWithoutExt . '.' . $ext;
+                if (file_exists($testPath)) {
+                    \Log::debug('Found source file with alternate extension', [
+                        'original_path' => $path,
+                        'found_path' => $pathWithoutExt . '.' . $ext
+                    ]);
+                    return $testPath;
+                }
+            }
+        }
+
+        // Last resort: scan the directories for any file with a matching UUID pattern
+        $uuid = null;
+        foreach ($pathsToCheck as $path) {
+            if (preg_match('/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i', $path, $matches)) {
+                $uuid = $matches[1];
+                break;
+            }
+        }
+
+        if ($uuid) {
+            $directories = ['photos/display', 'photos/watermarked', 'photos/original'];
+            foreach ($directories as $dir) {
+                $dirPath = $basePath . $dir;
+                if (is_dir($dirPath)) {
+                    $files = glob($dirPath . '/' . $uuid . '.*');
+                    if (!empty($files)) {
+                        \Log::debug('Found source file by UUID scan', ['uuid' => $uuid, 'found' => $files[0]]);
+                        return $files[0];
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -1,0 +1,26 @@
+# Photography Portfolio - Robots.txt
+# https://mfaruk.com
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://mfaruk.com/sitemap.xml
+Sitemap: https://mfaruk.com/sitemap-images.xml
+
+# Disallow admin and auth pages
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /password/
+Disallow: /dashboard
+Disallow: /profile
+
+# Disallow API endpoints
+Disallow: /api/
+
+# Allow all images to be indexed
+Allow: /storage/photos/
+
+# Crawl delay for politeness
+Crawl-delay: 1
