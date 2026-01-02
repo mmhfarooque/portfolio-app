@@ -7,6 +7,8 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import Toast from '@/Components/Toast.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 
 const props = defineProps({
     settings: Object,
@@ -250,10 +252,28 @@ const regenerateWatermarks = async () => {
 
 // Re-optimize photos
 const reoptimizing = ref(false);
+const showReoptimizeConfirm = ref(false);
+
+// Toast state
+const toast = reactive({
+    show: false,
+    type: 'success',
+    title: '',
+    message: ''
+});
+
+const showToast = (type, title, message) => {
+    toast.show = false;
+    setTimeout(() => {
+        toast.type = type;
+        toast.title = title;
+        toast.message = message;
+        toast.show = true;
+    }, 100);
+};
 
 const reoptimizePhotos = async () => {
-    if (!confirm('This will re-process all photos with the current settings. Continue?')) return;
-
+    showReoptimizeConfirm.value = false;
     reoptimizing.value = true;
     try {
         const response = await fetch(route('admin.photos.reoptimize'), {
@@ -265,10 +285,12 @@ const reoptimizePhotos = async () => {
         });
         const data = await response.json();
         if (data.success) {
-            alert(`Successfully re-optimized ${data.count} photos!`);
+            showToast('success', 'Optimization Complete', `Successfully re-optimized ${data.count} photos!`);
+        } else {
+            showToast('error', 'Optimization Failed', data.message || 'An error occurred during optimization');
         }
     } catch (e) {
-        alert('Error during re-optimization');
+        showToast('error', 'Error', 'An error occurred during re-optimization');
     }
     reoptimizing.value = false;
 };
@@ -749,7 +771,7 @@ const reoptimizePhotos = async () => {
                             <div class="mt-6 p-4 bg-blue-50 rounded-lg">
                                 <h4 class="text-sm font-medium text-blue-800 mb-2">Re-optimize Existing Photos</h4>
                                 <p class="text-xs text-blue-600 mb-3">Apply new settings to all existing photos</p>
-                                <button type="button" @click="reoptimizePhotos" :disabled="reoptimizing" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition disabled:opacity-50">
+                                <button type="button" @click="showReoptimizeConfirm = true" :disabled="reoptimizing" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition disabled:opacity-50">
                                     <svg v-if="reoptimizing" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                                     <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                     {{ reoptimizing ? 'Processing...' : 'Re-optimize All Photos' }}
@@ -877,5 +899,25 @@ const reoptimizePhotos = async () => {
                 </form>
             </div>
         </div>
+
+        <!-- Toast Notification -->
+        <Toast
+            :show="toast.show"
+            :type="toast.type"
+            :title="toast.title"
+            :message="toast.message"
+            @close="toast.show = false"
+        />
+
+        <!-- Confirm Dialog for Re-optimize -->
+        <ConfirmDialog
+            :show="showReoptimizeConfirm"
+            title="Re-optimize All Photos"
+            message="This will re-process all photos with the current resolution and quality settings. This may take a while depending on the number of photos."
+            confirm-text="Re-optimize"
+            type="info"
+            @confirm="reoptimizePhotos"
+            @close="showReoptimizeConfirm = false"
+        />
     </AuthenticatedLayout>
 </template>
