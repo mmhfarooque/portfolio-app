@@ -1,21 +1,68 @@
 <script setup>
 import { useForm, usePage } from '@inertiajs/vue3';
+import { ref, onMounted, onUnmounted } from 'vue';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
 
 const page = usePage();
+const props = defineProps({
+    turnstileSiteKey: String,
+});
+
+const turnstileToken = ref('');
+const turnstileWidgetId = ref(null);
 
 const form = useForm({
     name: '',
     email: '',
     subject: '',
     message: '',
-    website_url: '' // honeypot
+    website_url: '', // honeypot
+    'cf-turnstile-response': '',
+});
+
+// Load Turnstile script
+onMounted(() => {
+    if (props.turnstileSiteKey) {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+
+        window.onTurnstileLoad = () => {
+            if (window.turnstile) {
+                turnstileWidgetId.value = window.turnstile.render('#turnstile-container', {
+                    sitekey: props.turnstileSiteKey,
+                    callback: (token) => {
+                        turnstileToken.value = token;
+                        form['cf-turnstile-response'] = token;
+                    },
+                    'expired-callback': () => {
+                        turnstileToken.value = '';
+                        form['cf-turnstile-response'] = '';
+                    },
+                });
+            }
+        };
+    }
+});
+
+onUnmounted(() => {
+    if (turnstileWidgetId.value && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetId.value);
+    }
 });
 
 const submit = () => {
     form.post(route('contact.send'), {
-        onSuccess: () => form.reset()
+        onSuccess: () => {
+            form.reset();
+            // Reset Turnstile widget
+            if (turnstileWidgetId.value && window.turnstile) {
+                window.turnstile.reset(turnstileWidgetId.value);
+            }
+        }
     });
 };
 </script>
@@ -68,7 +115,10 @@ const submit = () => {
                         <p v-if="form.errors.message" class="mt-1 text-sm text-red-600">{{ form.errors.message }}</p>
                     </div>
 
-                    <button type="submit" :disabled="form.processing" class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
+                    <!-- Cloudflare Turnstile -->
+                    <div v-if="turnstileSiteKey" id="turnstile-container" class="flex justify-center"></div>
+
+                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
                         {{ form.processing ? 'Sending...' : 'Send Message' }}
                     </button>
                 </form>

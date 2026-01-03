@@ -65,12 +65,25 @@ class SettingController extends Controller
             'autoDescription' => Setting::get('ai_auto_description', '1') === '1',
         ];
 
+        // Cloudflare settings
+        $cloudflareSettings = [
+            'r2Enabled' => Setting::get('r2_enabled', '0') === '1',
+            'r2AccessKeyId' => Setting::get('r2_access_key_id', ''),
+            'r2SecretAccessKey' => Setting::get('r2_secret_access_key', ''),
+            'r2Bucket' => Setting::get('r2_bucket', 'photography'),
+            'r2Endpoint' => Setting::get('r2_endpoint', ''),
+            'turnstileEnabled' => Setting::get('turnstile_enabled', '0') === '1',
+            'turnstileSiteKey' => Setting::get('turnstile_site_key', ''),
+            'turnstileSecretKey' => Setting::get('turnstile_secret_key', ''),
+        ];
+
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settingsData,
             'currentTheme' => $currentTheme,
             'themes' => $themes,
             'watermarkSettings' => $watermarkSettings,
             'aiSettings' => $aiSettings,
+            'cloudflareSettings' => $cloudflareSettings,
             'photoCount' => Photo::count(),
         ]);
     }
@@ -104,7 +117,52 @@ class SettingController extends Controller
                 continue;
             }
 
+            // Get or create setting
             $setting = Setting::where('key', $key)->first();
+
+            if (!$setting) {
+                // Determine type and group for new settings
+                $type = 'text';
+                $group = 'general';
+
+                // Handle boolean fields
+                if (in_array($key, ['r2_enabled', 'turnstile_enabled', 'watermark_enabled', 'ai_enabled', 'ai_auto_title', 'ai_auto_description', 'seo_robots_allow'])) {
+                    $type = 'boolean';
+                    $value = $value ? '1' : '0';
+                }
+
+                // Handle password fields
+                if (in_array($key, ['r2_secret_access_key', 'turnstile_secret_key'])) {
+                    $type = 'password';
+                }
+
+                // Determine group
+                if (str_starts_with($key, 'r2_') || str_starts_with($key, 'turnstile_')) {
+                    $group = 'cloudflare';
+                } elseif (str_starts_with($key, 'ai_') || str_ends_with($key, '_api_key')) {
+                    $group = 'ai';
+                } elseif (str_starts_with($key, 'seo_')) {
+                    $group = 'seo';
+                } elseif (str_starts_with($key, 'watermark_')) {
+                    $group = 'watermark';
+                } elseif (str_starts_with($key, 'social_')) {
+                    $group = 'social';
+                } elseif (str_starts_with($key, 'contact_')) {
+                    $group = 'contact';
+                } elseif (str_starts_with($key, 'site_')) {
+                    $group = 'branding';
+                } elseif (str_starts_with($key, 'image_')) {
+                    $group = 'optimization';
+                }
+
+                $setting = Setting::create([
+                    'key' => $key,
+                    'value' => is_bool($value) ? ($value ? '1' : '0') : $value,
+                    'type' => $type,
+                    'group' => $group,
+                ]);
+                continue;
+            }
 
             if ($setting) {
                 // Check if this is an image field with media selection
@@ -173,8 +231,8 @@ class SettingController extends Controller
 
         LoggingService::settingsUpdated(array_keys($request->except(['_token', '_method'])));
 
-        // Return JSON for AJAX requests
-        if ($request->ajax() || $request->wantsJson()) {
+        // Return JSON only for non-Inertia AJAX requests
+        if (($request->ajax() || $request->wantsJson()) && !$request->header('X-Inertia')) {
             return response()->json([
                 'success' => true,
                 'message' => 'Settings updated successfully.'
@@ -247,6 +305,98 @@ class SettingController extends Controller
             'success' => true,
             'count' => $count,
             'message' => "Regenerated watermarks for {$count} photos"
+        ]);
+    }
+
+    /**
+     * Test Cloudflare R2 connection.
+     */
+    public function testR2Connection(Request $request)
+    {
+        $accessKeyId = $request->input('access_key_id');
+        $secretAccessKey = $request->input('secret_access_key');
+        $bucket = $request->input('bucket', 'photography');
+        $endpoint = $request->input('endpoint');
+
+        if (!$accessKeyId || !$secretAccessKey || !$endpoint) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please fill in all R2 credentials'
+            ]);
+        }
+
+        try {
+            // Create a temporary S3 client with the provided credentials
+            $client = new \Aws\S3\S3Client([
+                'version' => 'latest',
+                'region' => 'auto',
+                'endpoint' => $endpoint,
+                'use_path_style_endpoint' => false,
+                'credentials' => [
+                    'key' => $accessKeyId,
+                    'secret' => $secretAccessKey,
+                ],
+            ]);
+
+            // Try to list objects (will fail if credentials are wrong)
+            $client->listObjects([
+                'Bucket' => $bucket,
+                'MaxKeys' => 1,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Connection successful! R2 bucket is accessible.'
+            ]);
+        } catch (\Aws\S3\Exception\S3Exception $e) {
+            $errorMessage = $e->getAwsErrorMessage() ?: $e->getMessage();
+            return response()->json([
+                'success' => false,
+                'message' => 'R2 Error: ' . $errorMessage
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Connection failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Test Cloudflare Turnstile credentials.
+     */
+    public function testTurnstileConnection(Request $request)
+    {
+        $siteKey = $request->input('site_key');
+        $secretKey = $request->input('secret_key');
+
+        if (!$siteKey || !$secretKey) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please fill in both Site Key and Secret Key'
+            ]);
+        }
+
+        // Basic format validation
+        if (!str_starts_with($siteKey, '0x') || strlen($siteKey) < 20) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Site Key format. It should start with "0x"'
+            ]);
+        }
+
+        if (!str_starts_with($secretKey, '0x') || strlen($secretKey) < 20) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Secret Key format. It should start with "0x"'
+            ]);
+        }
+
+        // Note: We can't fully validate without a real turnstile response,
+        // but we can verify the format is correct
+        return response()->json([
+            'success' => true,
+            'message' => 'Keys format is valid. Save settings to activate Turnstile.'
         ]);
     }
 }

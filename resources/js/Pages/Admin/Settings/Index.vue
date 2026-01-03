@@ -16,6 +16,7 @@ const props = defineProps({
     themes: Object,
     watermarkSettings: Object,
     aiSettings: Object,
+    cloudflareSettings: Object,
     photoCount: Number
 });
 
@@ -91,6 +92,18 @@ const form = useForm({
     // Image Optimization
     image_max_resolution: props.settings?.optimization?.image_max_resolution || '2048',
     image_quality: props.settings?.optimization?.image_quality || 82,
+
+    // Cloudflare R2 Storage
+    r2_enabled: props.cloudflareSettings?.r2Enabled || false,
+    r2_access_key_id: props.cloudflareSettings?.r2AccessKeyId || '',
+    r2_secret_access_key: props.cloudflareSettings?.r2SecretAccessKey || '',
+    r2_bucket: props.cloudflareSettings?.r2Bucket || 'photography',
+    r2_endpoint: props.cloudflareSettings?.r2Endpoint || '',
+
+    // Cloudflare Turnstile
+    turnstile_enabled: props.cloudflareSettings?.turnstileEnabled || false,
+    turnstile_site_key: props.cloudflareSettings?.turnstileSiteKey || '',
+    turnstile_secret_key: props.cloudflareSettings?.turnstileSecretKey || '',
 
     // SEO
     seo_site_title: props.settings?.seo?.seo_site_title || '',
@@ -293,6 +306,66 @@ const reoptimizePhotos = async () => {
         showToast('error', 'Error', 'An error occurred during re-optimization');
     }
     reoptimizing.value = false;
+};
+
+// Cloudflare R2 connection test
+const testingR2 = ref(false);
+const r2TestResult = ref(null);
+
+const testR2Connection = async () => {
+    testingR2.value = true;
+    r2TestResult.value = null;
+
+    try {
+        const response = await fetch(route('admin.settings.test-r2'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                access_key_id: form.r2_access_key_id,
+                secret_access_key: form.r2_secret_access_key,
+                bucket: form.r2_bucket,
+                endpoint: form.r2_endpoint,
+            })
+        });
+        r2TestResult.value = await response.json();
+    } catch (e) {
+        r2TestResult.value = { success: false, message: 'Connection test failed' };
+    }
+
+    testingR2.value = false;
+};
+
+// Cloudflare Turnstile test
+const testingTurnstile = ref(false);
+const turnstileTestResult = ref(null);
+
+const testTurnstileConnection = async () => {
+    testingTurnstile.value = true;
+    turnstileTestResult.value = null;
+
+    try {
+        const response = await fetch(route('admin.settings.test-turnstile'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                site_key: form.turnstile_site_key,
+                secret_key: form.turnstile_secret_key,
+            })
+        });
+        turnstileTestResult.value = await response.json();
+    } catch (e) {
+        turnstileTestResult.value = { success: false, message: 'Validation failed' };
+    }
+
+    testingTurnstile.value = false;
 };
 </script>
 
@@ -776,6 +849,113 @@ const reoptimizePhotos = async () => {
                                     <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                     {{ reoptimizing ? 'Processing...' : 'Re-optimize All Photos' }}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cloudflare Settings -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-8 h-8 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M16.5088 16.8447C16.6403 16.4322 16.5903 16.0259 16.3653 15.7072C16.1622 15.4165 15.8247 15.2478 15.4341 15.2228L8.78468 15.1228C8.70343 15.1103 8.63468 15.0697 8.59093 15.0103C8.54718 14.9509 8.52843 14.8759 8.54718 14.8009C8.57218 14.6916 8.67218 14.6166 8.79093 14.6041L15.5153 14.5041C16.4278 14.4666 17.4153 13.7291 17.7903 12.8728L18.2841 11.6916C18.3216 11.6041 18.3403 11.5103 18.3403 11.4166C18.3403 11.3666 18.3341 11.3228 18.3216 11.2728C17.9653 9.46655 16.3528 8.12905 14.4341 8.12905C12.8528 8.12905 11.4903 9.02905 10.8528 10.3541C10.4966 10.0603 10.0341 9.87905 9.52843 9.87905C8.35343 9.87905 7.40343 10.8291 7.40343 12.0041C7.40343 12.3041 7.45968 12.5853 7.56593 12.8478C6.35343 12.9666 5.40343 13.9728 5.40343 15.2103C5.40343 15.3353 5.41593 15.4603 5.44093 15.5791C5.49093 15.8166 5.70343 15.9916 5.95343 15.9916H15.9341C16.0528 15.9916 16.1716 15.9478 16.2653 15.8666C16.3591 15.7853 16.4278 15.6728 16.4528 15.5478L16.5088 16.8447Z"/>
+                                    </svg>
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900">Cloudflare Integration</h3>
+                                        <p class="text-sm text-gray-500">R2 Storage & Turnstile Spam Protection</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="saveSection('cloudflare')" :disabled="sectionSaving.cloudflare || form.processing" class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50">
+                                    <svg v-if="sectionSaving.cloudflare" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    <svg v-else-if="sectionSaved.cloudflare" class="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ sectionSaved.cloudflare ? 'Saved!' : 'Save' }}
+                                </button>
+                            </div>
+
+                            <!-- R2 Storage -->
+                            <div class="mb-8">
+                                <div class="flex items-center gap-4 mb-4">
+                                    <h4 class="text-md font-medium text-gray-800">R2 Cloud Storage</h4>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" v-model="form.r2_enabled" class="sr-only peer" />
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-700">{{ form.r2_enabled ? 'Enabled' : 'Disabled' }}</span>
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mb-4">Store original photos in Cloudflare R2 to save server disk space. Originals will be downloaded when re-optimizing.</p>
+
+                                <div v-if="form.r2_enabled" class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabel value="Access Key ID" />
+                                            <TextInput v-model="form.r2_access_key_id" class="mt-1 block w-full font-mono text-sm" placeholder="R2 Access Key ID" />
+                                        </div>
+                                        <div>
+                                            <InputLabel value="Secret Access Key" />
+                                            <TextInput v-model="form.r2_secret_access_key" type="password" class="mt-1 block w-full font-mono text-sm" placeholder="R2 Secret Access Key" />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabel value="Bucket Name" />
+                                            <TextInput v-model="form.r2_bucket" class="mt-1 block w-full" placeholder="photography" />
+                                        </div>
+                                        <div>
+                                            <InputLabel value="Endpoint URL" />
+                                            <TextInput v-model="form.r2_endpoint" class="mt-1 block w-full font-mono text-sm" placeholder="https://account-id.r2.cloudflarestorage.com" />
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-4">
+                                        <button type="button" @click="testR2Connection" :disabled="testingR2 || !form.r2_access_key_id || !form.r2_secret_access_key || !form.r2_endpoint" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition disabled:opacity-50">
+                                            <svg v-if="testingR2" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            {{ testingR2 ? 'Testing...' : 'Test Connection' }}
+                                        </button>
+                                        <div v-if="r2TestResult" class="text-sm" :class="r2TestResult.success ? 'text-green-600' : 'text-red-600'">
+                                            {{ r2TestResult.message }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Turnstile -->
+                            <div class="border-t pt-6">
+                                <div class="flex items-center gap-4 mb-4">
+                                    <h4 class="text-md font-medium text-gray-800">Turnstile Spam Protection</h4>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" v-model="form.turnstile_enabled" class="sr-only peer" />
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-700">{{ form.turnstile_enabled ? 'Enabled' : 'Disabled' }}</span>
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mb-4">Protect contact form with Cloudflare Turnstile (free CAPTCHA alternative). Get keys from <a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" class="text-orange-600 hover:underline">Cloudflare Dashboard</a>.</p>
+
+                                <div v-if="form.turnstile_enabled" class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabel value="Site Key" />
+                                            <TextInput v-model="form.turnstile_site_key" class="mt-1 block w-full font-mono text-sm" placeholder="0x4AAAAAAA..." />
+                                        </div>
+                                        <div>
+                                            <InputLabel value="Secret Key" />
+                                            <TextInput v-model="form.turnstile_secret_key" type="password" class="mt-1 block w-full font-mono text-sm" placeholder="0x4AAAAAAA..." />
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-4">
+                                        <button type="button" @click="testTurnstileConnection" :disabled="testingTurnstile || !form.turnstile_site_key || !form.turnstile_secret_key" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition disabled:opacity-50">
+                                            <svg v-if="testingTurnstile" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            {{ testingTurnstile ? 'Validating...' : 'Validate Keys' }}
+                                        </button>
+                                        <div v-if="turnstileTestResult" class="text-sm" :class="turnstileTestResult.success ? 'text-green-600' : 'text-red-600'">
+                                            {{ turnstileTestResult.message }}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
