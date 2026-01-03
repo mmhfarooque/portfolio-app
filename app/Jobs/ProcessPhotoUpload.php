@@ -135,6 +135,10 @@ class ProcessPhotoUpload implements ShouldQueue
                 $this->applyAIAnalysis($photoService);
             }
 
+            // Store original file to R2 or local storage BEFORE cleanup
+            $this->photo->update(['processing_stage' => 'storing_original']);
+            $this->storeOriginal($photoService, $filePath);
+
             // Clean up temp file
             if (file_exists($filePath)) {
                 @unlink($filePath);
@@ -315,6 +319,54 @@ class ProcessPhotoUpload implements ShouldQueue
         $method = $reflection->getMethod('applyAIAnalysis');
         $method->setAccessible(true);
         $method->invoke($photoService, $this->photo);
+    }
+
+    /**
+     * Store the original file to R2 cloud storage or local storage.
+     */
+    protected function storeOriginal(PhotoProcessingService $photoService, string $filePath): void
+    {
+        $originalUuid = \Illuminate\Support\Str::uuid();
+        $originalExtension = strtolower(pathinfo($this->originalFilename, PATHINFO_EXTENSION));
+
+        // If HEIC was converted to JPG, use jpg extension
+        if (in_array($originalExtension, ['heic', 'heif'])) {
+            $originalExtension = 'jpg';
+        }
+
+        $originalStoragePath = 'originals/' . $originalUuid . '.' . $originalExtension;
+
+        // Use reflection to check if R2 is enabled and upload
+        $reflection = new \ReflectionClass($photoService);
+        $isR2Method = $reflection->getMethod('isR2Enabled');
+        $isR2Method->setAccessible(true);
+        $r2Enabled = $isR2Method->invoke($photoService);
+
+        $r2Uploaded = false;
+
+        if ($r2Enabled) {
+            // Upload to R2
+            $uploadMethod = $reflection->getMethod('uploadToR2');
+            $uploadMethod->setAccessible(true);
+            $r2Key = $uploadMethod->invoke($photoService, $filePath, $originalStoragePath);
+
+            if ($r2Key) {
+                $r2Uploaded = true;
+                $originalStoragePath = 'r2:' . $originalStoragePath;
+                LoggingService::debug('photo.original_to_r2', "Original uploaded to R2: {$originalStoragePath}");
+            }
+        }
+
+        // Fall back to local storage if R2 not available or failed
+        if (!$r2Uploaded) {
+            $localPath = 'photos/originals/' . $originalUuid . '.' . $originalExtension;
+            Storage::disk('local')->put($localPath, file_get_contents($filePath));
+            $originalStoragePath = $localPath;
+            LoggingService::debug('photo.original_to_local', "Original stored locally: {$originalStoragePath}");
+        }
+
+        // Update photo record with original path
+        $this->photo->update(['original_path' => $originalStoragePath]);
     }
 
     /**
