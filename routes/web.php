@@ -216,6 +216,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('photos/processing-status', [AdminPhotoController::class, 'processingStatus'])->name('photos.processing-status');
     Route::post('photos/{photo}/retry', [AdminPhotoController::class, 'retryProcessing'])->name('photos.retry');
     Route::post('photos/{photo}/replace-image', [AdminPhotoController::class, 'replaceImage'])->name('photos.replace-image');
+    Route::post('photos/{photo}/reoptimize', [AdminPhotoController::class, 'reoptimizeSingle'])->name('photos.reoptimize-single');
 
     // Categories
     Route::get('categories', [AdminCategoryController::class, 'index'])->name('categories.index');

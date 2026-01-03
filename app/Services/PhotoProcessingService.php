@@ -214,7 +214,16 @@ class PhotoProcessingService
                 $locationName = $this->reverseGeocode($gpsData['latitude'], $gpsData['longitude']);
             }
 
-            // Create photo record (no original_path - we don't store originals)
+            // Store original file for future re-optimization
+            $originalUuid = Str::uuid();
+            $originalExtension = $isHeic ? 'jpg' : strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
+            $originalStoragePath = 'photos/originals/' . $originalUuid . '.' . $originalExtension;
+
+            // Copy the file to private storage (not publicly accessible)
+            $sourceForOriginal = $tempJpegPath ?? $file->getRealPath();
+            Storage::disk('local')->put($originalStoragePath, file_get_contents($sourceForOriginal));
+
+            // Create photo record with original path
             $baseTitle = pathinfo($originalFilename, PATHINFO_FILENAME);
             $baseSlug = Str::slug($baseTitle);
 
@@ -230,6 +239,9 @@ class PhotoProcessingService
                 'title' => $baseTitle,
                 'slug' => $slug,
                 'original_filename' => $originalFilename,
+                'original_path' => $originalStoragePath,
+                'original_width' => $width,
+                'original_height' => $height,
                 'width' => $width,
                 'height' => $height,
                 'file_size' => $file->getSize(),
@@ -1279,29 +1291,36 @@ class PhotoProcessingService
     /**
      * Delete all files associated with a photo.
      */
-    public function deletePhotoFiles(Photo $photo): void
+    public function deletePhotoFiles(Photo $photo, bool $preserveOriginal = false): void
     {
-        // Only delete display, thumbnail, and watermarked versions
-        // (we no longer store originals to save space)
-        $paths = [
+        // Delete display, thumbnail, and watermarked versions from public storage
+        $publicPaths = [
             $photo->display_path,
             $photo->thumbnail_path,
             $photo->watermarked_path,
         ];
 
         $deletedCount = 0;
-        foreach ($paths as $path) {
+        foreach ($publicPaths as $path) {
             if ($path && Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
                 $deletedCount++;
             }
         }
 
+        // Optionally delete the original from private storage
+        if (!$preserveOriginal && $photo->original_path) {
+            if (Storage::disk('local')->exists($photo->original_path)) {
+                Storage::disk('local')->delete($photo->original_path);
+                $deletedCount++;
+            }
+        }
+
         LoggingService::activity(
             'photo.files_deleted',
-            "Deleted {$deletedCount} file(s) for photo: {$photo->title}",
+            "Deleted {$deletedCount} file(s) for photo: {$photo->title}" . ($preserveOriginal ? ' (original preserved)' : ''),
             $photo,
-            ['paths' => array_filter($paths)]
+            ['paths' => array_filter($publicPaths), 'preserved_original' => $preserveOriginal]
         );
     }
 
@@ -1343,13 +1362,14 @@ class PhotoProcessingService
     }
 
     /**
-     * Re-optimize a single photo with current settings.
-     * Regenerates all versions from any available source file.
+     * Re-optimize a single photo with its effective settings (custom or global).
+     * Prefers original file for best quality, falls back to display/watermarked.
      */
-    public function reoptimizePhoto(Photo $photo): bool
+    public function reoptimizePhoto(Photo $photo, ?int $customResolution = null, ?int $customQuality = null): bool
     {
-        // Try to find a source file - check display, watermarked, and original paths
+        // Try to find a source file - prefer original for best quality
         $sourcePath = $this->findSourceFile($photo);
+        $usingOriginal = $photo->hasOriginal() && $sourcePath === storage_path('app/private/' . $photo->original_path);
 
         if (!$sourcePath) {
             \Log::warning('Cannot reoptimize - no source file found', [
@@ -1363,21 +1383,44 @@ class PhotoProcessingService
 
         try {
             $image = Image::read($sourcePath);
-            $displaySettings = $this->getDisplaySettings();
-            $webpFilename = Str::uuid() . '.webp';
 
-            // Delete old files
-            $this->deletePhotoFiles($photo);
+            // Determine settings: custom params > per-photo settings > global settings
+            if ($customResolution !== null) {
+                $maxDimension = $customResolution;
+                // Save custom settings to the photo
+                $photo->custom_max_resolution = $customResolution;
+            } else {
+                $maxDimension = $photo->getEffectiveMaxResolution();
+            }
+
+            if ($customQuality !== null) {
+                $quality = $customQuality;
+                $photo->custom_quality = $customQuality;
+            } else {
+                $quality = $photo->getEffectiveQuality();
+            }
+
+            $avifQuality = $this->mapWebpToAvifQuality($quality);
+            $webpFilename = Str::uuid() . '.webp';
+            $avifFilename = pathinfo($webpFilename, PATHINFO_FILENAME) . '.avif';
+
+            \Log::info('Reoptimizing photo', [
+                'photo_id' => $photo->id,
+                'using_original' => $usingOriginal,
+                'max_dimension' => $maxDimension,
+                'quality' => $quality,
+                'source_dimensions' => $image->width() . 'x' . $image->height(),
+            ]);
+
+            // Delete old display/watermark/thumbnail files (but NOT original)
+            $this->deletePhotoFiles($photo, preserveOriginal: true);
 
             // Generate new display version (AVIF for best compression)
-            $avifFilename = pathinfo($webpFilename, PATHINFO_FILENAME) . '.avif';
-            $avifQuality = $this->mapWebpToAvifQuality($displaySettings['quality']);
-
             $newDisplayPath = $this->generateResizedImageAvif(
                 $image,
                 $avifFilename,
                 'photos/display',
-                $displaySettings['max_dimension'],
+                $maxDimension,
                 $avifQuality
             );
             $photo->display_path = $newDisplayPath;
@@ -1397,10 +1440,15 @@ class PhotoProcessingService
                 $image,
                 $avifFilename,
                 'photos/watermarked',
-                $displaySettings['max_dimension'],
+                $maxDimension,
                 $avifQuality
             );
             $photo->watermarked_path = $newWatermarkedPath;
+
+            // Update width/height to match the new display dimensions
+            $newImage = Image::read(storage_path('app/public/' . $newDisplayPath));
+            $photo->width = $newImage->width();
+            $photo->height = $newImage->height();
 
             $photo->save();
 
@@ -1446,16 +1494,34 @@ class PhotoProcessingService
 
     /**
      * Find a source file for reoptimization.
-     * Tries display_path, watermarked_path, and original_path with multiple extensions.
+     * PRIORITY: Original (best quality) > Display > Watermarked
      */
     protected function findSourceFile(Photo $photo): ?string
     {
-        $basePath = storage_path('app/public/');
-        $extensions = ['avif', 'webp', 'jpg', 'jpeg', 'png'];
+        $extensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
 
-        // Paths to check in order of preference
+        // 1. First, check for original file (stored in private storage for best quality)
+        if (!empty($photo->original_path)) {
+            $originalPath = storage_path('app/private/' . $photo->original_path);
+            if (file_exists($originalPath)) {
+                \Log::debug('Found original source file', ['path' => $photo->original_path]);
+                return $originalPath;
+            }
+
+            // Try with different extensions
+            $pathWithoutExt = preg_replace('/\.[^.]+$/', '', $photo->original_path);
+            foreach ($extensions as $ext) {
+                $testPath = storage_path('app/private/' . $pathWithoutExt . '.' . $ext);
+                if (file_exists($testPath)) {
+                    \Log::debug('Found original with alternate extension', ['path' => $pathWithoutExt . '.' . $ext]);
+                    return $testPath;
+                }
+            }
+        }
+
+        // 2. Fall back to public storage (display, watermarked)
+        $basePath = storage_path('app/public/');
         $pathsToCheck = array_filter([
-            $photo->original_path,
             $photo->display_path,
             $photo->watermarked_path,
         ]);
@@ -1463,10 +1529,9 @@ class PhotoProcessingService
         foreach ($pathsToCheck as $path) {
             if (empty($path)) continue;
 
-            // Try the exact path first
             $fullPath = $basePath . $path;
             if (file_exists($fullPath)) {
-                \Log::debug('Found source file at exact path', ['path' => $path]);
+                \Log::debug('Found source file in public storage', ['path' => $path]);
                 return $fullPath;
             }
 
@@ -1475,18 +1540,16 @@ class PhotoProcessingService
             foreach ($extensions as $ext) {
                 $testPath = $basePath . $pathWithoutExt . '.' . $ext;
                 if (file_exists($testPath)) {
-                    \Log::debug('Found source file with alternate extension', [
-                        'original_path' => $path,
-                        'found_path' => $pathWithoutExt . '.' . $ext
-                    ]);
+                    \Log::debug('Found source file with alternate extension', ['path' => $pathWithoutExt . '.' . $ext]);
                     return $testPath;
                 }
             }
         }
 
-        // Last resort: scan the directories for any file with a matching UUID pattern
+        // 3. Last resort: scan directories for files matching UUID pattern
         $uuid = null;
-        foreach ($pathsToCheck as $path) {
+        $allPaths = array_filter([$photo->original_path, $photo->display_path, $photo->watermarked_path]);
+        foreach ($allPaths as $path) {
             if (preg_match('/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i', $path, $matches)) {
                 $uuid = $matches[1];
                 break;
@@ -1494,7 +1557,18 @@ class PhotoProcessingService
         }
 
         if ($uuid) {
-            $directories = ['photos/display', 'photos/watermarked', 'photos/original'];
+            // Check private originals first
+            $privateDir = storage_path('app/private/photos/originals');
+            if (is_dir($privateDir)) {
+                $files = glob($privateDir . '/' . $uuid . '.*');
+                if (!empty($files)) {
+                    \Log::debug('Found original by UUID scan', ['uuid' => $uuid, 'found' => $files[0]]);
+                    return $files[0];
+                }
+            }
+
+            // Then check public directories
+            $directories = ['photos/display', 'photos/watermarked'];
             foreach ($directories as $dir) {
                 $dirPath = $basePath . $dir;
                 if (is_dir($dirPath)) {

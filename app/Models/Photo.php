@@ -44,6 +44,10 @@ class Photo extends Model
         'processing_error',
         'blurhash',
         'dominant_color',
+        'custom_max_resolution',
+        'custom_quality',
+        'original_width',
+        'original_height',
     ];
 
     protected $casts = [
@@ -402,5 +406,77 @@ class Photo extends Model
     public function scopeFailed($query)
     {
         return $query->where('status', 'failed');
+    }
+
+    /**
+     * Get the effective max resolution (custom or global setting).
+     */
+    public function getEffectiveMaxResolution(): int
+    {
+        if ($this->custom_max_resolution !== null) {
+            return $this->custom_max_resolution;
+        }
+        return (int) Setting::get('image_max_resolution', 1920);
+    }
+
+    /**
+     * Get the effective quality (custom or global setting).
+     */
+    public function getEffectiveQuality(): int
+    {
+        if ($this->custom_quality !== null) {
+            return $this->custom_quality;
+        }
+        return (int) Setting::get('image_quality', 82);
+    }
+
+    /**
+     * Check if photo has custom optimization settings.
+     */
+    public function hasCustomSettings(): bool
+    {
+        return $this->custom_max_resolution !== null || $this->custom_quality !== null;
+    }
+
+    /**
+     * Check if original file exists.
+     */
+    public function hasOriginal(): bool
+    {
+        if (empty($this->original_path)) {
+            return false;
+        }
+        return file_exists(storage_path('app/private/' . $this->original_path));
+    }
+
+    /**
+     * Get human-readable resolution label.
+     */
+    public function getResolutionLabel(): string
+    {
+        $resolution = $this->getEffectiveMaxResolution();
+        $labels = [
+            800 => 'Small (800px)',
+            1024 => 'XGA (1024px)',
+            1280 => 'HD (1280px)',
+            1440 => 'HD+ (1440px)',
+            1600 => 'UXGA (1600px)',
+            1920 => 'Full HD (1920px)',
+            2048 => '2K (2048px)',
+            2560 => 'QHD (2560px)',
+            3840 => '4K (3840px)',
+        ];
+        return $labels[$resolution] ?? $resolution . 'px';
+    }
+
+    /**
+     * Get the original image URL (private, not publicly accessible).
+     */
+    public function getOriginalPathFull(): ?string
+    {
+        if (empty($this->original_path)) {
+            return null;
+        }
+        return storage_path('app/private/' . $this->original_path);
     }
 }

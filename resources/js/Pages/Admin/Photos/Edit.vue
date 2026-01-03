@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -9,12 +9,17 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
+import Toast from '@/Components/Toast.vue';
 
 const props = defineProps({
     photo: Object,
     categories: Array,
     galleries: Array,
-    tags: Array
+    tags: Array,
+    globalSettings: {
+        type: Object,
+        default: () => ({ max_resolution: 1920, quality: 82 })
+    }
 });
 
 const form = useForm({
@@ -179,6 +184,93 @@ watch(() => props.photo.status, (newStatus) => {
 onUnmounted(() => {
     stopPolling();
 });
+
+// Image optimization settings
+const resolutionOptions = [
+    { value: null, label: 'Use Global Setting' },
+    { value: 800, label: 'Small (800px)' },
+    { value: 1024, label: 'XGA (1024px)' },
+    { value: 1280, label: 'HD (1280px)' },
+    { value: 1440, label: 'HD+ (1440px)' },
+    { value: 1600, label: 'UXGA (1600px)' },
+    { value: 1920, label: 'Full HD (1920px)' },
+    { value: 2048, label: '2K (2048px)' },
+    { value: 2560, label: 'QHD (2560px)' },
+    { value: 3840, label: '4K (3840px)' },
+];
+
+const optimizationForm = reactive({
+    custom_max_resolution: props.photo.custom_max_resolution,
+    custom_quality: props.photo.custom_quality ?? null,
+});
+
+const isReoptimizing = ref(false);
+const hasOriginal = computed(() => props.photo.has_original);
+
+const effectiveResolution = computed(() => {
+    return optimizationForm.custom_max_resolution ?? props.globalSettings?.max_resolution ?? 1920;
+});
+
+const effectiveQuality = computed(() => {
+    return optimizationForm.custom_quality ?? props.globalSettings?.quality ?? 82;
+});
+
+const canUpscale = computed(() => {
+    if (!hasOriginal.value) return false;
+    const originalMax = Math.max(props.photo.original_width || 0, props.photo.original_height || 0);
+    return effectiveResolution.value < originalMax;
+});
+
+// Toast state
+const toast = reactive({
+    show: false,
+    type: 'success',
+    title: '',
+    message: ''
+});
+
+const showToast = (type, title, message) => {
+    toast.show = false;
+    setTimeout(() => {
+        toast.type = type;
+        toast.title = title;
+        toast.message = message;
+        toast.show = true;
+    }, 100);
+};
+
+const reoptimizePhoto = async () => {
+    isReoptimizing.value = true;
+    try {
+        const response = await fetch(route('admin.photos.reoptimize-single', props.photo.id), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                custom_max_resolution: optimizationForm.custom_max_resolution,
+                custom_quality: optimizationForm.custom_quality
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast('success', 'Optimization Complete', `Photo re-optimized to ${data.width}×${data.height} (${data.file_size})`);
+            router.reload();
+        } else {
+            showToast('error', 'Optimization Failed', data.message || 'Failed to re-optimize photo');
+        }
+    } catch (e) {
+        showToast('error', 'Error', 'An error occurred during optimization');
+    }
+    isReoptimizing.value = false;
+};
+
+const resetToGlobal = () => {
+    optimizationForm.custom_max_resolution = null;
+    optimizationForm.custom_quality = null;
+};
 </script>
 
 <template>
@@ -500,6 +592,94 @@ onUnmounted(() => {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Image Optimization -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="p-4 border-b border-gray-100">
+                                <h3 class="font-medium text-gray-900">Image Optimization</h3>
+                            </div>
+                            <div class="p-4 space-y-4">
+                                <!-- Original Info -->
+                                <div v-if="photo.original_width" class="p-3 bg-green-50 rounded-lg text-sm">
+                                    <div class="flex items-center gap-2 text-green-700">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                        <span class="font-medium">Original preserved</span>
+                                    </div>
+                                    <p class="text-green-600 mt-1">{{ photo.original_width }} x {{ photo.original_height }}px</p>
+                                </div>
+                                <div v-else class="p-3 bg-yellow-50 rounded-lg text-sm">
+                                    <div class="flex items-center gap-2 text-yellow-700">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        <span class="font-medium">No original file</span>
+                                    </div>
+                                    <p class="text-yellow-600 mt-1">Cannot increase resolution</p>
+                                </div>
+
+                                <!-- Custom Resolution -->
+                                <div>
+                                    <InputLabel value="Max Resolution" />
+                                    <select
+                                        v-model="optimizationForm.custom_max_resolution"
+                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm"
+                                    >
+                                        <option v-for="opt in resolutionOptions" :key="opt.value" :value="opt.value">
+                                            {{ opt.label }}{{ opt.value === null ? ` (${globalSettings?.max_resolution || 1920}px)` : '' }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Custom Quality -->
+                                <div>
+                                    <div class="flex items-center justify-between">
+                                        <InputLabel value="Quality" />
+                                        <span class="text-sm text-gray-500">{{ effectiveQuality }}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        v-model.number="optimizationForm.custom_quality"
+                                        min="60"
+                                        max="95"
+                                        class="mt-1 w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                        <span>Smaller</span>
+                                        <span>Best</span>
+                                    </div>
+                                </div>
+
+                                <!-- Current Settings Indicator -->
+                                <div class="text-xs text-gray-500 pt-2 border-t border-gray-100">
+                                    <span v-if="optimizationForm.custom_max_resolution || optimizationForm.custom_quality" class="text-blue-600 font-medium">
+                                        Using custom settings
+                                    </span>
+                                    <span v-else>Using global settings</span>
+                                    <button
+                                        v-if="optimizationForm.custom_max_resolution || optimizationForm.custom_quality"
+                                        @click="resetToGlobal"
+                                        class="ml-2 text-gray-400 hover:text-gray-600 underline"
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
+
+                                <!-- Re-optimize Button -->
+                                <button
+                                    type="button"
+                                    @click="reoptimizePhoto"
+                                    :disabled="isReoptimizing"
+                                    class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <svg v-if="isReoptimizing" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    <svg v-else class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    {{ isReoptimizing ? 'Optimizing...' : 'Re-optimize Photo' }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -526,6 +706,15 @@ onUnmounted(() => {
             variant="warning"
             @confirm="replaceImage"
             @close="cancelReplace"
+        />
+
+        <!-- Toast Notification -->
+        <Toast
+            :show="toast.show"
+            :type="toast.type"
+            :title="toast.title"
+            :message="toast.message"
+            @close="toast.show = false"
         />
     </AuthenticatedLayout>
 </template>
