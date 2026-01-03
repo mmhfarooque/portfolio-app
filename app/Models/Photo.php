@@ -439,14 +439,29 @@ class Photo extends Model
     }
 
     /**
-     * Check if original file exists.
+     * Check if original file exists (locally or in R2 cloud).
      */
     public function hasOriginal(): bool
     {
         if (empty($this->original_path)) {
             return false;
         }
+
+        // If stored in R2, we assume it exists (actual check happens during download)
+        if (str_starts_with($this->original_path, 'r2:')) {
+            return true;
+        }
+
+        // Check local storage
         return file_exists(storage_path('app/private/' . $this->original_path));
+    }
+
+    /**
+     * Check if original is stored in R2 cloud.
+     */
+    public function isOriginalInCloud(): bool
+    {
+        return !empty($this->original_path) && str_starts_with($this->original_path, 'r2:');
     }
 
     /**

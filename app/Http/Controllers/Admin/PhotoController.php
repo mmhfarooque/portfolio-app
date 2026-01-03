@@ -316,6 +316,7 @@ class PhotoController extends Controller
                 'custom_max_resolution' => $photo->custom_max_resolution,
                 'custom_quality' => $photo->custom_quality,
                 'has_original' => $photo->hasOriginal(),
+                'is_cloud_original' => $photo->isOriginalInCloud(),
                 'exif_data' => $photo->exif_data,
                 'formatted_exif' => $photo->formatted_exif,
                 'processing_stage' => $photo->processing_stage,

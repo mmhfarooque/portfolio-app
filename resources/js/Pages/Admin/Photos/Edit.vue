@@ -206,6 +206,7 @@ const optimizationForm = reactive({
 
 const isReoptimizing = ref(false);
 const hasOriginal = computed(() => props.photo.has_original);
+const isCloudOriginal = computed(() => props.photo.is_cloud_original);
 
 const effectiveResolution = computed(() => {
     return optimizationForm.custom_max_resolution ?? props.globalSettings?.max_resolution ?? 1920;
@@ -600,10 +601,14 @@ const resetToGlobal = () => {
                             </div>
                             <div class="p-4 space-y-4">
                                 <!-- Original Info -->
-                                <div v-if="photo.original_width" class="p-3 bg-green-50 rounded-lg text-sm">
+                                <div v-if="hasOriginal && photo.original_width" class="p-3 bg-green-50 rounded-lg text-sm">
                                     <div class="flex items-center gap-2 text-green-700">
                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                                         <span class="font-medium">Original preserved</span>
+                                        <span v-if="isCloudOriginal" class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/></svg>
+                                            Cloud
+                                        </span>
                                     </div>
                                     <p class="text-green-600 mt-1">{{ photo.original_width }} x {{ photo.original_height }}px</p>
                                 </div>

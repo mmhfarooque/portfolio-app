@@ -48,6 +48,120 @@ class PhotoProcessingService
     }
 
     /**
+     * Check if R2 cloud storage is configured and enabled.
+     */
+    protected function isR2Enabled(): bool
+    {
+        return !empty(config('filesystems.disks.r2.key')) &&
+               !empty(config('filesystems.disks.r2.secret')) &&
+               !empty(config('filesystems.disks.r2.endpoint'));
+    }
+
+    /**
+     * Upload a file to R2 cloud storage.
+     * Returns the R2 key (path) on success, null on failure.
+     */
+    protected function uploadToR2(string $localPath, string $r2Key): ?string
+    {
+        if (!$this->isR2Enabled()) {
+            LoggingService::debug('r2.not_enabled', 'R2 is not configured, skipping cloud upload');
+            return null;
+        }
+
+        try {
+            $contents = file_get_contents($localPath);
+            if ($contents === false) {
+                LoggingService::error('r2.read_failed', "Failed to read local file: {$localPath}");
+                return null;
+            }
+
+            Storage::disk('r2')->put($r2Key, $contents);
+
+            LoggingService::debug('r2.uploaded', "Uploaded to R2: {$r2Key}");
+            return $r2Key;
+        } catch (\Exception $e) {
+            LoggingService::error('r2.upload_failed', "R2 upload failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Download a file from R2 to a local temp path.
+     * Returns the temp file path on success, null on failure.
+     */
+    protected function downloadFromR2(string $r2Key): ?string
+    {
+        if (!$this->isR2Enabled()) {
+            return null;
+        }
+
+        try {
+            if (!Storage::disk('r2')->exists($r2Key)) {
+                LoggingService::debug('r2.not_found', "File not found in R2: {$r2Key}");
+                return null;
+            }
+
+            $contents = Storage::disk('r2')->get($r2Key);
+            if ($contents === null) {
+                return null;
+            }
+
+            // Create temp file with appropriate extension
+            $extension = pathinfo($r2Key, PATHINFO_EXTENSION);
+            $tempPath = sys_get_temp_dir() . '/' . Str::uuid() . '.' . $extension;
+
+            if (file_put_contents($tempPath, $contents) === false) {
+                LoggingService::error('r2.write_failed', "Failed to write temp file: {$tempPath}");
+                return null;
+            }
+
+            LoggingService::debug('r2.downloaded', "Downloaded from R2: {$r2Key} -> {$tempPath}");
+            return $tempPath;
+        } catch (\Exception $e) {
+            LoggingService::error('r2.download_failed', "R2 download failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Delete a file from R2 cloud storage.
+     */
+    protected function deleteFromR2(string $r2Key): bool
+    {
+        if (!$this->isR2Enabled()) {
+            return false;
+        }
+
+        try {
+            if (Storage::disk('r2')->exists($r2Key)) {
+                Storage::disk('r2')->delete($r2Key);
+                LoggingService::debug('r2.deleted', "Deleted from R2: {$r2Key}");
+                return true;
+            }
+            return false;
+        } catch (\Exception $e) {
+            LoggingService::error('r2.delete_failed', "R2 delete failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if a file exists in R2.
+     */
+    protected function existsInR2(string $r2Key): bool
+    {
+        if (!$this->isR2Enabled()) {
+            return false;
+        }
+
+        try {
+            return Storage::disk('r2')->exists($r2Key);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * Check if an uploaded file is a duplicate.
      * Returns the existing photo if duplicate found, null otherwise.
      */
@@ -217,11 +331,30 @@ class PhotoProcessingService
             // Store original file for future re-optimization
             $originalUuid = Str::uuid();
             $originalExtension = $isHeic ? 'jpg' : strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
-            $originalStoragePath = 'photos/originals/' . $originalUuid . '.' . $originalExtension;
+            $originalStoragePath = 'originals/' . $originalUuid . '.' . $originalExtension;
 
-            // Copy the file to private storage (not publicly accessible)
+            // Upload to R2 cloud storage (preferred) or fall back to local storage
             $sourceForOriginal = $tempJpegPath ?? $file->getRealPath();
-            Storage::disk('local')->put($originalStoragePath, file_get_contents($sourceForOriginal));
+            $r2Uploaded = false;
+
+            if ($this->isR2Enabled()) {
+                // Upload to R2 - no local copy needed
+                $r2Key = $this->uploadToR2($sourceForOriginal, $originalStoragePath);
+                if ($r2Key) {
+                    $r2Uploaded = true;
+                    // Prefix path with 'r2:' to indicate cloud storage
+                    $originalStoragePath = 'r2:' . $originalStoragePath;
+                    LoggingService::debug('photo.original_to_r2', "Original uploaded to R2: {$originalStoragePath}");
+                }
+            }
+
+            // Fall back to local storage if R2 not available or failed
+            if (!$r2Uploaded) {
+                $localPath = 'photos/originals/' . $originalUuid . '.' . $originalExtension;
+                Storage::disk('local')->put($localPath, file_get_contents($sourceForOriginal));
+                $originalStoragePath = $localPath;
+                LoggingService::debug('photo.original_to_local', "Original stored locally: {$originalStoragePath}");
+            }
 
             // Create photo record with original path
             $baseTitle = pathinfo($originalFilename, PATHINFO_FILENAME);
@@ -1290,6 +1423,7 @@ class PhotoProcessingService
 
     /**
      * Delete all files associated with a photo.
+     * Handles both local storage and R2 cloud storage.
      */
     public function deletePhotoFiles(Photo $photo, bool $preserveOriginal = false): void
     {
@@ -1308,11 +1442,20 @@ class PhotoProcessingService
             }
         }
 
-        // Optionally delete the original from private storage
+        // Optionally delete the original from storage (local or R2)
         if (!$preserveOriginal && $photo->original_path) {
-            if (Storage::disk('local')->exists($photo->original_path)) {
-                Storage::disk('local')->delete($photo->original_path);
-                $deletedCount++;
+            if (str_starts_with($photo->original_path, 'r2:')) {
+                // Delete from R2 cloud storage
+                $r2Key = substr($photo->original_path, 3);
+                if ($this->deleteFromR2($r2Key)) {
+                    $deletedCount++;
+                }
+            } else {
+                // Delete from local private storage
+                if (Storage::disk('local')->exists($photo->original_path)) {
+                    Storage::disk('local')->delete($photo->original_path);
+                    $deletedCount++;
+                }
             }
         }
 
@@ -1364,12 +1507,15 @@ class PhotoProcessingService
     /**
      * Re-optimize a single photo with its effective settings (custom or global).
      * Prefers original file for best quality, falls back to display/watermarked.
+     * Downloads from R2 if original is stored in cloud.
      */
     public function reoptimizePhoto(Photo $photo, ?int $customResolution = null, ?int $customQuality = null): bool
     {
         // Try to find a source file - prefer original for best quality
         $sourcePath = $this->findSourceFile($photo);
-        $usingOriginal = $photo->hasOriginal() && $sourcePath === storage_path('app/private/' . $photo->original_path);
+
+        // Check if using original (local or R2)
+        $usingOriginal = $photo->hasOriginal();
 
         if (!$sourcePath) {
             \Log::warning('Cannot reoptimize - no source file found', [
@@ -1407,6 +1553,7 @@ class PhotoProcessingService
             \Log::info('Reoptimizing photo', [
                 'photo_id' => $photo->id,
                 'using_original' => $usingOriginal,
+                'from_r2' => str_starts_with($photo->original_path ?? '', 'r2:'),
                 'max_dimension' => $maxDimension,
                 'quality' => $quality,
                 'source_dimensions' => $image->width() . 'x' . $image->height(),
@@ -1452,8 +1599,14 @@ class PhotoProcessingService
 
             $photo->save();
 
+            // Clean up any temp files downloaded from R2
+            $this->cleanupTempFiles();
+
             return true;
         } catch (\Exception $e) {
+            // Clean up temp files even on failure
+            $this->cleanupTempFiles();
+
             \Log::error('Failed to reoptimize photo', [
                 'photo_id' => $photo->id,
                 'error' => $e->getMessage()
@@ -1494,17 +1647,32 @@ class PhotoProcessingService
 
     /**
      * Find a source file for reoptimization.
-     * PRIORITY: Original (best quality) > Display > Watermarked
+     * PRIORITY: Original from R2 > Original local > Display > Watermarked
+     * Returns array with 'path' and 'is_temp' (true if downloaded from R2)
      */
     protected function findSourceFile(Photo $photo): ?string
     {
         $extensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
 
-        // 1. First, check for original file (stored in private storage for best quality)
-        if (!empty($photo->original_path)) {
+        // 1. First, check for original in R2 cloud storage (prefixed with 'r2:')
+        if (!empty($photo->original_path) && str_starts_with($photo->original_path, 'r2:')) {
+            $r2Key = substr($photo->original_path, 3); // Remove 'r2:' prefix
+            \Log::debug('Checking R2 for original', ['r2_key' => $r2Key]);
+
+            $tempPath = $this->downloadFromR2($r2Key);
+            if ($tempPath) {
+                \Log::debug('Downloaded original from R2', ['r2_key' => $r2Key, 'temp_path' => $tempPath]);
+                // Store temp path for cleanup later
+                $this->tempFilesToCleanup[] = $tempPath;
+                return $tempPath;
+            }
+        }
+
+        // 2. Check for original file in local private storage
+        if (!empty($photo->original_path) && !str_starts_with($photo->original_path, 'r2:')) {
             $originalPath = storage_path('app/private/' . $photo->original_path);
             if (file_exists($originalPath)) {
-                \Log::debug('Found original source file', ['path' => $photo->original_path]);
+                \Log::debug('Found original source file locally', ['path' => $photo->original_path]);
                 return $originalPath;
             }
 
@@ -1519,7 +1687,7 @@ class PhotoProcessingService
             }
         }
 
-        // 2. Fall back to public storage (display, watermarked)
+        // 3. Fall back to public storage (display, watermarked)
         $basePath = storage_path('app/public/');
         $pathsToCheck = array_filter([
             $photo->display_path,
@@ -1546,11 +1714,13 @@ class PhotoProcessingService
             }
         }
 
-        // 3. Last resort: scan directories for files matching UUID pattern
+        // 4. Last resort: scan directories for files matching UUID pattern
         $uuid = null;
         $allPaths = array_filter([$photo->original_path, $photo->display_path, $photo->watermarked_path]);
         foreach ($allPaths as $path) {
-            if (preg_match('/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i', $path, $matches)) {
+            // Remove r2: prefix if present for UUID extraction
+            $cleanPath = str_starts_with($path, 'r2:') ? substr($path, 3) : $path;
+            if (preg_match('/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i', $cleanPath, $matches)) {
                 $uuid = $matches[1];
                 break;
             }
@@ -1582,6 +1752,25 @@ class PhotoProcessingService
         }
 
         return null;
+    }
+
+    /**
+     * Temp files downloaded from R2 that need cleanup after processing.
+     */
+    protected array $tempFilesToCleanup = [];
+
+    /**
+     * Clean up any temp files downloaded from R2.
+     */
+    protected function cleanupTempFiles(): void
+    {
+        foreach ($this->tempFilesToCleanup as $tempFile) {
+            if (file_exists($tempFile)) {
+                @unlink($tempFile);
+                \Log::debug('Cleaned up temp file', ['path' => $tempFile]);
+            }
+        }
+        $this->tempFilesToCleanup = [];
     }
 
     /**
