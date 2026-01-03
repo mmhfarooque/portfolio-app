@@ -311,6 +311,11 @@ class PhotoController extends Controller
                 'file_size' => $photo->file_size,
                 'width' => $photo->width,
                 'height' => $photo->height,
+                'original_width' => $photo->original_width,
+                'original_height' => $photo->original_height,
+                'custom_max_resolution' => $photo->custom_max_resolution,
+                'custom_quality' => $photo->custom_quality,
+                'has_original' => $photo->hasOriginal(),
                 'exif_data' => $photo->exif_data,
                 'formatted_exif' => $photo->formatted_exif,
                 'processing_stage' => $photo->processing_stage,
@@ -321,6 +326,10 @@ class PhotoController extends Controller
             'categories' => $categories,
             'galleries' => $galleries,
             'tags' => $tags,
+            'globalSettings' => [
+                'max_resolution' => (int) \App\Models\Setting::get('image_max_resolution', 1920),
+                'quality' => (int) \App\Models\Setting::get('image_quality', 82),
+            ],
         ]);
     }
 
@@ -634,6 +643,68 @@ class PhotoController extends Controller
                 'message' => 'Failed to re-optimize photos: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Re-optimize a single photo with custom settings.
+     */
+    public function reoptimizeSingle(Request $request, Photo $photo)
+    {
+        $this->authorize('update', $photo);
+
+        $validated = $request->validate([
+            'custom_max_resolution' => 'nullable|integer|in:800,1024,1280,1440,1600,1920,2048,2560,3840',
+            'custom_quality' => 'nullable|integer|min:60|max:95',
+        ]);
+
+        try {
+            $success = $this->photoService->reoptimizePhoto(
+                $photo,
+                $validated['custom_max_resolution'] ?? null,
+                $validated['custom_quality'] ?? null
+            );
+
+            if ($success) {
+                $photo->refresh();
+
+                // Get file size in human-readable format
+                $filePath = storage_path('app/public/' . $photo->watermarked_path);
+                $fileSize = file_exists($filePath) ? $this->formatBytes(filesize($filePath)) : 'Unknown';
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Photo re-optimized successfully.',
+                    'width' => $photo->width,
+                    'height' => $photo->height,
+                    'file_size' => $fileSize,
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to re-optimize photo. Source file may be missing.'
+                ], 422);
+            }
+        } catch (\Exception $e) {
+            LoggingService::error('photo.reoptimize_single_failed', 'Failed to re-optimize photo', $e, $photo);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to re-optimize photo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Format bytes to human-readable format.
+     */
+    private function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+        return round($bytes, 1) . ' ' . $units[$i];
     }
 
     /**
