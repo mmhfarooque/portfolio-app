@@ -560,12 +560,54 @@ Add 10-15 tags covering: location, subject, mood, style, season
 
 ---
 
-## CLOUDFLARE
+## CLOUDFLARE INTEGRATION
 
-The site uses Cloudflare CDN. For cache issues:
+The site uses Cloudflare for CDN, R2 storage, and Turnstile spam protection.
+
+### R2 Cloud Storage (for photo originals)
+- **Purpose**: Store original high-res photos in cloud to save server disk space
+- **How it works**: When uploading photos, originals are uploaded to R2 with `r2:` prefix in path
+- **Re-optimization**: When re-optimizing, originals are downloaded from R2 temporarily
+- **Settings**: Admin → Settings → Cloudflare Integration → R2 Cloud Storage
+
+```php
+// Check if photo original is in R2
+$photo->isOriginalInCloud(); // returns true if original_path starts with 'r2:'
+
+// R2 settings are stored in database (Settings model)
+Setting::get('r2_enabled');        // '1' or '0'
+Setting::get('r2_access_key_id');
+Setting::get('r2_secret_access_key');
+Setting::get('r2_bucket');         // default: 'photography'
+Setting::get('r2_endpoint');       // https://account-id.r2.cloudflarestorage.com
+```
+
+### Turnstile Spam Protection (for contact form)
+- **Purpose**: Block spam bots from submitting contact form
+- **How it works**: Invisible CAPTCHA that validates human users
+- **Settings**: Admin → Settings → Cloudflare Integration → Turnstile Spam Protection
+- **Get keys**: https://dash.cloudflare.com → Turnstile → Add Widget
+
+```php
+// Turnstile settings in database
+Setting::get('turnstile_enabled');     // '1' or '0'
+Setting::get('turnstile_site_key');    // 0x4AAAA...
+Setting::get('turnstile_secret_key');  // 0x4AAAA...
+```
+
+### Contact Form Spam Protection (Multiple Layers)
+1. **Turnstile** - Cloudflare's invisible CAPTCHA
+2. **Spam keyword detection** - Blocks messages with: reseller, SEO, backlinks, URLs
+3. **Suspicious email detection** - Blocks `randomletters123@gmail.com` patterns
+4. **Honeypot field** - Hidden field that bots fill out
+5. **Rate limiting** - 5 submissions per hour per IP
+6. **UTF-8 sanitization** - Strips malformed characters
+
+### CDN Cache Issues
+For cache issues after deployment:
 1. Hard refresh: `Cmd+Shift+R`
-2. Purge from Cloudflare dashboard
-3. Wait for cache expiry
+2. Purge from Cloudflare dashboard → Caching → Purge Everything
+3. Test in Incognito window
 
 ---
 
@@ -573,6 +615,10 @@ The site uses Cloudflare CDN. For cache issues:
 
 | Date | Change |
 |------|--------|
+| 2026-01-03 | **Added Cloudflare R2 storage for photo originals** (saves server disk space) |
+| 2026-01-03 | **Added Cloudflare Turnstile spam protection** for contact form |
+| 2026-01-03 | Added Cloudflare settings UI in Admin → Settings |
+| 2026-01-03 | Added contact form spam detection (keywords, email patterns, UTF-8 sanitization) |
 | 2025-12-26 | **Updated `/content` command to auto-assign categories and galleries** |
 | 2025-12-26 | Added available categories and galleries reference tables |
 | 2025-12-26 | Fixed missing categories on photos #13 and #14 |
@@ -669,5 +715,5 @@ npm run build                    # Rebuild assets
 
 ---
 
-*Last Updated: December 26, 2025*
+*Last Updated: January 3, 2026*
 *Update this file after every significant change*

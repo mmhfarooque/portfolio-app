@@ -41,6 +41,7 @@ class PhotoProcessingService
     ];
 
     protected ImageHashService $hashService;
+    protected ?bool $r2EnabledCache = null;
 
     public function __construct()
     {
@@ -52,9 +53,61 @@ class PhotoProcessingService
      */
     protected function isR2Enabled(): bool
     {
-        return !empty(config('filesystems.disks.r2.key')) &&
-               !empty(config('filesystems.disks.r2.secret')) &&
-               !empty(config('filesystems.disks.r2.endpoint'));
+        if ($this->r2EnabledCache !== null) {
+            return $this->r2EnabledCache;
+        }
+
+        // Check database settings first
+        $dbEnabled = Setting::get('r2_enabled', '0') === '1';
+        if ($dbEnabled) {
+            $accessKey = Setting::get('r2_access_key_id', '');
+            $secretKey = Setting::get('r2_secret_access_key', '');
+            $endpoint = Setting::get('r2_endpoint', '');
+
+            if (!empty($accessKey) && !empty($secretKey) && !empty($endpoint)) {
+                // Configure the R2 disk dynamically from database settings
+                $this->configureR2Disk();
+                $this->r2EnabledCache = true;
+                return true;
+            }
+        }
+
+        // Fall back to env config
+        $this->r2EnabledCache = !empty(config('filesystems.disks.r2.key')) &&
+                                !empty(config('filesystems.disks.r2.secret')) &&
+                                !empty(config('filesystems.disks.r2.endpoint'));
+
+        return $this->r2EnabledCache;
+    }
+
+    /**
+     * Configure R2 disk dynamically from database settings.
+     */
+    protected function configureR2Disk(): void
+    {
+        $accessKey = Setting::get('r2_access_key_id', '');
+        $secretKey = Setting::get('r2_secret_access_key', '');
+        $bucket = Setting::get('r2_bucket', 'photography');
+        $endpoint = Setting::get('r2_endpoint', '');
+
+        if (empty($accessKey) || empty($secretKey) || empty($endpoint)) {
+            return;
+        }
+
+        // Set the R2 disk configuration at runtime
+        config([
+            'filesystems.disks.r2' => [
+                'driver' => 's3',
+                'key' => $accessKey,
+                'secret' => $secretKey,
+                'region' => 'auto',
+                'bucket' => $bucket,
+                'endpoint' => $endpoint,
+                'use_path_style_endpoint' => false,
+                'throw' => false,
+                'report' => false,
+            ],
+        ]);
     }
 
     /**
