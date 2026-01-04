@@ -509,6 +509,7 @@ class PhotoProcessingService
      * Generate all image versions (display, thumbnail, watermarked).
      * Display/Watermarked: AVIF format for best compression (30-50% smaller than WebP)
      * Thumbnails: WebP format for maximum compatibility (small files anyway)
+     * Respects per-photo watermark_disabled setting.
      */
     protected function generateImageVersions(Photo $photo, ImageInterface $image, string $filename): void
     {
@@ -543,12 +544,14 @@ class PhotoProcessingService
         $photo->update(['thumbnail_path' => $thumbnailPath]);
 
         // Generate watermarked version (AVIF - smaller files)
+        // Respects per-photo watermark_disabled setting
         $watermarkedPath = $this->generateWatermarkedImageAvif(
             $image,
             $avifFilename,
             'photos/watermarked',
             $displaySettings['max_dimension'],
-            $avifQuality
+            $avifQuality,
+            $photo
         );
         $photo->update(['watermarked_path' => $watermarkedPath]);
     }
@@ -654,13 +657,16 @@ class PhotoProcessingService
      * Generate a watermarked image version (WebP format).
      * For landscape images: max width = maxDimension
      * For portrait images: max height = maxDimension
+     *
+     * @param Photo|null $photo If provided, uses per-photo watermark settings
      */
     protected function generateWatermarkedImage(
         ImageInterface $image,
         string $filename,
         string $directory,
         int $maxDimension,
-        int $quality
+        int $quality,
+        ?Photo $photo = null
     ): string {
         $watermarked = clone $image;
         $width = $watermarked->width();
@@ -680,7 +686,6 @@ class PhotoProcessingService
         }
 
         // Get watermark settings from database or use defaults
-        $watermarkEnabled = Setting::get('watermark_enabled', '1') === '1';
         $watermarkType = Setting::get('watermark_type', 'text');
         $watermarkText = Setting::get('watermark_text', $this->watermarkSettings['text']);
         $watermarkImage = Setting::get('watermark_image', '');
@@ -690,7 +695,16 @@ class PhotoProcessingService
         $watermarkImageSize = (int) Setting::get('watermark_image_size', '15');
 
         // Check if watermark should be applied
-        $shouldApplyWatermark = $watermarkEnabled && (
+        // Per-photo watermark_disabled has "super power" - it overrides global settings
+        if ($photo !== null) {
+            $shouldApplyWatermark = $photo->shouldApplyWatermark();
+        } else {
+            // Fallback to global setting when no photo context
+            $shouldApplyWatermark = Setting::get('watermark_enabled', '1') === '1';
+        }
+
+        // Also check if we have valid watermark content
+        $shouldApplyWatermark = $shouldApplyWatermark && (
             ($watermarkType === 'text' && !empty($watermarkText)) ||
             ($watermarkType === 'image' && !empty($watermarkImage))
         );
@@ -873,13 +887,16 @@ class PhotoProcessingService
      * Generate a watermarked image version (AVIF format - best compression).
      * For landscape images: max width = maxDimension
      * For portrait images: max height = maxDimension
+     *
+     * @param Photo|null $photo If provided, uses per-photo watermark settings
      */
     protected function generateWatermarkedImageAvif(
         ImageInterface $image,
         string $filename,
         string $directory,
         int $maxDimension,
-        int $quality
+        int $quality,
+        ?Photo $photo = null
     ): string {
         $watermarked = clone $image;
         $width = $watermarked->width();
@@ -897,7 +914,6 @@ class PhotoProcessingService
         }
 
         // Get watermark settings from database or use defaults
-        $watermarkEnabled = Setting::get('watermark_enabled', '1') === '1';
         $watermarkType = Setting::get('watermark_type', 'text');
         $watermarkText = Setting::get('watermark_text', $this->watermarkSettings['text']);
         $watermarkImage = Setting::get('watermark_image', '');
@@ -907,7 +923,16 @@ class PhotoProcessingService
         $watermarkImageSize = (int) Setting::get('watermark_image_size', '15');
 
         // Check if watermark should be applied
-        $shouldApplyWatermark = $watermarkEnabled && (
+        // Per-photo watermark_disabled has "super power" - it overrides global settings
+        if ($photo !== null) {
+            $shouldApplyWatermark = $photo->shouldApplyWatermark();
+        } else {
+            // Fallback to global setting when no photo context
+            $shouldApplyWatermark = Setting::get('watermark_enabled', '1') === '1';
+        }
+
+        // Also check if we have valid watermark content
+        $shouldApplyWatermark = $shouldApplyWatermark && (
             ($watermarkType === 'text' && !empty($watermarkText)) ||
             ($watermarkType === 'image' && !empty($watermarkImage))
         );
@@ -1546,12 +1571,14 @@ class PhotoProcessingService
         $image = Image::read($displayPath);
         $filename = pathinfo($photo->display_path, PATHINFO_FILENAME) . '.webp';
 
+        // Respects per-photo watermark_disabled setting
         $watermarkedPath = $this->generateWatermarkedImage(
             $image,
             $filename,
             'photos/watermarked',
-            $displaySettings['width'],
-            $displaySettings['quality']
+            $displaySettings['max_dimension'],
+            $displaySettings['quality'],
+            $photo
         );
 
         $photo->update(['watermarked_path' => $watermarkedPath]);
@@ -1636,12 +1663,14 @@ class PhotoProcessingService
             $photo->thumbnail_path = $newThumbnailPath;
 
             // Generate new watermarked version (AVIF for best compression)
+            // Respects per-photo watermark_disabled setting
             $newWatermarkedPath = $this->generateWatermarkedImageAvif(
                 $image,
                 $avifFilename,
                 'photos/watermarked',
                 $maxDimension,
-                $avifQuality
+                $avifQuality,
+                $photo
             );
             $photo->watermarked_path = $newWatermarkedPath;
 

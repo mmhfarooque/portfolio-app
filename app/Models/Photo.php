@@ -48,11 +48,13 @@ class Photo extends Model
         'custom_quality',
         'original_width',
         'original_height',
+        'watermark_disabled',
     ];
 
     protected $casts = [
         'exif_data' => 'array',
         'is_featured' => 'boolean',
+        'watermark_disabled' => 'boolean',
         'captured_at' => 'datetime',
         'latitude' => 'float',
         'longitude' => 'float',
@@ -436,6 +438,21 @@ class Photo extends Model
     public function hasCustomSettings(): bool
     {
         return $this->custom_max_resolution !== null || $this->custom_quality !== null;
+    }
+
+    /**
+     * Check if watermark should be applied to this photo.
+     * Per-photo watermark_disabled has "super power" - it overrides global settings.
+     */
+    public function shouldApplyWatermark(): bool
+    {
+        // Per-photo setting has priority - if disabled, never apply watermark
+        if ($this->watermark_disabled) {
+            return false;
+        }
+
+        // Otherwise, use global watermark setting
+        return Setting::get('watermark_enabled', '1') === '1';
     }
 
     /**

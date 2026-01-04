@@ -315,6 +315,7 @@ class PhotoController extends Controller
                 'original_height' => $photo->original_height,
                 'custom_max_resolution' => $photo->custom_max_resolution,
                 'custom_quality' => $photo->custom_quality,
+                'watermark_disabled' => $photo->watermark_disabled,
                 'has_original' => $photo->hasOriginal(),
                 'is_cloud_original' => $photo->isOriginalInCloud(),
                 'exif_data' => $photo->exif_data,
@@ -656,9 +657,17 @@ class PhotoController extends Controller
         $validated = $request->validate([
             'custom_max_resolution' => 'nullable|integer|in:800,1024,1280,1440,1600,1920,2048,2560,3840',
             'custom_quality' => 'nullable|integer|min:60|max:95',
+            'watermark_disabled' => 'nullable|boolean',
         ]);
 
         try {
+            // Update watermark_disabled setting before re-optimizing
+            // This has "super power" - it overrides global watermark settings
+            if (array_key_exists('watermark_disabled', $validated)) {
+                $photo->watermark_disabled = (bool) $validated['watermark_disabled'];
+                $photo->save();
+            }
+
             $success = $this->photoService->reoptimizePhoto(
                 $photo,
                 $validated['custom_max_resolution'] ?? null,
