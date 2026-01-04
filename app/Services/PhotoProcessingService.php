@@ -1681,6 +1681,12 @@ class PhotoProcessingService
         LoggingService::info('photo.reoptimize_started', "Starting re-optimization of {$total} photos");
 
         foreach ($photos as $photo) {
+            // Global bulk optimization has supreme priority - clear any custom settings
+            // This forces all photos to use global settings
+            // Users can set individual settings again after bulk, but next bulk will override
+            $photo->custom_max_resolution = null;
+            $photo->custom_quality = null;
+
             if ($this->reoptimizePhoto($photo)) {
                 $count++;
             } else {
