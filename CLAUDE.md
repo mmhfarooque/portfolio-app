@@ -18,7 +18,7 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 ./deploy.sh
 ```
 
-### Current Photos (Dec 2025)
+### Current Photos (Jan 2026)
 | ID | Slug | Category | Gallery |
 |----|------|----------|---------|
 | 1 | monpura-sea-beach | Seascapes & Beaches | Coastal Collection |
@@ -26,6 +26,8 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 | 12 | swiss-sheep-farm-pattaya-thailand | Landscapes | Thailand Collection |
 | 13 | nong-nooch-tropical-garden-pattaya-thailand | Flora & Gardens | Thailand Collection |
 | 14 | monsoon-view-po-plar-beach-koh-chang | Seascapes & Beaches | Thailand Collection |
+| 19 | golden-hour-monpura-island-bangladesh | Sunsets & Golden Hour | Coastal Collection |
+| 20 | into-the-mist-suspension-bridge-goechala-trek | Landscapes | Himalaya Collection |
 
 ### Available Categories
 | ID | Name | Slug |
@@ -42,6 +44,7 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 | 1 | Coastal Collection | coastal-collection |
 | 2 | Kashmir Collection | kashmir-collection |
 | 3 | Thailand Collection | thailand-collection |
+| 4 | Himalaya Collection | himalaya-collection |
 
 ---
 
@@ -258,12 +261,12 @@ Report back:
 **Hosting**: HestiaCP on DigitalOcean (SERVER_IP)
 **Git Repo**: github.com/mmhfarooque/portfolio-app (main branch)
 
-### Current Stats (as of Dec 26, 2025)
-- **Photos**: 5 published (all with SEO content, categories, galleries, and personal stories)
+### Current Stats (as of Jan 4, 2026)
+- **Photos**: 7 published (all with SEO content, categories, galleries, and personal stories)
 - **Categories**: 5 (Seascapes, Sunsets, Landscapes, Rivers, Flora)
-- **Galleries**: 3 (Coastal, Kashmir, Thailand)
+- **Galleries**: 4 (Coastal, Kashmir, Thailand, Himalaya)
 - **Contact Email**: farooque7@gmail.com (receives form submissions)
-- **Features Active**: 12+ public features, full admin panel
+- **Features Active**: 12+ public features, full admin panel, per-photo watermark control
 
 ---
 
@@ -463,6 +466,8 @@ photos:
   user_id, category_id, gallery_id,
   status (draft/published), is_featured,
   views, likes_count, comments_count,
+  custom_max_resolution, custom_quality, watermark_disabled,
+  original_width, original_height,
   captured_at, created_at, updated_at
 ```
 
@@ -611,10 +616,51 @@ For cache issues after deployment:
 
 ---
 
+## PER-PHOTO WATERMARK CONTROL
+
+Individual photos can override the global watermark setting.
+
+### How It Works
+- **Default**: Photos use global watermark setting (Admin → Settings → Watermark)
+- **Per-photo override**: In Photo Edit page → Image Optimization → Watermark toggle
+- **Super power**: Per-photo "Disabled" setting has priority over global - even if global watermark is enabled, photos marked as disabled will NEVER have watermark
+
+### Usage
+1. Go to Admin → Photos → Edit Photo
+2. Scroll to "Image Optimization" section
+3. Toggle "Watermark" to Disabled (turns red)
+4. Click "Re-optimize Photo" to apply
+
+### Technical Details
+```php
+// Database column
+photos.watermark_disabled  // boolean, default false
+
+// Check if watermark should be applied
+$photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
+
+// The method has "super power" priority:
+// 1. If watermark_disabled = true → NEVER apply watermark
+// 2. Else use global Setting::get('watermark_enabled')
+```
+
+### Key Files
+- `app/Models/Photo.php` - `shouldApplyWatermark()` method
+- `app/Services/PhotoProcessingService.php` - Uses photo setting in watermark generation
+- `resources/js/Pages/Admin/Photos/Edit.vue` - Watermark toggle UI
+- `app/Http/Controllers/Admin/PhotoController.php` - Handles watermark_disabled in reoptimize
+
+---
+
 ## RECENT CHANGES LOG
 
 | Date | Change |
 |------|--------|
+| 2026-01-04 | **Added per-photo watermark disable feature** - individual photos can override global watermark |
+| 2026-01-04 | Fixed Settings page bug where quality slider reverted to 82% (wrong group in database) |
+| 2026-01-04 | Fixed bulk optimization to always override individual photo custom settings |
+| 2026-01-04 | Added SEO content for photos #19 (Monpura golden hour) and #20 (Goechala trek bridge) |
+| 2026-01-04 | Created Himalaya Collection gallery for India trek photos |
 | 2026-01-03 | **Added Cloudflare R2 storage for photo originals** (saves server disk space) |
 | 2026-01-03 | **Added Cloudflare Turnstile spam protection** for contact form |
 | 2026-01-03 | Added Cloudflare settings UI in Admin → Settings |
@@ -715,5 +761,23 @@ npm run build                    # Rebuild assets
 
 ---
 
-*Last Updated: January 3, 2026*
+## PENDING / KNOWN ISSUES
+
+### Photo #20 - R2 Original Not Showing in UI
+- **Issue**: Photo #20 shows "No original file" in admin UI but original IS in R2 cloud
+- **Database**: `original_path` = `r2:originals/2838d092-80cf-40eb-8fda-9efb1cd6af46.jpg`
+- **R2 Status**: File exists (20.85 MB)
+- **Tinker test**: `$photo->hasOriginal()` returns `true`, `$photo->isOriginalInCloud()` returns `true`
+- **Likely cause**: Cache issue or R2 disk not being configured before checking
+- **Workaround**: Try hard refresh (Ctrl+Shift+R) after cache clear
+- **To investigate**: Check why `hasOriginal()` works in tinker but not in web request
+
+### Tomorrow's Tasks
+1. Investigate Photo #20 R2 display issue
+2. Test watermark disable on a photo
+3. Continue with photo content for remaining photos
+
+---
+
+*Last Updated: January 4, 2026*
 *Update this file after every significant change*
