@@ -305,7 +305,7 @@ const copyLink = () => {
                                 </h2>
                             </div>
                             <div
-                                class="prose prose-lg max-w-none leading-relaxed"
+                                class="prose prose-lg max-w-none leading-relaxed [&>p]:mb-4 [&>p:last-child]:mb-0"
                                 :class="isDark ? 'prose-invert text-[var(--text-secondary)]' : 'text-[var(--text-secondary,#57534e)]'"
                                 v-html="photo.story"
                             ></div>
