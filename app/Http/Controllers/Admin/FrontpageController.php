@@ -135,8 +135,8 @@ class FrontpageController extends Controller
 
         LoggingService::settingsUpdated(array_keys($request->except(['_token', '_method'])));
 
-        // Return JSON for AJAX requests
-        if ($request->ajax() || $request->wantsJson()) {
+        // Return JSON only for non-Inertia AJAX requests (API calls)
+        if (($request->ajax() || $request->wantsJson()) && !$request->header('X-Inertia')) {
             return response()->json([
                 'success' => true,
                 'message' => 'Front page settings updated successfully.',
