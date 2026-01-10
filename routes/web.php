@@ -265,7 +265,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Front Page Settings
     Route::get('frontpage', [AdminFrontpageController::class, 'index'])->name('frontpage.index');
-    Route::put('frontpage', [AdminFrontpageController::class, 'update'])->name('frontpage.update');
+    Route::post('frontpage', [AdminFrontpageController::class, 'update'])->name('frontpage.update');
 
     // Settings
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
