@@ -186,7 +186,7 @@ const uploadPhotos = () => {
                                 </label>
                                 or drag and drop
                             </p>
-                            <p class="text-sm text-gray-500">JPG, PNG, GIF, WebP, HEIC (max 50MB each)</p>
+                            <p class="text-sm text-gray-500">JPG, PNG, GIF, WebP, HEIC (max 100MB each)</p>
                         </div>
 
                         <!-- File Preview Grid -->

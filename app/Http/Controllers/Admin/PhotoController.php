@@ -109,7 +109,7 @@ class PhotoController extends Controller
     {
         $request->validate([
             'photos' => 'required|array',
-            'photos.*' => 'required|file|mimes:jpg,jpeg,png,gif,webp,heic,heif|max:51200', // 50MB max, includes HEIC/HEIF
+            'photos.*' => 'required|file|mimes:jpg,jpeg,png,gif,webp,heic,heif|max:102400', // 100MB max, includes HEIC/HEIF
             'category_id' => 'nullable|exists:categories,id',
         ]);
 
@@ -1042,7 +1042,7 @@ class PhotoController extends Controller
         $this->authorize('update', $photo);
 
         $request->validate([
-            'image' => 'required|file|mimes:jpg,jpeg,png,webp,avif|max:51200', // 50MB max
+            'image' => 'required|file|mimes:jpg,jpeg,png,webp,avif|max:102400', // 100MB max
         ]);
 
         $file = $request->file('image');
