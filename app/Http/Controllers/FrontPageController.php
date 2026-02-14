@@ -56,8 +56,6 @@ class FrontPageController extends Controller
             'twitter' => Setting::get('social_twitter'),
             'facebook' => Setting::get('social_facebook'),
             'youtube' => Setting::get('social_youtube'),
-            'behance' => Setting::get('social_behance'),
-            'flickr' => Setting::get('social_flickr'),
             '500px' => Setting::get('social_500px'),
         ];
 

@@ -26,7 +26,6 @@ class SettingSeeder extends Seeder
             ['key' => 'social_facebook', 'value' => '', 'type' => 'text', 'group' => 'social'],
             ['key' => 'social_twitter', 'value' => '', 'type' => 'text', 'group' => 'social'],
             ['key' => 'social_youtube', 'value' => '', 'type' => 'text', 'group' => 'social'],
-            ['key' => 'social_flickr', 'value' => '', 'type' => 'text', 'group' => 'social'],
             ['key' => 'social_500px', 'value' => '', 'type' => 'text', 'group' => 'social'],
 
             // Watermark
@@ -59,7 +58,6 @@ class SettingSeeder extends Seeder
             // Additional Social Links
             ['key' => 'social_github', 'value' => '', 'type' => 'text', 'group' => 'social'],
             ['key' => 'social_linkedin', 'value' => '', 'type' => 'text', 'group' => 'social'],
-            ['key' => 'social_behance', 'value' => '', 'type' => 'text', 'group' => 'social'],
 
             // Enhanced Contact
             ['key' => 'contact_whatsapp', 'value' => '', 'type' => 'text', 'group' => 'contact'],
