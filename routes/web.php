@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\ABTestController as AdminABTestController;
 use App\Http\Controllers\Admin\SeoAuditController as AdminSeoController;
 use App\Http\Controllers\Admin\TranslationController as AdminTranslationController;
 use App\Http\Controllers\Admin\CommentController as AdminCommentController;
+use App\Http\Controllers\Admin\EmailTemplateController as AdminEmailTemplateController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PhotoInteractionController;
 use App\Http\Controllers\ClientProofingController;
@@ -381,6 +382,18 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('translations/photo/{photo}', [AdminTranslationController::class, 'updatePhoto'])->name('translations.photo.update');
     Route::get('translations/post/{post}', [AdminTranslationController::class, 'editPost'])->name('translations.post');
     Route::put('translations/post/{post}', [AdminTranslationController::class, 'updatePost'])->name('translations.post.update');
+
+    // Email Templates
+    Route::get('email-templates', [AdminEmailTemplateController::class, 'index'])->name('email-templates.index');
+    Route::get('email-templates/compose', [AdminEmailTemplateController::class, 'compose'])->name('email-templates.compose');
+    Route::post('email-templates/send', [AdminEmailTemplateController::class, 'send'])->name('email-templates.send');
+    Route::get('email-templates/logs', [AdminEmailTemplateController::class, 'logs'])->name('email-templates.logs');
+    Route::get('email-templates/{emailTemplate}/edit', [AdminEmailTemplateController::class, 'edit'])->name('email-templates.edit');
+    Route::put('email-templates/{emailTemplate}', [AdminEmailTemplateController::class, 'update'])->name('email-templates.update');
+    Route::post('email-templates/{emailTemplate}/preview', [AdminEmailTemplateController::class, 'preview'])->name('email-templates.preview');
+    Route::post('email-templates/{emailTemplate}/send-test', [AdminEmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
+    Route::post('email-templates/{emailTemplate}/reset', [AdminEmailTemplateController::class, 'reset'])->name('email-templates.reset');
+    Route::post('email-templates/{emailTemplate}/toggle-active', [AdminEmailTemplateController::class, 'toggleActive'])->name('email-templates.toggle-active');
 });
 
 require __DIR__.'/auth.php';

@@ -157,6 +157,18 @@ onUnmounted(() => {
                                 <span>Contacts</span>
                             </Link>
 
+                            <!-- Emails -->
+                            <Link :href="route('admin.email-templates.index')"
+                                :class="[
+                                    'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out',
+                                    isRoute('/admin/email-templates') ? 'text-gray-900 bg-gray-100' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                ]">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                                </svg>
+                                <span>Emails</span>
+                            </Link>
+
                             <!-- System Dropdown -->
                             <NavDropdown align="left" :active="isRoute('/admin/frontpage') || isRoute('/admin/settings') || isRoute('/admin/logs')">
                                 <template #trigger>
@@ -276,6 +288,7 @@ onUnmounted(() => {
 
                     <div class="px-4 py-2 mt-2"><div class="text-xs font-semibold text-gray-400 uppercase">Communication</div></div>
                     <Link :href="route('admin.contacts.index')" class="mobile-nav-link">Contacts</Link>
+                    <Link :href="route('admin.email-templates.index')" class="mobile-nav-link">Email Templates</Link>
 
                     <div class="px-4 py-2 mt-2"><div class="text-xs font-semibold text-gray-400 uppercase">System</div></div>
                     <Link :href="route('admin.frontpage.index')" class="mobile-nav-link">Front Page</Link>
