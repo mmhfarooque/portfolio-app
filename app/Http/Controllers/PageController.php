@@ -15,8 +15,6 @@ use Inertia\Response;
 
 class PageController extends Controller
 {
-    protected LoggingService $logger;
-
     // Common spam patterns to detect
     private array $spamPatterns = [
         '/\b(viagra|cialis|casino|lottery|winner|prize|crypto|bitcoin|investment|forex)\b/i',
@@ -25,11 +23,6 @@ class PageController extends Controller
         '/\b(SEO|backlink|ranking|traffic|reseller|wholesale)\b/i',
         '/https?:\/\/[^\s]+/i', // URLs in message (usually spam)
     ];
-
-    public function __construct(LoggingService $logger)
-    {
-        $this->logger = $logger;
-    }
 
     /**
      * Display the about page.
@@ -115,10 +108,7 @@ class PageController extends Controller
             ]);
 
             if (!$verification->successful() || !$verification->json('success')) {
-                $this->logger->logActivity('turnstile_failed', 'warning', [
-                    'ip' => $ip,
-                    'error' => $verification->json('error-codes', []),
-                ]);
+                LoggingService::warning('turnstile.failed', "Turnstile verification failed from {$ip}");
 
                 return redirect()
                     ->route('contact')
@@ -138,11 +128,7 @@ class PageController extends Controller
 
         // Check for spam patterns
         if ($this->isSpam($validated)) {
-            $this->logger->logActivity('spam_blocked', 'info', [
-                'ip' => $ip,
-                'email' => $validated['email'],
-                'subject' => $validated['subject'],
-            ]);
+            LoggingService::info('spam.blocked', "Spam blocked from {$validated['email']}: {$validated['subject']}");
 
             // Silently reject but pretend success (don't let spammers know they're blocked)
             return redirect()
@@ -164,12 +150,7 @@ class PageController extends Controller
         Cache::put($cacheKey, $submissions + 1, now()->addHour());
 
         // Log the contact submission
-        $this->logger->logActivity('contact_submitted', 'info', [
-            'contact_id' => $contact->id,
-            'name' => $contact->name,
-            'email' => $contact->email,
-            'subject' => $contact->subject,
-        ], $contact);
+        LoggingService::activity('contact.submitted', "Contact form from {$contact->name}: {$contact->subject}");
 
         // Send email notification to admin
         $contactEmail = Setting::get('contact_email');
@@ -178,10 +159,7 @@ class PageController extends Controller
                 Mail::to($contactEmail)->send(new ContactFormSubmitted($contact));
             } catch (\Exception $e) {
                 // Email failed but contact is saved - don't show error to user
-                $this->logger->logActivity('contact_email_failed', 'warning', [
-                    'contact_id' => $contact->id,
-                    'error' => $e->getMessage(),
-                ], $contact);
+                LoggingService::warning('contact.email_failed', "Failed to send contact email: {$e->getMessage()}");
             }
         }
 
