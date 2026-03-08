@@ -4,10 +4,6 @@ const props = defineProps({
         type: Object,
         required: true
     },
-    isDark: {
-        type: Boolean,
-        default: false
-    },
     isReply: {
         type: Boolean,
         default: false
@@ -58,32 +54,24 @@ const getAvatarColor = (name) => {
             <!-- Content -->
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1.5">
-                    <span
-                        class="font-semibold text-sm"
-                        :class="props.isDark ? 'text-[var(--text-primary)]' : 'text-gray-900'"
-                    >
+                    <span class="font-semibold text-sm text-theme-text-primary">
                         {{ comment.author_name }}
                     </span>
                     <span
                         v-if="comment.is_admin"
-                        class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full"
-                        :class="props.isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'"
+                        class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-theme-accent-light text-theme-accent"
                     >
                         Photographer
                     </span>
                     <span
-                        class="text-xs"
-                        :class="props.isDark ? 'text-[var(--text-muted)]' : 'text-gray-400'"
+                        class="text-xs text-theme-text-muted"
                         :title="comment.created_at_formatted"
                     >
                         {{ comment.created_at }}
                     </span>
                 </div>
 
-                <p
-                    class="text-sm leading-relaxed whitespace-pre-wrap"
-                    :class="props.isDark ? 'text-[var(--text-secondary)]' : 'text-gray-700'"
-                >
+                <p class="text-sm leading-relaxed whitespace-pre-wrap text-theme-text-secondary">
                     {{ comment.content }}
                 </p>
 
@@ -91,10 +79,7 @@ const getAvatarColor = (name) => {
                 <button
                     v-if="!isReply"
                     @click="$emit('reply', comment.id)"
-                    class="mt-2.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                    :class="props.isDark
-                        ? 'text-[var(--text-muted)] hover:text-[var(--accent)]'
-                        : 'text-gray-400 hover:text-[var(--accent,#d97706)]'"
+                    class="mt-2.5 text-xs font-medium flex items-center gap-1.5 transition-colors text-theme-text-muted hover:text-theme-accent"
                 >
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -110,7 +95,6 @@ const getAvatarColor = (name) => {
                 v-for="reply in comment.replies"
                 :key="reply.id"
                 :comment="reply"
-                :is-dark="props.isDark"
                 :is-reply="true"
             />
         </div>

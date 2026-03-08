@@ -13,10 +13,6 @@ const turnstileToken = ref('');
 const turnstileWidgetId = ref(null);
 const messageSent = ref(false);
 
-// Get theme accent color directly from page props
-const accentColor = computed(() => page.props.theme?.colors?.accent || '#d4a574');
-const accentHover = computed(() => page.props.theme?.colors?.['accent-hover'] || '#c4956a');
-
 const form = useForm({
     name: '',
     email: '',
@@ -71,7 +67,6 @@ const submit = () => {
         onSuccess: () => {
             form.reset();
             messageSent.value = true;
-            // Reset Turnstile widget
             if (turnstileWidgetId.value && window.turnstile) {
                 window.turnstile.reset(turnstileWidgetId.value);
             }
@@ -95,53 +90,51 @@ const submit = () => {
     <PublicLayout>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="text-center mb-12">
-                <h1 class="text-3xl font-bold text-[var(--text-primary)]">Get in Touch</h1>
-                <p class="mt-2 text-[var(--text-secondary)]">Have a question or want to work together? I'd love to hear from you.</p>
+                <h1 class="text-3xl font-bold text-theme-text-primary">Get in Touch</h1>
+                <p class="mt-2 text-theme-text-secondary">Have a question or want to work together? I'd love to hear from you.</p>
             </div>
 
             <div class="max-w-xl mx-auto">
                 <!-- Thank you message (replaces form after submit) -->
                 <div v-if="messageSent" class="text-center py-16">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-theme-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h2 class="text-2xl font-bold text-[var(--text-primary)] mb-2">Thank you for your message!</h2>
-                    <p class="text-[var(--text-secondary)]">I will get back to you soon.</p>
+                    <h2 class="text-2xl font-bold text-theme-text-primary mb-2">Thank you for your message!</h2>
+                    <p class="text-theme-text-secondary">I will get back to you soon.</p>
                 </div>
 
                 <!-- Contact form -->
                 <form v-else @submit.prevent="submit" class="space-y-6">
-                    <!-- Honeypot -->
                     <input type="text" name="website_url" v-model="form.website_url" class="hidden" tabindex="-1" autocomplete="off" />
 
                     <div>
-                        <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name *</label>
-                        <input type="text" v-model="form.name" required class="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:ring-[var(--accent)] focus:border-[var(--accent)]" />
-                        <p v-if="form.errors.name" class="mt-1 text-sm text-red-500">{{ form.errors.name }}</p>
+                        <label class="block text-sm font-medium text-theme-text-secondary mb-1">Name *</label>
+                        <input type="text" v-model="form.name" required class="w-full px-4 py-3 border rounded-lg bg-theme-bg-input text-theme-text-primary border-theme-border focus:ring-theme-accent focus:border-theme-accent" />
+                        <p v-if="form.errors.name" class="mt-1 text-sm text-theme-error">{{ form.errors.name }}</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email *</label>
-                        <input type="email" v-model="form.email" required class="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:ring-[var(--accent)] focus:border-[var(--accent)]" />
-                        <p v-if="form.errors.email" class="mt-1 text-sm text-red-500">{{ form.errors.email }}</p>
+                        <label class="block text-sm font-medium text-theme-text-secondary mb-1">Email *</label>
+                        <input type="email" v-model="form.email" required class="w-full px-4 py-3 border rounded-lg bg-theme-bg-input text-theme-text-primary border-theme-border focus:ring-theme-accent focus:border-theme-accent" />
+                        <p v-if="form.errors.email" class="mt-1 text-sm text-theme-error">{{ form.errors.email }}</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Subject *</label>
-                        <input type="text" v-model="form.subject" required class="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:ring-[var(--accent)] focus:border-[var(--accent)]" />
-                        <p v-if="form.errors.subject" class="mt-1 text-sm text-red-500">{{ form.errors.subject }}</p>
+                        <label class="block text-sm font-medium text-theme-text-secondary mb-1">Subject *</label>
+                        <input type="text" v-model="form.subject" required class="w-full px-4 py-3 border rounded-lg bg-theme-bg-input text-theme-text-primary border-theme-border focus:ring-theme-accent focus:border-theme-accent" />
+                        <p v-if="form.errors.subject" class="mt-1 text-sm text-theme-error">{{ form.errors.subject }}</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Message *</label>
-                        <textarea v-model="form.message" rows="6" required class="w-full px-4 py-3 border border-[var(--border)] rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:ring-[var(--accent)] focus:border-[var(--accent)]"></textarea>
-                        <p v-if="form.errors.message" class="mt-1 text-sm text-red-500">{{ form.errors.message }}</p>
+                        <label class="block text-sm font-medium text-theme-text-secondary mb-1">Message *</label>
+                        <textarea v-model="form.message" rows="6" required class="w-full px-4 py-3 border rounded-lg bg-theme-bg-input text-theme-text-primary border-theme-border focus:ring-theme-accent focus:border-theme-accent"></textarea>
+                        <p v-if="form.errors.message" class="mt-1 text-sm text-theme-error">{{ form.errors.message }}</p>
                     </div>
 
-                    <!-- Cloudflare Turnstile -->
                     <div v-if="turnstileSiteKey" id="turnstile-container" class="flex justify-center"></div>
 
-                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" :style="{ backgroundColor: accentColor, color: '#fff' }" class="w-full px-6 py-3 font-semibold rounded-lg disabled:opacity-50 transition hover:opacity-90">
+                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" class="w-full px-6 py-3 bg-theme-accent text-theme-text-inverse font-semibold rounded-lg hover:bg-theme-accent-hover disabled:opacity-50 transition">
                         {{ form.processing ? 'Sending...' : 'Send Message' }}
                     </button>
                 </form>

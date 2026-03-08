@@ -16,6 +16,28 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                theme: {
+                    'bg-primary': 'var(--bg-primary)',
+                    'bg-secondary': 'var(--bg-secondary)',
+                    'bg-tertiary': 'var(--bg-tertiary)',
+                    'bg-card': 'var(--bg-card)',
+                    'bg-hover': 'var(--bg-hover)',
+                    'bg-input': 'var(--bg-input)',
+                    'text-primary': 'var(--text-primary)',
+                    'text-secondary': 'var(--text-secondary)',
+                    'text-muted': 'var(--text-muted)',
+                    'text-inverse': 'var(--text-inverse)',
+                    border: 'var(--border)',
+                    'border-light': 'var(--border-light)',
+                    accent: 'var(--accent)',
+                    'accent-hover': 'var(--accent-hover)',
+                    'accent-light': 'var(--accent-light)',
+                    success: 'var(--success)',
+                    warning: 'var(--warning)',
+                    error: 'var(--error)',
+                },
+            },
         },
     },
 

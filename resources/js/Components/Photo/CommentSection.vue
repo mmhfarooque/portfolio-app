@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import CommentThread from './CommentThread.vue';
 
@@ -14,10 +13,6 @@ const props = defineProps({
         default: 0
     }
 });
-
-const page = usePage();
-const themeData = computed(() => page.props.theme || {});
-const isDark = computed(() => themeData.value?.isDark ?? false);
 
 const comments = ref([]);
 const totalComments = ref(props.initialCommentsCount);
@@ -269,18 +264,10 @@ const replyingToComment = computed(() => {
 </script>
 
 <template>
-    <div
-        class="rounded-2xl p-6 sm:p-8 transition-colors"
-        :class="isDark
-            ? 'bg-[var(--bg-secondary)] border border-[var(--border)]'
-            : 'bg-[var(--bg-card,#ffffff)] border border-[var(--border,#e7e5e4)] shadow-sm'"
-    >
+    <div class="rounded-2xl p-6 sm:p-8 transition-colors bg-theme-bg-secondary border border-theme-border">
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
-            <h3
-                class="text-lg font-semibold flex items-center gap-2"
-                :class="isDark ? 'text-[var(--text-primary)]' : 'text-[var(--text-primary,#1c1917)]'"
-            >
+            <h3 class="text-lg font-semibold flex items-center gap-2 text-theme-text-primary">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -288,8 +275,7 @@ const replyingToComment = computed(() => {
                 Comments
                 <span
                     v-if="totalComments > 0"
-                    class="text-sm font-normal px-2 py-0.5 rounded-full"
-                    :class="isDark ? 'bg-[var(--bg-hover)] text-[var(--text-muted)]' : 'bg-gray-100 text-gray-600'"
+                    class="text-sm font-normal px-2 py-0.5 rounded-full bg-theme-bg-hover text-theme-text-muted"
                 >
                     {{ totalComments }}
                 </span>
@@ -298,10 +284,7 @@ const replyingToComment = computed(() => {
             <button
                 v-if="!showForm"
                 @click="showForm = true"
-                class="text-sm font-medium px-4 py-2.5 rounded-lg transition-all duration-200 hover:scale-105"
-                :class="isDark
-                    ? 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
-                    : 'bg-[var(--accent,#d97706)] text-white hover:bg-[var(--accent-hover,#b45309)]'"
+                class="text-sm font-medium px-4 py-2.5 rounded-lg transition-all duration-200 hover:scale-105 bg-theme-accent text-white hover:bg-theme-accent-hover"
             >
                 Leave a Comment
             </button>
@@ -317,8 +300,7 @@ const replyingToComment = computed(() => {
             leave-to-class="opacity-0 -translate-y-2"
         >
             <div v-if="successMessage"
-                class="mb-6 p-4 rounded-lg flex items-center gap-3"
-                :class="isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-50 text-green-700'">
+                class="mb-6 p-4 rounded-lg flex items-center gap-3 bg-green-500/20 text-green-400">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
@@ -336,8 +318,7 @@ const replyingToComment = computed(() => {
             leave-to-class="opacity-0 -translate-y-2"
         >
             <div v-if="errorMessage"
-                class="mb-6 p-4 rounded-lg flex items-center gap-3"
-                :class="isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-700'">
+                class="mb-6 p-4 rounded-lg flex items-center gap-3 bg-red-500/20 text-red-400">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -362,8 +343,7 @@ const replyingToComment = computed(() => {
 
                     <!-- Reply indicator -->
                     <div v-if="replyingToComment"
-                        class="text-sm px-4 py-3 rounded-lg flex items-center justify-between gap-2"
-                        :class="isDark ? 'bg-[var(--bg-hover)] text-[var(--text-muted)]' : 'bg-gray-100 text-gray-600'">
+                        class="text-sm px-4 py-3 rounded-lg flex items-center justify-between gap-2 bg-theme-bg-hover text-theme-text-muted">
                         <span class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -377,8 +357,7 @@ const replyingToComment = computed(() => {
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium mb-1.5"
-                                :class="isDark ? 'text-[var(--text-secondary)]' : 'text-gray-700'">
+                            <label class="block text-sm font-medium mb-1.5 text-theme-text-secondary">
                                 Name *
                             </label>
                             <input
@@ -386,19 +365,13 @@ const replyingToComment = computed(() => {
                                 v-model="formData.guest_name"
                                 required
                                 placeholder="Your name"
-                                class="w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:ring-2 focus:ring-offset-0"
-                                :class="[
-                                    isDark
-                                        ? 'bg-[var(--bg-primary)] border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-[var(--accent)]/20'
-                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-[var(--accent,#d97706)] focus:ring-[var(--accent,#d97706)]/20',
-                                    formErrors.guest_name ? 'border-red-500' : ''
-                                ]"
+                                class="w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:ring-2 focus:ring-offset-0 bg-theme-bg-input border-theme-border text-theme-text-primary placeholder-theme-text-muted focus:border-theme-accent focus:ring-theme-accent/20"
+                                :class="formErrors.guest_name ? 'border-red-500' : ''"
                             />
                             <p v-if="formErrors.guest_name" class="mt-1.5 text-sm text-red-500">{{ formErrors.guest_name[0] }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium mb-1.5"
-                                :class="isDark ? 'text-[var(--text-secondary)]' : 'text-gray-700'">
+                            <label class="block text-sm font-medium mb-1.5 text-theme-text-secondary">
                                 Email * <span class="text-xs font-normal opacity-60">(verified, not published)</span>
                             </label>
                             <input
@@ -406,21 +379,15 @@ const replyingToComment = computed(() => {
                                 v-model="formData.guest_email"
                                 required
                                 placeholder="your@email.com"
-                                class="w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:ring-2 focus:ring-offset-0"
-                                :class="[
-                                    isDark
-                                        ? 'bg-[var(--bg-primary)] border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-[var(--accent)]/20'
-                                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-[var(--accent,#d97706)] focus:ring-[var(--accent,#d97706)]/20',
-                                    formErrors.guest_email ? 'border-red-500' : ''
-                                ]"
+                                class="w-full px-4 py-3 rounded-lg border transition-all duration-200 focus:ring-2 focus:ring-offset-0 bg-theme-bg-input border-theme-border text-theme-text-primary placeholder-theme-text-muted focus:border-theme-accent focus:ring-theme-accent/20"
+                                :class="formErrors.guest_email ? 'border-red-500' : ''"
                             />
                             <p v-if="formErrors.guest_email" class="mt-1.5 text-sm text-red-500">{{ formErrors.guest_email[0] }}</p>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium mb-1.5"
-                            :class="isDark ? 'text-[var(--text-secondary)]' : 'text-gray-700'">
+                        <label class="block text-sm font-medium mb-1.5 text-theme-text-secondary">
                             Comment *
                         </label>
                         <textarea
@@ -428,13 +395,8 @@ const replyingToComment = computed(() => {
                             rows="4"
                             required
                             placeholder="Share your thoughts about this photo..."
-                            class="w-full px-4 py-3 rounded-lg border transition-all duration-200 resize-none focus:ring-2 focus:ring-offset-0"
-                            :class="[
-                                isDark
-                                    ? 'bg-[var(--bg-primary)] border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-[var(--accent)]/20'
-                                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-[var(--accent,#d97706)] focus:ring-[var(--accent,#d97706)]/20',
-                                formErrors.content ? 'border-red-500' : ''
-                            ]"
+                            class="w-full px-4 py-3 rounded-lg border transition-all duration-200 resize-none focus:ring-2 focus:ring-offset-0 bg-theme-bg-input border-theme-border text-theme-text-primary placeholder-theme-text-muted focus:border-theme-accent focus:ring-theme-accent/20"
+                            :class="formErrors.content ? 'border-red-500' : ''"
                         ></textarea>
                         <p v-if="formErrors.content" class="mt-1.5 text-sm text-red-500">{{ formErrors.content[0] }}</p>
                     </div>
@@ -443,10 +405,7 @@ const replyingToComment = computed(() => {
                         <button
                             type="submit"
                             :disabled="isSubmitting"
-                            class="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:scale-105"
-                            :class="isDark
-                                ? 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
-                                : 'bg-[var(--accent,#d97706)] text-white hover:bg-[var(--accent-hover,#b45309)]'"
+                            class="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:scale-105 bg-theme-accent text-white hover:bg-theme-accent-hover"
                         >
                             <span v-if="isSubmitting" class="flex items-center gap-2">
                                 <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -465,16 +424,13 @@ const replyingToComment = computed(() => {
                         <button
                             type="button"
                             @click="resetForm"
-                            class="px-6 py-3 rounded-lg font-medium transition-colors"
-                            :class="isDark
-                                ? 'bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                            class="px-6 py-3 rounded-lg font-medium transition-colors bg-theme-bg-hover text-theme-text-secondary hover:bg-theme-bg-tertiary"
                         >
                             Cancel
                         </button>
                     </div>
 
-                    <p class="text-xs" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-500'">
+                    <p class="text-xs text-theme-text-muted">
                         A verification code will be sent to your email. Your comment will appear after moderation.
                     </p>
                 </form>
@@ -482,20 +438,18 @@ const replyingToComment = computed(() => {
                 <!-- Step 2: OTP Verification -->
                 <div v-else-if="formStep === 2" class="space-y-6">
                     <div class="text-center">
-                        <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-                            :class="isDark ? 'bg-[var(--accent)]/20' : 'bg-amber-100'">
-                            <svg class="w-8 h-8" :class="isDark ? 'text-[var(--accent)]' : 'text-amber-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-theme-accent-light">
+                            <svg class="w-8 h-8 text-theme-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
                         </div>
-                        <h4 class="text-lg font-semibold mb-2"
-                            :class="isDark ? 'text-[var(--text-primary)]' : 'text-gray-900'">
+                        <h4 class="text-lg font-semibold mb-2 text-theme-text-primary">
                             Verify Your Email
                         </h4>
-                        <p class="text-sm mb-1" :class="isDark ? 'text-[var(--text-secondary)]' : 'text-gray-600'">
+                        <p class="text-sm mb-1 text-theme-text-secondary">
                             We've sent a 6-digit verification code to
                         </p>
-                        <p class="font-medium" :class="isDark ? 'text-[var(--accent)]' : 'text-amber-600'">
+                        <p class="font-medium text-theme-accent">
                             {{ formData.guest_email }}
                         </p>
                     </div>
@@ -512,16 +466,13 @@ const replyingToComment = computed(() => {
                             :value="digit"
                             @input="handleOtpInput(index, $event)"
                             @keydown="handleOtpKeydown(index, $event)"
-                            class="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-offset-0"
-                            :class="isDark
-                                ? 'bg-[var(--bg-primary)] border-[var(--border)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:ring-[var(--accent)]/20'
-                                : 'bg-white border-gray-300 text-gray-900 focus:border-[var(--accent,#d97706)] focus:ring-[var(--accent,#d97706)]/20'"
+                            class="w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-offset-0 bg-theme-bg-input border-theme-border text-theme-text-primary focus:border-theme-accent focus:ring-theme-accent/20"
                         />
                     </div>
 
                     <!-- Timer -->
                     <div class="text-center">
-                        <p v-if="expiresIn > 0" class="text-sm" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-500'">
+                        <p v-if="expiresIn > 0" class="text-sm text-theme-text-muted">
                             Code expires in <span class="font-medium" :class="expiresIn <= 60 ? 'text-red-500' : ''">{{ formattedCountdown }}</span>
                         </p>
                         <p v-else class="text-sm text-red-500">
@@ -534,10 +485,7 @@ const replyingToComment = computed(() => {
                         <button
                             @click="verifyOtp"
                             :disabled="isSubmitting || otpInputs.some(d => !d)"
-                            class="w-full sm:w-auto px-8 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:scale-105"
-                            :class="isDark
-                                ? 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
-                                : 'bg-[var(--accent,#d97706)] text-white hover:bg-[var(--accent-hover,#b45309)]'"
+                            class="w-full sm:w-auto px-8 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:scale-105 bg-theme-accent text-white hover:bg-theme-accent-hover"
                         >
                             <span v-if="isSubmitting" class="flex items-center justify-center gap-2">
                                 <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -551,10 +499,7 @@ const replyingToComment = computed(() => {
                         <button
                             @click="resendOtp"
                             :disabled="isSubmitting"
-                            class="text-sm font-medium transition-colors"
-                            :class="isDark
-                                ? 'text-[var(--text-secondary)] hover:text-[var(--accent)]'
-                                : 'text-gray-600 hover:text-amber-600'"
+                            class="text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-accent"
                         >
                             Resend Code
                         </button>
@@ -564,8 +509,7 @@ const replyingToComment = computed(() => {
                     <div class="text-center">
                         <button
                             @click="goBack"
-                            class="text-sm font-medium flex items-center gap-1 mx-auto transition-colors"
-                            :class="isDark ? 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]' : 'text-gray-500 hover:text-gray-700'"
+                            class="text-sm font-medium flex items-center gap-1 mx-auto transition-colors text-theme-text-muted hover:text-theme-text-secondary"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -579,7 +523,7 @@ const replyingToComment = computed(() => {
 
         <!-- Comments List -->
         <div v-if="isLoading" class="py-12 text-center">
-            <div class="inline-flex items-center gap-2" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-500'">
+            <div class="inline-flex items-center gap-2 text-theme-text-muted">
                 <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -589,11 +533,11 @@ const replyingToComment = computed(() => {
         </div>
 
         <div v-else-if="comments.length === 0" class="py-12 text-center">
-            <svg class="w-12 h-12 mx-auto mb-4" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-12 h-12 mx-auto mb-4 text-theme-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <p class="text-sm" :class="isDark ? 'text-[var(--text-muted)]' : 'text-gray-500'">
+            <p class="text-sm text-theme-text-muted">
                 No comments yet. Be the first to share your thoughts!
             </p>
         </div>
@@ -603,7 +547,6 @@ const replyingToComment = computed(() => {
                 v-for="comment in comments"
                 :key="comment.id"
                 :comment="comment"
-                :is-dark="isDark"
                 @reply="startReply"
             />
         </div>

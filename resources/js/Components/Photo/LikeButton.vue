@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const props = defineProps({
@@ -17,10 +16,6 @@ const props = defineProps({
         default: false
     }
 });
-
-const page = usePage();
-const themeData = computed(() => page.props.theme || {});
-const isDark = computed(() => themeData.value?.isDark ?? false);
 
 const liked = ref(false);
 const likesCount = ref(props.initialLikesCount);
@@ -85,8 +80,8 @@ const formattedCount = computed(() => {
             overlay
                 ? (liked ? 'bg-black/50 backdrop-blur-md text-red-400' : 'bg-black/50 backdrop-blur-md text-white hover:text-red-400 hover:bg-black/70')
                 : (liked
-                    ? (isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-500')
-                    : (isDark ? 'bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-red-400' : 'bg-gray-100 text-gray-500 hover:text-red-500')),
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-theme-bg-hover text-theme-text-muted hover:text-red-400'),
             isLoading ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer hover:scale-105'
         ]"
     >

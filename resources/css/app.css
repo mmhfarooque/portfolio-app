@@ -1,3 +1,92 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    /* Dark Theme — Cinematic with warm amber accents */
+    [data-theme="dark"] {
+        --bg-primary: #0c0c0c;
+        --bg-secondary: #141414;
+        --bg-tertiary: #1c1c1c;
+        --bg-card: #121212;
+        --bg-hover: #242424;
+        --bg-input: #181818;
+
+        --text-primary: #f5f5f4;
+        --text-secondary: #a8a29e;
+        --text-muted: #78716c;
+        --text-inverse: #0c0c0c;
+
+        --border: #292524;
+        --border-light: #3d3835;
+
+        --accent: #d4a574;
+        --accent-hover: #c4956a;
+        --accent-light: rgba(212, 165, 116, 0.12);
+
+        --success: #86efac;
+        --warning: #fcd34d;
+        --error: #fca5a5;
+
+        --overlay: rgba(12, 12, 12, 0.85);
+        --shadow: rgba(0, 0, 0, 0.6);
+    }
+
+    /* Light Theme — Clean with blue accents */
+    [data-theme="light"] {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #f3f4f6;
+        --bg-card: #ffffff;
+        --bg-hover: #e5e7eb;
+        --bg-input: #ffffff;
+
+        --text-primary: #111827;
+        --text-secondary: #4b5563;
+        --text-muted: #9ca3af;
+        --text-inverse: #ffffff;
+
+        --border: #e5e7eb;
+        --border-light: #f3f4f6;
+
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --accent-light: rgba(37, 99, 235, 0.1);
+
+        --success: #059669;
+        --warning: #d97706;
+        --error: #dc2626;
+
+        --overlay: rgba(17, 24, 39, 0.5);
+        --shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Vintage Theme — Nostalgic analog film aesthetic */
+    [data-theme="retro"] {
+        --bg-primary: #f5f0e8;
+        --bg-secondary: #ebe4d9;
+        --bg-tertiary: #ddd5c8;
+        --bg-card: #faf7f2;
+        --bg-hover: #d4cbbf;
+        --bg-input: #faf7f2;
+
+        --text-primary: #2d2520;
+        --text-secondary: #5c4f45;
+        --text-muted: #8b7b6e;
+        --text-inverse: #f5f0e8;
+
+        --border: #c9bfb0;
+        --border-light: #ddd5c8;
+
+        --accent: #8b2942;
+        --accent-hover: #6d1f33;
+        --accent-light: rgba(139, 41, 66, 0.1);
+
+        --success: #2d5a27;
+        --warning: #926c15;
+        --error: #9a2c2c;
+
+        --overlay: rgba(45, 37, 32, 0.75);
+        --shadow: rgba(45, 37, 32, 0.15);
+    }
+}
