@@ -25,10 +25,10 @@ class SettingController extends Controller
     /**
      * Mask a secret key, showing only last 4 characters.
      */
-    private static function maskSecret(string $value): string
+    private static function maskSecret(?string $value): string
     {
-        if ($value === '' || strlen($value) <= 4) {
-            return $value !== '' ? '••••' : '';
+        if ($value === null || $value === '' || strlen($value) <= 4) {
+            return ($value !== null && $value !== '') ? '••••' : '';
         }
 
         return '••••••••' . substr($value, -4);
