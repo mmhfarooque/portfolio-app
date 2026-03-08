@@ -137,7 +137,7 @@ const submit = () => {
                     <!-- Cloudflare Turnstile -->
                     <div v-if="turnstileSiteKey" id="turnstile-container" class="flex justify-center"></div>
 
-                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" class="w-full px-6 py-3 bg-[var(--accent)] text-white font-semibold rounded-lg hover:bg-[var(--accent-hover)] disabled:opacity-50 transition">
+                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" :style="{ backgroundColor: 'var(--accent, #6366f1)', color: '#fff' }" class="w-full px-6 py-3 font-semibold rounded-lg disabled:opacity-50 transition hover:opacity-90">
                         {{ form.processing ? 'Sending...' : 'Send Message' }}
                     </button>
                 </form>
