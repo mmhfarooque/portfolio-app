@@ -1,25 +1,29 @@
 #!/bin/bash
 
 # Deploy script for mfaruk.com Photography Portfolio (HestiaCP)
-# Usage: ./deploy.sh [--quick]
 #
-# HestiaCP Structure:
-#   public_html/ = Laravel app root (contains app/, bootstrap/, vendor/, etc.)
-#   public_html/index.php, .htaccess = copied from public/ folder
-#   storage/ = symlinked to private/portfolio-app/storage
+# ARCHITECTURE (HestiaCP):
+#   public_html/ → SYMLINK to private/portfolio-app/public/
+#   private/portfolio-app/ → Laravel app root (git repo)
+#   Apache serves from public_html/ (which is public/ inside the app)
+#   index.php reads app-path.php → boots Laravel from private/portfolio-app/
+#
+# DEPLOYMENT METHOD: Git-based (push local → pull on server)
+#   - NEVER rsync local files to server
+#   - Server pulls from GitHub and builds assets there
+#
+# Usage: ./deploy.sh [--quick]
+#   --quick: Skip npm install/build (code-only changes)
 
 set -e
 
 SERVER="user@SERVER_IP"
-REMOTE_PATH="/home/mfaruk/web/mfaruk.com/public_html"
-LOCAL_PATH="$(dirname "$0")"
+APP_DIR="/home/mfaruk/web/mfaruk.com/private/portfolio-app"
 
-# Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
-
-echo -e "${GREEN}=== Deploying to mfaruk.com (HestiaCP) ===${NC}"
 
 # Parse arguments
 QUICK=false
@@ -29,71 +33,67 @@ for arg in "$@"; do
     esac
 done
 
-# Step 1: Sync Laravel app files (without --delete to preserve server-specific files)
-echo -e "${YELLOW}Syncing files to server...${NC}"
-rsync -avz \
-    --exclude='.git' \
-    --exclude='.gitignore' \
-    --exclude='node_modules' \
-    --exclude='storage' \
-    --exclude='vendor' \
-    --exclude='.env' \
-    --exclude='.env.*' \
-    --exclude='deploy.sh' \
-    --exclude='*.log' \
-    --exclude='.DS_Store' \
-    --exclude='public/storage' \
-    "$LOCAL_PATH/" "$SERVER:$REMOTE_PATH/"
-
-if [ "$QUICK" = true ]; then
-    echo -e "${GREEN}Quick deploy completed (files only)${NC}"
-    exit 0
+# Step 1: Ensure local changes are committed and pushed
+echo -e "${YELLOW}Checking local git status...${NC}"
+if [[ -n $(git status --porcelain) ]]; then
+    echo -e "${RED}ERROR: You have uncommitted changes. Commit and push first.${NC}"
+    git status --short
+    exit 1
 fi
 
-# Step 2: Run server-side setup for HestiaCP flat structure
-echo -e "${YELLOW}Running server-side commands...${NC}"
-ssh $SERVER << 'ENDSSH'
-cd /home/mfaruk/web/mfaruk.com/public_html
+LOCAL_COMMIT=$(git rev-parse HEAD)
+REMOTE_COMMIT=$(git rev-parse origin/main 2>/dev/null || echo "unknown")
 
-# Copy public folder contents to document root (HestiaCP serves from public_html directly)
-echo "Setting up HestiaCP flat structure..."
-cp -f public/.htaccess ./ 2>/dev/null || true
-cp -f public/index.php ./
-cp -f public/favicon.ico ./ 2>/dev/null || true
-cp -f public/robots.txt ./ 2>/dev/null || true
-cp -f public/.user.ini ./ 2>/dev/null || true
-cp -rf public/build ./ 2>/dev/null || true
+if [ "$LOCAL_COMMIT" != "$REMOTE_COMMIT" ]; then
+    echo -e "${RED}ERROR: Local and remote are out of sync. Push your changes first.${NC}"
+    echo "  Local:  $LOCAL_COMMIT"
+    echo "  Remote: $REMOTE_COMMIT"
+    exit 1
+fi
 
-# Create app-path.php to tell index.php where Laravel is (must point to private/portfolio-app)
-echo '<?php return "/home/mfaruk/web/mfaruk.com/private/portfolio-app";' > app-path.php
+echo -e "${GREEN}Local commit: $(git log --oneline -1)${NC}"
 
-# Ensure storage symlink points to storage/app/public (for web access to uploaded files)
-rm -f storage 2>/dev/null || true
-ln -sf /home/mfaruk/web/mfaruk.com/private/portfolio-app/storage/app/public storage
-
-# Install dependencies (production only)
-echo "Installing composer dependencies..."
-composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || composer install --no-dev --optimize-autoloader
-
-# Run migrations
-echo "Running migrations..."
-php artisan migrate --force
-
-# Clear and rebuild caches
-echo "Rebuilding caches..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-# Set correct permissions
-chown -R mfaruk:www-data .
-chmod -R 775 bootstrap/cache
-chmod -R 775 storage 2>/dev/null || true
-
-echo "Server-side setup complete!"
-ENDSSH
-
-echo -e "${GREEN}=== Deployment Complete ===${NC}"
+# Step 2: Deploy on server via SSH
 echo ""
-echo "Site: https://mfaruk.com"
+echo -e "${GREEN}=== Deploying to mfaruk.com ===${NC}"
+
+if [ "$QUICK" = true ]; then
+    echo -e "${YELLOW}Quick deploy (code only, no npm build)...${NC}"
+    ssh $SERVER "cd $APP_DIR \
+        && git fetch origin \
+        && git reset --hard origin/main \
+        && composer install --no-dev --optimize-autoloader --quiet \
+        && php artisan migrate --force \
+        && php artisan optimize:clear \
+        && php artisan config:cache \
+        && php artisan route:cache \
+        && echo '<?php opcache_reset(); echo \"cleared\"; ?>' > public/oc.php \
+        && curl -s http://mfaruk.com/oc.php \
+        && rm public/oc.php \
+        && echo '' \
+        && echo 'Deployed: '$(git log --oneline -1)"
+else
+    echo -e "${YELLOW}Full deploy (with npm build)...${NC}"
+    ssh $SERVER "cd $APP_DIR \
+        && git fetch origin \
+        && git reset --hard origin/main \
+        && composer install --no-dev --optimize-autoloader --quiet \
+        && php artisan migrate --force \
+        && php artisan optimize:clear \
+        && npm install --silent \
+        && npm run build \
+        && php artisan config:cache \
+        && php artisan route:cache \
+        && chown -R mfaruk:www-data storage bootstrap/cache public/build \
+        && chmod -R 775 storage bootstrap/cache \
+        && echo '<?php opcache_reset(); echo \"cleared\"; ?>' > public/oc.php \
+        && curl -s http://mfaruk.com/oc.php \
+        && rm public/oc.php \
+        && echo '' \
+        && echo 'Deployed: '$(git log --oneline -1)"
+fi
+
+echo ""
+echo -e "${GREEN}=== Deployment Complete ===${NC}"
+echo "Site:  https://mfaruk.com"
 echo "Admin: https://mfaruk.com/admin"
