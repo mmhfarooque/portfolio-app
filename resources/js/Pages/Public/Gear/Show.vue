@@ -1,5 +1,6 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     equipment: Object
@@ -72,7 +73,7 @@ const typeLabels = {
             </div>
 
             <!-- Story -->
-            <div v-if="equipment.story" class="mt-12 prose prose-lg max-w-none" v-html="equipment.story"></div>
+            <div v-if="equipment.story" class="mt-12 prose prose-lg max-w-none" v-html="sanitizeHtml(equipment.story)"></div>
 
             <!-- Specs -->
             <div v-if="equipment.specs && Object.keys(equipment.specs).length > 0" class="mt-12">

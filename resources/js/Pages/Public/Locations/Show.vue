@@ -1,5 +1,6 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     location: Object,
@@ -35,7 +36,7 @@ const props = defineProps({
             </div>
 
             <!-- Story -->
-            <div v-if="location.story" class="prose prose-lg max-w-none mb-12" v-html="location.story"></div>
+            <div v-if="location.story" class="prose prose-lg max-w-none mb-12" v-html="sanitizeHtml(location.story)"></div>
 
             <!-- Photos -->
             <section v-if="photos.length > 0" class="mb-12">

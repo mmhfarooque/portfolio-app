@@ -21,8 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'stripe/webhook',
         ]);
 
-        // Add referral tracking and Inertia to web routes
+        // Add security headers, referral tracking and Inertia to web routes
         $middleware->web(append: [
+            \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\TrackReferrals::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);

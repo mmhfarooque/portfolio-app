@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 import LikeButton from '@/Components/Photo/LikeButton.vue';
 import CommentSection from '@/Components/Photo/CommentSection.vue';
 
@@ -307,7 +308,7 @@ const copyLink = () => {
                             <div
                                 class="prose prose-lg max-w-none leading-relaxed [&>p]:mb-4 [&>p:last-child]:mb-0"
                                 :class="isDark ? 'prose-invert text-[var(--text-secondary)]' : 'text-[var(--text-secondary,#57534e)]'"
-                                v-html="photo.story"
+                                v-html="sanitizeHtml(photo.story)"
                             ></div>
                         </div>
 

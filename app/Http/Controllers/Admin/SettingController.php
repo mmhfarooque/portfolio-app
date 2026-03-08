@@ -23,6 +23,29 @@ class SettingController extends Controller
     ) {}
 
     /**
+     * Mask a secret key, showing only last 4 characters.
+     */
+    private static function maskSecret(string $value): string
+    {
+        if ($value === '' || strlen($value) <= 4) {
+            return $value !== '' ? '••••' : '';
+        }
+
+        return '••••••••' . substr($value, -4);
+    }
+
+    /**
+     * Secret key fields that should not be overwritten with masked values.
+     */
+    private const SECRET_FIELDS = [
+        'google_ai_api_key',
+        'openai_api_key',
+        'claude_api_key',
+        'r2_secret_access_key',
+        'turnstile_secret_key',
+    ];
+
+    /**
      * Display the settings page.
      */
     public function index(): Response
@@ -54,27 +77,32 @@ class SettingController extends Controller
             'image' => Setting::get('watermark_image'),
         ];
 
-        // AI settings
+        // AI settings - mask secret keys, only send last 4 chars
         $aiSettings = [
             'enabled' => Setting::get('ai_enabled', '0') === '1',
             'provider' => Setting::get('ai_provider', 'google'),
-            'googleKey' => Setting::get('google_ai_api_key', ''),
-            'openaiKey' => Setting::get('openai_api_key', ''),
-            'claudeKey' => Setting::get('claude_api_key', ''),
+            'googleKey' => self::maskSecret(Setting::get('google_ai_api_key', '')),
+            'openaiKey' => self::maskSecret(Setting::get('openai_api_key', '')),
+            'claudeKey' => self::maskSecret(Setting::get('claude_api_key', '')),
+            'googleKeyConfigured' => Setting::get('google_ai_api_key', '') !== '',
+            'openaiKeyConfigured' => Setting::get('openai_api_key', '') !== '',
+            'claudeKeyConfigured' => Setting::get('claude_api_key', '') !== '',
             'autoTitle' => Setting::get('ai_auto_title', '1') === '1',
             'autoDescription' => Setting::get('ai_auto_description', '1') === '1',
         ];
 
-        // Cloudflare settings
+        // Cloudflare settings - mask secret keys
         $cloudflareSettings = [
             'r2Enabled' => Setting::get('r2_enabled', '0') === '1',
             'r2AccessKeyId' => Setting::get('r2_access_key_id', ''),
-            'r2SecretAccessKey' => Setting::get('r2_secret_access_key', ''),
+            'r2SecretAccessKey' => self::maskSecret(Setting::get('r2_secret_access_key', '')),
+            'r2SecretAccessKeyConfigured' => Setting::get('r2_secret_access_key', '') !== '',
             'r2Bucket' => Setting::get('r2_bucket', 'photography'),
             'r2Endpoint' => Setting::get('r2_endpoint', ''),
             'turnstileEnabled' => Setting::get('turnstile_enabled', '0') === '1',
             'turnstileSiteKey' => Setting::get('turnstile_site_key', ''),
-            'turnstileSecretKey' => Setting::get('turnstile_secret_key', ''),
+            'turnstileSecretKey' => self::maskSecret(Setting::get('turnstile_secret_key', '')),
+            'turnstileSecretKeyConfigured' => Setting::get('turnstile_secret_key', '') !== '',
         ];
 
         return Inertia::render('Admin/Settings/Index', [
@@ -114,6 +142,11 @@ class SettingController extends Controller
         foreach ($settings as $key => $value) {
             // Skip media picker hidden inputs - they're handled below
             if (str_ends_with($key, '_from_media')) {
+                continue;
+            }
+
+            // Skip secret fields if the value is still the masked placeholder
+            if (in_array($key, self::SECRET_FIELDS) && is_string($value) && str_starts_with($value, '••')) {
                 continue;
             }
 

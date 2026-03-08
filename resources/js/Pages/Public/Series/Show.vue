@@ -1,5 +1,6 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     series: Object,
@@ -36,7 +37,7 @@ const props = defineProps({
             </div>
 
             <!-- Story -->
-            <div v-if="series.story" class="prose prose-lg max-w-none mb-12" v-html="series.story"></div>
+            <div v-if="series.story" class="prose prose-lg max-w-none mb-12" v-html="sanitizeHtml(series.story)"></div>
 
             <!-- Photos Grid -->
             <section>

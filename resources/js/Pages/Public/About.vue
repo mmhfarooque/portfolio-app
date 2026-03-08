@@ -1,6 +1,7 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     content: String
@@ -23,7 +24,7 @@ const props = defineProps({
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <h1 class="text-3xl font-bold text-gray-900 mb-8">About</h1>
 
-            <div v-if="content" class="prose prose-lg max-w-none" v-html="content"></div>
+            <div v-if="content" class="prose prose-lg max-w-none" v-html="sanitizeHtml(content)"></div>
 
             <div v-else class="text-center py-16">
                 <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

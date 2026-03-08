@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     profile: Object,
@@ -261,7 +262,7 @@ const whatsappNumber = (num) => num ? num.replace(/[^0-9]/g, '') : '';
                                 class="prose max-w-none"
                                 :class="isDark ? 'text-[var(--text-secondary)] prose-invert' : 'text-[var(--text-secondary,#57534e)]'"
                             >
-                                <div v-if="profile.bio" v-html="profile.bio"></div>
+                                <div v-if="profile.bio" v-html="sanitizeHtml(profile.bio)"></div>
                                 <p v-else :class="isDark ? 'text-[var(--text-muted)] italic' : 'text-[var(--text-muted,#a8a29e)] italic'">
                                     Your bio will appear here. Go to Admin > Front Page to edit your bio content.
                                 </p>

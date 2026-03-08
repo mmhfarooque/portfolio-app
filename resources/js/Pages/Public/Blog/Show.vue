@@ -1,6 +1,7 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     post: Object,
@@ -56,7 +57,7 @@ const props = defineProps({
             </header>
 
             <!-- Content -->
-            <div class="prose prose-lg max-w-none mb-12" v-html="post.content"></div>
+            <div class="prose prose-lg max-w-none mb-12" v-html="sanitizeHtml(post.content)"></div>
 
             <!-- Tags -->
             <div v-if="post.tags.length > 0" class="flex flex-wrap gap-2 mb-12">
