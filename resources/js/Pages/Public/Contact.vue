@@ -13,6 +13,10 @@ const turnstileToken = ref('');
 const turnstileWidgetId = ref(null);
 const messageSent = ref(false);
 
+// Get theme accent color directly from page props
+const accentColor = computed(() => page.props.theme?.colors?.accent || '#d4a574');
+const accentHover = computed(() => page.props.theme?.colors?.['accent-hover'] || '#c4956a');
+
 const form = useForm({
     name: '',
     email: '',
@@ -137,7 +141,7 @@ const submit = () => {
                     <!-- Cloudflare Turnstile -->
                     <div v-if="turnstileSiteKey" id="turnstile-container" class="flex justify-center"></div>
 
-                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" :style="{ backgroundColor: 'var(--accent, #6366f1)', color: '#fff' }" class="w-full px-6 py-3 font-semibold rounded-lg disabled:opacity-50 transition hover:opacity-90">
+                    <button type="submit" :disabled="form.processing || (turnstileSiteKey && !turnstileToken)" :style="{ backgroundColor: accentColor, color: '#fff' }" class="w-full px-6 py-3 font-semibold rounded-lg disabled:opacity-50 transition hover:opacity-90">
                         {{ form.processing ? 'Sending...' : 'Send Message' }}
                     </button>
                 </form>
