@@ -5,6 +5,60 @@
 
 ---
 
+## DEPLOYMENT — READ THIS FIRST!
+
+### HestiaCP Architecture (CRITICAL)
+```
+/home/mfaruk/web/mfaruk.com/
+├── private/portfolio-app/          ← LARAVEL APP ROOT (git repo)
+│   ├── app/, config/, routes/      ← PHP source code
+│   ├── resources/                  ← Vue/JS/CSS source
+│   ├── vendor/, node_modules/      ← Dependencies
+│   ├── storage/                    ← Logs, cache, uploads
+│   ├── .env                        ← Production config
+│   └── public/                     ← Web-servable files + Vite build output
+│       ├── index.php               ← Laravel entry point
+│       ├── .htaccess               ← Apache rewrites
+│       ├── build/                  ← Vite compiled assets (gitignored, built on server)
+│       └── storage → symlink       ← Points to storage/app/public
+│
+└── public_html/ → SYMLINK to private/portfolio-app/public/
+    (Apache serves from here — it IS the public/ folder)
+```
+
+### DEPLOYMENT RULES — NEVER BREAK THESE
+1. **NEVER rsync/copy local files to server** — git-based deploy ONLY
+2. **NEVER put Laravel source (app/, config/, vendor/) in public_html** — it's a symlink to public/
+3. **Build assets ON THE SERVER** — `npm run build` outputs to public/build/ which IS public_html/build/
+4. **No cp needed for build/** — public_html IS public/, they're the same directory via symlink
+
+### Deploy Workflow
+```bash
+# LOCAL: commit and push
+git add . && git commit -m "message" && git push origin main
+
+# DEPLOY: run from local (SSHs to server, pulls from git, builds there)
+./deploy.sh            # Full deploy (with npm build)
+./deploy.sh --quick    # Code-only (skip npm build)
+
+# OR manually on server:
+ssh user@SERVER_IP
+cd /home/mfaruk/web/mfaruk.com/private/portfolio-app
+git pull origin main
+composer install --no-dev --optimize-autoloader
+npm install && npm run build
+php artisan migrate --force
+php artisan config:cache && php artisan route:cache
+chown -R mfaruk:www-data storage bootstrap/cache public/build
+```
+
+### Server-side deploy script (alternative):
+```bash
+ssh user@SERVER_IP "/home/mfaruk/deploy.sh"
+```
+
+---
+
 ## QUICK START (Resume Session)
 
 ```bash
@@ -18,7 +72,7 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 ./deploy.sh
 ```
 
-### Current Photos (Jan 2026)
+### Current Photos (Feb 2026)
 | ID | Slug | Category | Gallery |
 |----|------|----------|---------|
 | 1 | monpura-sea-beach | Seascapes & Beaches | Coastal Collection |
@@ -28,6 +82,7 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 | 14 | monsoon-view-po-plar-beach-koh-chang | Seascapes & Beaches | Thailand Collection |
 | 19 | golden-hour-monpura-island-bangladesh | Sunsets & Golden Hour | Coastal Collection |
 | 20 | into-the-mist-suspension-bridge-goechala-trek | Landscapes | Himalaya Collection |
+| 21 | first-light-kanchenjunga-goechala-viewpoint-sikkim | Landscapes | Himalaya Collection |
 
 ### Available Categories
 | ID | Name | Slug |
@@ -50,52 +105,10 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 
 ## TRIGGER COMMANDS
 
-### `/photo-seo [URL]`
-When user shares a photo URL and says `/photo-seo`, execute this workflow:
-
-1. **Extract photo slug** from URL (e.g., `https://mfaruk.com/photo/my-photo` → `my-photo`)
-2. **Fetch photo data** from database including GPS coordinates
-3. **Research location** if GPS exists (use coordinates to identify place)
-4. **Generate SEO content** following these STRICT limits:
-
-| Field | Limit | Notes |
-|-------|-------|-------|
-| `title` | No limit | Descriptive, includes location |
-| `slug` | No limit | lowercase-with-hyphens, SEO-friendly |
-| `description` | No limit | What the photo shows, 1-3 sentences |
-| `seo_title` | **70 chars MAX** | Primary Keyword \| Secondary |
-| `meta_description` | **160 chars MAX** | Compelling, keyword-rich |
-| `location_name` | No limit | Full location with country |
-| `story` | No limit | HTML `<p>` tags, 2-4 paragraphs, PERSONAL voice |
-
-### WRITING STYLE (Critical!)
-- Write like a **photographer sharing their work**, not a travel brochure
-- **AVOID**: "extraordinary", "stunning", "breathtaking", "world-renowned", "internationally acclaimed"
-- **AVOID**: "captured with [camera]", "the exceptional lens", "Instagram-worthy"
-- **USE**: Personal observations, what drew you to the shot, the moment, the feeling
-- **TONE**: Conversational, authentic, like talking to a friend about your trip
-
-5. **Add 10-15 tags** related to: location, subject, style, mood, season
-6. **Set status** to `published` if ready
-7. **Verify** all character counts before saving
-
-**CRITICAL**: If SEO title > 70 or meta_description > 160, the photo won't display properly!
-
-### `/deploy`
-Quick deploy to production:
-```bash
-./deploy.sh
-```
-
-### `/status`
-Check site status and recent errors.
-
----
-
 ### `/content [photo-id or URL]`
 **Complete SEO & Content Package for a Photo**
 
-When user says `/content` with a photo ID or URL, execute this COMPLETE workflow:
+When user shares a photo URL, ID, or says `/content`, execute this COMPLETE workflow:
 
 #### Step 1: Fetch Photo Data
 ```php
@@ -186,10 +199,11 @@ $gallery = App\Models\Gallery::create([
 Before saving, verify the story:
 - [ ] Uses "I", "me", "my" - first person perspective
 - [ ] Describes personal experience and feelings
-- [ ] NO words: "stunning", "breathtaking", "extraordinary", "vibrant"
-- [ ] NO phrases: "captured with", "Instagram-worthy", "must-see"
+- [ ] NO words: "stunning", "breathtaking", "extraordinary", "vibrant", "world-renowned", "internationally acclaimed"
+- [ ] NO phrases: "captured with", "Instagram-worthy", "must-see", "the exceptional lens"
 - [ ] Sounds like talking to a friend, not a travel brochure
 - [ ] Mentions specific details (time of day, weather, what you were doing)
+- [ ] **TONE**: Conversational, authentic — personal observations, what drew you to the shot, the moment, the feeling
 
 #### Step 7: SEO Validation
 Before saving, verify:
@@ -250,6 +264,15 @@ Report back:
 - Featured status for homepage display
 - Ready for social sharing
 
+### `/deploy`
+Quick deploy to production:
+```bash
+./deploy.sh
+```
+
+### `/status`
+Check site status and recent errors.
+
 ---
 
 ## PROJECT OVERVIEW
@@ -261,8 +284,8 @@ Report back:
 **Hosting**: HestiaCP on DigitalOcean (SERVER_IP)
 **Git Repo**: github.com/mmhfarooque/portfolio-app (main branch)
 
-### Current Stats (as of Jan 4, 2026)
-- **Photos**: 7 published (all with SEO content, categories, galleries, and personal stories)
+### Current Stats (as of Feb 14, 2026)
+- **Photos**: 8 published (all with SEO content, categories, galleries, and personal stories)
 - **Categories**: 5 (Seascapes, Sunsets, Landscapes, Rivers, Flora)
 - **Galleries**: 4 (Coastal, Kashmir, Thailand, Himalaya)
 - **Contact Email**: farooque7@gmail.com (receives form submissions)
@@ -656,6 +679,8 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
+| 2026-02-14 | Added SEO content for photo #21 (Kanchenjunga sunrise from Goechala Viewpoint 1, Sikkim) |
+| 2026-02-14 | Merged `/photo-seo` and `/content` into single unified `/content` command |
 | 2026-01-04 | **Added per-photo watermark disable feature** - individual photos can override global watermark |
 | 2026-01-04 | Fixed Settings page bug where quality slider reverted to 82% (wrong group in database) |
 | 2026-01-04 | Fixed bulk optimization to always override individual photo custom settings |
@@ -779,5 +804,5 @@ npm run build                    # Rebuild assets
 
 ---
 
-*Last Updated: January 4, 2026*
+*Last Updated: February 14, 2026*
 *Update this file after every significant change*
