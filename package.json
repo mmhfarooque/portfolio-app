@@ -7,30 +7,28 @@
         "dev": "vite"
     },
     "devDependencies": {
-        "@tailwindcss/forms": "^0.5.2",
-        "@tailwindcss/vite": "^4.0.0",
-        "autoprefixer": "^10.4.2",
-        "axios": "^1.11.0",
-        "concurrently": "^9.0.1",
-        "laravel-vite-plugin": "^2.0.0",
-        "postcss": "^8.4.31",
-        "tailwindcss": "^3.1.0",
-        "vite": "^7.0.7"
+        "@tailwindcss/forms": "^0.5.11",
+        "@tailwindcss/vite": "^4.2.1",
+        "autoprefixer": "^10.4.27",
+        "axios": "^1.13.6",
+        "concurrently": "^9.2.1",
+        "laravel-vite-plugin": "^2.1.0",
+        "postcss": "^8.5.8",
+        "tailwindcss": "^3.4.19",
+        "vite": "^7.3.1"
     },
     "dependencies": {
         "@editorjs/delimiter": "^1.4.2",
-        "@editorjs/editorjs": "^2.31.0",
+        "@editorjs/editorjs": "^2.31.5",
         "@editorjs/header": "^2.8.8",
         "@editorjs/image": "^2.10.3",
         "@editorjs/list": "^2.0.9",
         "@editorjs/paragraph": "^2.11.7",
         "@editorjs/quote": "^2.7.6",
-        "@inertiajs/vue3": "^2.3.4",
-        "@vitejs/plugin-vue": "^6.0.3",
-        "dompurify": "^3.3.2",
-        "grapesjs": "^0.22.14",
-        "grapesjs-preset-webpage": "^1.0.3",
-        "vue": "^3.5.26",
-        "ziggy-js": "^2.6.0"
+        "@inertiajs/vue3": "^2.3.18",
+        "@vitejs/plugin-vue": "^6.0.5",
+        "dompurify": "^3.3.3",
+        "vue": "^3.5.30",
+        "ziggy-js": "^2.6.2"
     }
 }

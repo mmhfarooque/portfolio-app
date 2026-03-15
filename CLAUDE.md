@@ -679,6 +679,7 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
+| 2026-03-08 | **Added standalone backup & restore system** — `tools/backup.php`, docs at `docs/BACKUP_RESTORE.md` |
 | 2026-02-14 | Added SEO content for photo #21 (Kanchenjunga sunrise from Goechala Viewpoint 1, Sikkim) |
 | 2026-02-14 | Merged `/photo-seo` and `/content` into single unified `/content` command |
 | 2026-01-04 | **Added per-photo watermark disable feature** - individual photos can override global watermark |
@@ -783,6 +784,30 @@ npm run build                    # Rebuild assets
 **Email**: farooque7@gmail.com
 **Domain**: mfaruk.com
 **GitHub**: github.com/mmhfarooque/portfolio-app
+
+---
+
+## BACKUP & RESTORE
+
+**Full documentation:** `docs/BACKUP_RESTORE.md`
+
+Standalone backup system at `/home/mfaruk/backups/backup.php` — works independently of Laravel.
+
+```bash
+# From local machine (or SSH first)
+ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php backup"        # Full backup
+ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php backup --db-only"  # DB only
+ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php list"          # List backups
+ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php restore <name> --dry-run"  # Preview restore
+ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php restore <name> --force"    # Emergency restore
+ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php cleanup --keep=5"          # Prune old backups
+```
+
+**Backs up:** MySQL database, `.env`, storage photos, Vite build, HestiaCP configs, composer files
+**Does NOT backup:** App source (in git), vendor (composer install), node_modules, R2 originals (in cloud)
+
+Git-tracked files: `tools/backup.php` (script), `tools/backup.conf.example.php` (config template)
+Server files: `/home/mfaruk/backups/backup.php`, `/home/mfaruk/backups/backup.conf.php`
 
 ---
 
