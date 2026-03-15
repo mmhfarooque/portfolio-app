@@ -38,13 +38,13 @@ class WeeklyStatsEmail extends Command
             'new_comments' => PhotoComment::where('created_at', '>=', $since)->count(),
             'pending_comments' => PhotoComment::where('status', 'pending')->count(),
             'new_subscribers' => NewsletterSubscriber::where('created_at', '>=', $since)
-                ->whereNotNull('verified_at')
+                ->whereNotNull('confirmed_at')
                 ->count(),
-            'total_subscribers' => NewsletterSubscriber::whereNotNull('verified_at')
+            'total_subscribers' => NewsletterSubscriber::whereNotNull('confirmed_at')
                 ->whereNull('unsubscribed_at')
                 ->count(),
             'new_contacts' => Contact::where('created_at', '>=', $since)->count(),
-            'unread_contacts' => Contact::where('status', 'new')->count(),
+            'unread_contacts' => Contact::whereNull('read_at')->count(),
             'total_photos' => Photo::published()->count(),
         ];
 
