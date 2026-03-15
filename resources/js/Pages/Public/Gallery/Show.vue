@@ -9,12 +9,21 @@ import CommentSection from '@/Components/Photo/CommentSection.vue';
 
 const props = defineProps({
     photo: Object,
+    nearbyPhotos: Array,
     relatedPhotos: Array,
     previousPhoto: Object,
     nextPhoto: Object
 });
 
 const page = usePage();
+
+// Extract region name from location (e.g., "Koh Chang, Thailand" → "Thailand", "Monpura, Bangladesh" → "Bangladesh")
+const nearbyRegion = computed(() => {
+    if (!props.photo.location_name) return 'this Area';
+    const parts = props.photo.location_name.split(',').map(s => s.trim());
+    // Use the last part (country) or second-to-last (region) for broader area
+    return parts.length >= 2 ? parts[parts.length - 1] : parts[0];
+});
 
 // Sticky sidebar handling
 const sidebarRef = ref(null);
@@ -514,6 +523,47 @@ const copyLink = () => {
                                 <div ref="mapContainer" class="h-48 w-full"></div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Nearby Photos (by GPS location) -->
+                <div v-if="nearbyPhotos?.length > 0" class="mt-16 pt-12 border-t border-theme-border">
+                    <div class="flex items-center justify-between mb-8">
+                        <h2 class="text-2xl font-bold text-theme-text-primary">
+                            More from {{ nearbyRegion }}
+                        </h2>
+                        <Link
+                            :href="route('photos.map')"
+                            class="text-sm font-medium transition-colors text-theme-accent hover:text-theme-accent-hover"
+                        >
+                            View Map
+                        </Link>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                        <Link
+                            v-for="nearby in nearbyPhotos"
+                            :key="nearby.id"
+                            :href="route('photos.show', nearby.slug)"
+                            class="group"
+                        >
+                            <div
+                                class="aspect-square rounded-2xl overflow-hidden ring-1 transition-all duration-300 group-hover:ring-2 ring-theme-border group-hover:ring-theme-accent"
+                                :style="{ backgroundColor: nearby.dominant_color || 'var(--bg-secondary)' }"
+                            >
+                                <img
+                                    :src="`/storage/${nearby.thumbnail_path}`"
+                                    :alt="nearby.title"
+                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    loading="lazy"
+                                />
+                            </div>
+                            <p class="text-sm font-medium mt-3 truncate transition-colors text-theme-text-secondary group-hover:text-theme-text-primary">
+                                {{ nearby.title }}
+                            </p>
+                            <p v-if="nearby.distance_km > 0" class="text-xs text-theme-text-muted mt-0.5">
+                                {{ nearby.distance_km < 1 ? 'Less than 1' : nearby.distance_km }} km away
+                            </p>
+                        </Link>
                     </div>
                 </div>
 

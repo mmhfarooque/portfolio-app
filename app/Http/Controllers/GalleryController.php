@@ -211,9 +211,32 @@ class GalleryController extends Controller
             ->orderBy('id', 'asc')
             ->first(['id', 'title', 'slug', 'thumbnail_path']);
 
-        // Get related photos (same category or tags)
+        // Get nearby photos using Haversine formula (tiered: 100km → 500km)
+        $nearbyPhotos = collect();
+        if ($photo->latitude && $photo->longitude) {
+            $lat = $photo->latitude;
+            $lng = $photo->longitude;
+            $haversine = "(6371 * acos(LEAST(1, cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))) AS distance_km";
+
+            foreach ([100, 500] as $radius) {
+                $nearbyPhotos = Photo::published()
+                    ->where('id', '!=', $photo->id)
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->selectRaw("id, title, slug, thumbnail_path, dominant_color, location_name, latitude, longitude, $haversine", [$lat, $lng, $lat])
+                    ->having('distance_km', '<', $radius)
+                    ->orderBy('distance_km')
+                    ->take(6)
+                    ->get();
+
+                if ($nearbyPhotos->isNotEmpty()) break;
+            }
+        }
+
+        // Get related photos (same category or tags), excluding nearby ones
+        $excludeIds = $nearbyPhotos->pluck('id')->push($photo->id)->toArray();
         $relatedPhotos = Photo::published()
-            ->where('id', '!=', $photo->id)
+            ->whereNotIn('id', $excludeIds)
             ->where(function ($query) use ($photo) {
                 if ($photo->category_id) {
                     $query->where('category_id', $photo->category_id);
@@ -224,7 +247,7 @@ class GalleryController extends Controller
             })
             ->inRandomOrder()
             ->take(6)
-            ->get(['id', 'title', 'slug', 'thumbnail_path']);
+            ->get(['id', 'title', 'slug', 'thumbnail_path', 'dominant_color']);
 
         return Inertia::render('Public/Gallery/Show', [
             'photo' => [
@@ -263,11 +286,21 @@ class GalleryController extends Controller
                     'slug' => $tag->slug,
                 ]),
             ],
+            'nearbyPhotos' => $nearbyPhotos->map(fn($p) => [
+                'id' => $p->id,
+                'title' => $p->title,
+                'slug' => $p->slug,
+                'thumbnail_path' => $p->thumbnail_path,
+                'dominant_color' => $p->dominant_color,
+                'location_name' => $p->location_name,
+                'distance_km' => round($p->distance_km, 1),
+            ]),
             'relatedPhotos' => $relatedPhotos->map(fn($p) => [
                 'id' => $p->id,
                 'title' => $p->title,
                 'slug' => $p->slug,
                 'thumbnail_path' => $p->thumbnail_path,
+                'dominant_color' => $p->dominant_color,
             ]),
             'previousPhoto' => $previousPhoto,
             'nextPhoto' => $nextPhoto,
