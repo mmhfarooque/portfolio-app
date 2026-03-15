@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
@@ -35,6 +35,33 @@ watch(search, (value) => {
 const clearFilters = () => {
     router.get(route('photos.index'));
 };
+
+// Intersection Observer for lazy loading images with fade-in
+const galleryGrid = ref(null);
+let observer = null;
+
+const setupObserver = () => {
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target.querySelector('img[data-src]');
+                if (img) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    img.onload = () => entry.target.classList.add('loaded');
+                }
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '200px' });
+
+    if (galleryGrid.value) {
+        galleryGrid.value.querySelectorAll('.photo-card').forEach(el => observer.observe(el));
+    }
+};
+
+onMounted(() => setupObserver());
+onUnmounted(() => observer?.disconnect());
 </script>
 
 <template>
@@ -107,19 +134,18 @@ const clearFilters = () => {
             </div>
 
             <!-- Photos Grid -->
-            <div v-if="photos.data.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div v-if="photos.data.length > 0" ref="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <Link
                     v-for="photo in photos.data"
                     :key="photo.id"
                     :href="route('photos.show', photo.slug)"
-                    class="group"
+                    class="group photo-card"
                 >
                     <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
                         <img
-                            :src="`/storage/${photo.thumbnail_path}`"
+                            :data-src="`/storage/${photo.thumbnail_path}`"
                             :alt="photo.title"
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading="lazy"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 opacity-0"
                         />
                         <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                             <div class="absolute bottom-0 left-0 right-0 p-3">
@@ -147,3 +173,9 @@ const clearFilters = () => {
         </div>
     </PublicLayout>
 </template>
+
+<style scoped>
+.photo-card.loaded img {
+    opacity: 1;
+}
+</style>
