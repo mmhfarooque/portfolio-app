@@ -89,6 +89,20 @@ const applyFilters = () => {
     });
 };
 
+const toggleFeatured = (photo) => {
+    fetch(route('admin.photos.toggle-featured', photo.id), {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+            'Accept': 'application/json',
+        },
+    })
+    .then(res => res.json())
+    .then(data => {
+        photo.is_featured = data.is_featured;
+    });
+};
+
 const toggleSelectAll = (event) => {
     if (event.target.checked) {
         selectedPhotos.value = props.photos.data.map(p => p.id);
@@ -245,9 +259,20 @@ const getStatusBadgeClass = (status) => {
                                 />
                             </div>
 
-                            <!-- Featured Badge -->
-                            <div v-if="photo.is_featured" class="absolute top-2 right-2 z-10">
-                                <span class="bg-yellow-400 text-yellow-900 text-xs font-medium px-2 py-0.5 rounded">Featured</span>
+                            <!-- Featured Toggle -->
+                            <div class="absolute top-2 right-2 z-10">
+                                <button
+                                    @click.prevent="toggleFeatured(photo)"
+                                    :class="[
+                                        'text-xs font-medium px-2 py-0.5 rounded cursor-pointer transition-all',
+                                        photo.is_featured
+                                            ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                                            : 'bg-gray-200/80 text-gray-500 opacity-0 group-hover:opacity-100 hover:bg-yellow-300 hover:text-yellow-900'
+                                    ]"
+                                    :title="photo.is_featured ? 'Remove from featured' : 'Add to featured'"
+                                >
+                                    {{ photo.is_featured ? '★ Featured' : '☆ Feature' }}
+                                </button>
                             </div>
 
                             <!-- Photo -->

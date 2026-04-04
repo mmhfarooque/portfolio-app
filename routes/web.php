@@ -206,6 +206,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('photos/{photo}/edit', [AdminPhotoController::class, 'edit'])->name('photos.edit');
     Route::put('photos/{photo}', [AdminPhotoController::class, 'update'])->name('photos.update');
     Route::patch('photos/{photo}/quick', [AdminPhotoController::class, 'quickUpdate'])->name('photos.quick-update');
+    Route::post('photos/{photo}/toggle-featured', [AdminPhotoController::class, 'toggleFeatured'])->name('photos.toggle-featured');
     Route::delete('photos/{photo}', [AdminPhotoController::class, 'destroy'])->name('photos.destroy');
     Route::post('photos/bulk-action', [AdminPhotoController::class, 'bulkAction'])->name('photos.bulk-action');
     Route::post('photos/bulk-update', [AdminPhotoController::class, 'bulkUpdate'])->name('photos.bulk-update');

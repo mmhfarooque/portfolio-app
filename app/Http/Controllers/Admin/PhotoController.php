@@ -408,6 +408,18 @@ class PhotoController extends Controller
     /**
      * Remove the specified photo.
      */
+    /**
+     * Toggle featured status for a photo.
+     */
+    public function toggleFeatured(Photo $photo)
+    {
+        $photo->update(['is_featured' => !$photo->is_featured]);
+
+        return response()->json([
+            'is_featured' => $photo->is_featured,
+        ]);
+    }
+
     public function destroy(Photo $photo)
     {
         $this->authorize('delete', $photo);
