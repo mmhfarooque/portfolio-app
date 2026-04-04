@@ -10,7 +10,13 @@ const props = defineProps({
     viewsChartData: Object,
     recentPhotos: Array,
     mostViewedPhotos: Array,
-    recentActivity: Array
+    recentActivity: Array,
+    gscData: Object
+});
+
+const gscMaxImpressions = computed(() => {
+    const values = Object.values(props.gscData?.clicksOverTime || {});
+    return Math.max(...values.map(v => v.impressions), 1);
 });
 
 const maxViews = computed(() => {
@@ -270,6 +276,118 @@ const getActivityColor = (type) => {
                         <div class="flex justify-between mt-2 text-xs text-gray-400">
                             <span>{{ chartDates.start }}</span>
                             <span>{{ chartDates.end }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Search Console -->
+                <div v-if="gscData" class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+                    <div class="p-6 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                </svg>
+                                <h3 class="font-semibold text-gray-900">Search Console (Last 28 Days)</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Link v-if="gscData.connected" :href="route('admin.settings.refresh-gsc')" class="text-xs text-blue-600 hover:text-blue-800">Refresh</Link>
+                                <Link v-if="!gscData.connected" :href="route('admin.settings.index')" class="text-sm text-blue-600 hover:text-blue-800">Connect</Link>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Not connected state -->
+                    <div v-if="!gscData.connected" class="p-6 text-center">
+                        <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                        <p class="text-sm text-gray-500 mb-2">Connect Google Search Console to see search performance</p>
+                        <Link :href="route('admin.settings.index')" class="text-sm text-blue-600 hover:underline">Go to Settings</Link>
+                    </div>
+
+                    <!-- Connected with data -->
+                    <div v-else class="p-6">
+                        <!-- Error state -->
+                        <div v-if="gscData.error" class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">{{ gscData.error }}</div>
+
+                        <!-- Summary cards -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-xs font-medium text-blue-600 uppercase">Clicks</p>
+                                <p class="text-2xl font-bold text-blue-900 mt-1">{{ formatNumber(gscData.summary?.clicks) }}</p>
+                            </div>
+                            <div class="bg-purple-50 rounded-lg p-4">
+                                <p class="text-xs font-medium text-purple-600 uppercase">Impressions</p>
+                                <p class="text-2xl font-bold text-purple-900 mt-1">{{ formatNumber(gscData.summary?.impressions) }}</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <p class="text-xs font-medium text-green-600 uppercase">CTR</p>
+                                <p class="text-2xl font-bold text-green-900 mt-1">{{ gscData.summary?.ctr || 0 }}%</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-4">
+                                <p class="text-xs font-medium text-amber-600 uppercase">Avg Position</p>
+                                <p class="text-2xl font-bold text-amber-900 mt-1">{{ gscData.summary?.position || 0 }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Impressions chart -->
+                        <div v-if="Object.keys(gscData.clicksOverTime || {}).length > 0" class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Search Impressions</h4>
+                            <div class="flex items-end justify-between h-24 gap-px">
+                                <div
+                                    v-for="(data, date) in gscData.clicksOverTime"
+                                    :key="date"
+                                    class="flex-1 group relative"
+                                >
+                                    <div
+                                        class="w-full bg-purple-400 rounded-t transition-all hover:bg-purple-500"
+                                        :style="{ height: `${(data.impressions / gscMaxImpressions) * 100}%`, minHeight: data.impressions > 0 ? '2px' : '0' }"
+                                    ></div>
+                                    <div class="hidden group-hover:block absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                                        {{ formatDate(date) }}: {{ data.impressions }} imp, {{ data.clicks }} clicks
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top queries and pages -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Top Queries -->
+                            <div v-if="gscData.topQueries?.length > 0">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Top Search Queries</h4>
+                                <div class="space-y-2">
+                                    <div v-for="q in gscData.topQueries" :key="q.query" class="flex items-center justify-between py-1.5 border-b border-gray-50">
+                                        <span class="text-sm text-gray-800 truncate flex-1 mr-4">{{ q.query }}</span>
+                                        <div class="flex items-center gap-3 text-xs text-gray-500 whitespace-nowrap">
+                                            <span :title="'Clicks'">{{ q.clicks }} clicks</span>
+                                            <span :title="'Position'" class="text-gray-400">pos {{ q.position }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Top Pages -->
+                            <div v-if="gscData.topPages?.length > 0">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Top Pages</h4>
+                                <div class="space-y-2">
+                                    <div v-for="p in gscData.topPages" :key="p.page" class="flex items-center justify-between py-1.5 border-b border-gray-50">
+                                        <span class="text-sm text-gray-800 truncate flex-1 mr-4">{{ p.page || '/' }}</span>
+                                        <div class="flex items-center gap-3 text-xs text-gray-500 whitespace-nowrap">
+                                            <span>{{ p.clicks }} clicks</span>
+                                            <span class="text-gray-400">{{ p.impressions }} imp</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No data state -->
+                        <div v-if="!gscData.error && gscData.summary?.clicks === 0 && gscData.summary?.impressions === 0" class="text-center py-4">
+                            <p class="text-sm text-gray-500">No search data yet. It may take a few days for Google to start reporting.</p>
                         </div>
                     </div>
                 </div>

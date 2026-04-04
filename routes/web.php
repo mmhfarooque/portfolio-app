@@ -276,6 +276,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('settings/regenerate-watermarks', [AdminSettingController::class, 'regenerateWatermarks'])->name('settings.regenerate-watermarks');
     Route::post('settings/test-r2', [AdminSettingController::class, 'testR2Connection'])->name('settings.test-r2');
     Route::post('settings/test-turnstile', [AdminSettingController::class, 'testTurnstileConnection'])->name('settings.test-turnstile');
+    Route::get('settings/google/connect', [AdminSettingController::class, 'googleConnect'])->name('settings.google-connect');
+    Route::get('settings/google/callback', [AdminSettingController::class, 'googleCallback'])->name('settings.google-callback');
+    Route::post('settings/google/disconnect', [AdminSettingController::class, 'googleDisconnect'])->name('settings.google-disconnect');
+    Route::get('settings/google/refresh-gsc', [AdminSettingController::class, 'refreshGscData'])->name('settings.refresh-gsc');
 
     // About Page Editors
     Route::get('about/editor', [AdminAboutController::class, 'editor'])->name('about.editor');

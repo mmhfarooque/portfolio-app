@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Redirect;
+use App\Services\GoogleSearchConsoleService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -105,6 +107,12 @@ class SettingController extends Controller
             'turnstileSecretKeyConfigured' => Setting::get('turnstile_secret_key', '') !== '',
         ];
 
+        // Google Search Console connection status
+        $gscSettings = [
+            'connected' => Setting::get('gsc_connected', '0') === '1'
+                && Setting::get('gsc_access_token', '') !== '',
+        ];
+
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settingsData,
             'currentTheme' => $currentTheme,
@@ -112,6 +120,7 @@ class SettingController extends Controller
             'watermarkSettings' => $watermarkSettings,
             'aiSettings' => $aiSettings,
             'cloudflareSettings' => $cloudflareSettings,
+            'gscSettings' => $gscSettings,
             'photoCount' => Photo::count(),
         ]);
     }
@@ -431,5 +440,59 @@ class SettingController extends Controller
             'success' => true,
             'message' => 'Keys format is valid. Save settings to activate Turnstile.'
         ]);
+    }
+
+    /**
+     * Redirect to Google OAuth for Search Console access.
+     */
+    public function googleConnect(GoogleSearchConsoleService $gsc)
+    {
+        return Redirect::away($gsc->getAuthUrl());
+    }
+
+    /**
+     * Handle Google OAuth callback.
+     */
+    public function googleCallback(Request $request, GoogleSearchConsoleService $gsc)
+    {
+        if ($request->has('error')) {
+            return redirect()->route('admin.settings.index')
+                ->with('error', 'Google authorization was denied.');
+        }
+
+        $code = $request->get('code');
+        if (!$code) {
+            return redirect()->route('admin.settings.index')
+                ->with('error', 'No authorization code received.');
+        }
+
+        if ($gsc->handleCallback($code)) {
+            Cache::forget('gsc_dashboard_data');
+            return redirect()->route('admin.settings.index')
+                ->with('success', 'Google Search Console connected successfully.');
+        }
+
+        return redirect()->route('admin.settings.index')
+            ->with('error', 'Failed to connect Google Search Console.');
+    }
+
+    /**
+     * Disconnect Google Search Console.
+     */
+    public function googleDisconnect(GoogleSearchConsoleService $gsc)
+    {
+        $gsc->disconnect();
+        return redirect()->route('admin.settings.index')
+            ->with('success', 'Google Search Console disconnected.');
+    }
+
+    /**
+     * Refresh GSC dashboard data (clear cache).
+     */
+    public function refreshGscData()
+    {
+        Cache::forget('gsc_dashboard_data');
+        return redirect()->route('dashboard')
+            ->with('success', 'Search Console data refreshed.');
     }
 }

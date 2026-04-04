@@ -50,4 +50,10 @@ return [
         'secret_key' => env('TURNSTILE_SECRET_KEY'),
     ],
 
+    'google_search_console' => [
+        'client_id' => env('GOOGLE_GSC_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_GSC_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_GSC_REDIRECT_URI', 'https://mfaruk.com/admin/settings/google/callback'),
+    ],
+
 ];
