@@ -1,7 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { router } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
@@ -10,7 +12,66 @@ const props = defineProps({
     social: Object,
     skills: Object,
     theme: Object,
-    featuredPhotos: Array
+    featuredPhotos: Array,
+    galleryPhotos: Object,
+    categories: Array,
+    currentCategory: Object,
+    currentTag: Object,
+    filters: Object
+});
+
+// Gallery search
+const search = ref(props.filters?.search || '');
+let searchTimeout = null;
+watch(search, (value) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(route('home'), {
+            search: value || undefined,
+            category: props.filters?.category || undefined,
+        }, {
+            preserveState: true,
+            replace: true,
+            only: ['galleryPhotos', 'currentCategory', 'currentTag', 'filters'],
+        });
+    }, 300);
+});
+
+const clearFilters = () => {
+    search.value = '';
+    router.get(route('home'));
+};
+
+// Lazy loading for gallery images
+const galleryGrid = ref(null);
+let observer = null;
+
+const setupObserver = () => {
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target.querySelector('img[data-src]');
+                if (img) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    img.onload = () => entry.target.classList.add('loaded');
+                }
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { rootMargin: '200px' });
+
+    if (galleryGrid.value) {
+        galleryGrid.value.querySelectorAll('.photo-card').forEach(el => observer.observe(el));
+    }
+};
+
+onMounted(() => setupObserver());
+onUnmounted(() => observer?.disconnect());
+
+// Re-observe after Inertia partial reload
+watch(() => props.galleryPhotos, () => {
+    setTimeout(() => setupObserver(), 100);
 });
 
 const socialIcons = {
@@ -283,18 +344,110 @@ const whatsappNumber = (num) => num ? num.replace(/[^0-9]/g, '') : '';
                     </Link>
                 </div>
 
-                <div class="text-center mt-10">
-                    <Link
-                        :href="route('photos.index')"
-                        class="inline-flex items-center gap-2 px-6 py-3 border rounded-full transition shadow-lg bg-theme-bg-card border-theme-border hover:border-theme-accent"
+            </div>
+        </section>
+
+        <!-- Full Gallery Section -->
+        <section class="py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold mb-3 text-theme-text-primary">
+                        <span v-if="currentCategory">{{ currentCategory.name }}</span>
+                        <span v-else-if="currentTag">Photos tagged "{{ currentTag.name }}"</span>
+                        <span v-else>Gallery</span>
+                    </h2>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="flex flex-wrap items-center gap-4 mb-6">
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search photos..."
+                        class="w-full sm:w-64 border rounded-lg shadow-sm px-4 py-2 text-sm transition-colors bg-theme-bg-card border-theme-border text-theme-text-primary focus:border-theme-accent focus:ring-1 focus:ring-theme-accent placeholder-theme-text-muted"
+                    />
+                    <button
+                        v-if="currentCategory || currentTag || filters?.search"
+                        @click="clearFilters"
+                        class="text-sm transition text-theme-text-muted hover:text-theme-accent"
                     >
-                        <span class="text-theme-text-primary">View All Photos</span>
-                        <svg class="w-5 h-5 text-theme-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
+                        Clear filters
+                    </button>
+                </div>
+
+                <!-- Category Pills -->
+                <div class="flex flex-wrap gap-2 mb-8">
+                    <Link
+                        :href="route('home')"
+                        :class="[
+                            'px-4 py-2 rounded-full text-sm font-medium transition',
+                            !currentCategory && !currentTag
+                                ? 'bg-theme-accent text-theme-text-inverse'
+                                : 'border transition-colors bg-theme-bg-card border-theme-border text-theme-text-secondary hover:border-theme-accent'
+                        ]"
+                    >
+                        All
                     </Link>
+                    <Link
+                        v-for="category in categories"
+                        :key="category.id"
+                        :href="route('home', { category: category.slug })"
+                        :class="[
+                            'px-4 py-2 rounded-full text-sm font-medium transition',
+                            currentCategory?.id === category.id
+                                ? 'bg-theme-accent text-theme-text-inverse'
+                                : 'border transition-colors bg-theme-bg-card border-theme-border text-theme-text-secondary hover:border-theme-accent'
+                        ]"
+                    >
+                        {{ category.name }}
+                        <span class="ml-1 text-xs opacity-60">({{ category.published_photos_count }})</span>
+                    </Link>
+                </div>
+
+                <!-- Photo Grid -->
+                <div v-if="galleryPhotos?.data?.length > 0" ref="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <Link
+                        v-for="photo in galleryPhotos.data"
+                        :key="photo.id"
+                        :href="route('photos.show', photo.slug)"
+                        class="group photo-card"
+                    >
+                        <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || 'var(--theme-bg-tertiary, #f3f4f6)' }">
+                            <img
+                                :data-src="`/storage/${photo.thumbnail_path}`"
+                                :alt="photo.title"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 opacity-0"
+                            />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div class="absolute bottom-0 left-0 right-0 p-3">
+                                    <p class="text-white text-sm font-medium truncate">{{ photo.title }}</p>
+                                    <p v-if="photo.category" class="text-white/70 text-xs">{{ photo.category.name }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="text-center py-16">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-theme-text-muted opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="text-lg font-medium text-theme-text-secondary">No photos found</p>
+                    <p class="text-sm mt-1 text-theme-text-muted">Try adjusting your filters or search terms.</p>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="galleryPhotos?.data?.length > 0 && galleryPhotos.links" class="mt-8">
+                    <Pagination :links="galleryPhotos.links" />
                 </div>
             </div>
         </section>
     </PublicLayout>
 </template>
+
+<style scoped>
+.photo-card.loaded img {
+    opacity: 1;
+}
+</style>
