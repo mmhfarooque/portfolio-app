@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -164,7 +165,7 @@ class BlogController extends Controller
                 'title' => $post->title,
                 'slug' => $post->slug,
                 'excerpt' => $post->excerpt,
-                'content' => $post->content,
+                'content' => Str::markdown($post->content ?? ''),
                 'featured_image' => $post->featured_image,
                 'published_at' => $post->published_at?->format('M d, Y'),
                 'reading_time' => $post->reading_time,
