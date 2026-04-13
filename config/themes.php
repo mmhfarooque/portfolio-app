@@ -19,33 +19,33 @@ return [
             'name' => 'Dark',
             'description' => 'Cinematic dark theme with warm amber accents',
             'preview' => [
-                'bg' => '#0c0c0c',
+                'bg' => '#1a1a1f',
                 'accent' => '#d4a574',
-                'text' => '#f5f5f4',
+                'text' => '#f0eeeb',
             ],
             'colors' => [
-                // Backgrounds - Deep cinematic blacks with warm undertones
-                'bg-primary' => '#0c0c0c',
-                'bg-secondary' => '#141414',
-                'bg-tertiary' => '#1c1c1c',
-                'bg-card' => '#121212',
-                'bg-hover' => '#242424',
-                'bg-input' => '#181818',
+                // Backgrounds - Dark charcoal with cool undertones, not pure black
+                'bg-primary' => '#1a1a1f',
+                'bg-secondary' => '#22222a',
+                'bg-tertiary' => '#2a2a33',
+                'bg-card' => '#1e1e26',
+                'bg-hover' => '#32323c',
+                'bg-input' => '#252530',
 
                 // Text - Warm whites, not stark
-                'text-primary' => '#f5f5f4',
-                'text-secondary' => '#a8a29e',
-                'text-muted' => '#78716c',
-                'text-inverse' => '#0c0c0c',
+                'text-primary' => '#f0eeeb',
+                'text-secondary' => '#b0aaa4',
+                'text-muted' => '#807a74',
+                'text-inverse' => '#1a1a1f',
 
-                // Borders - Subtle warm grays
-                'border' => '#292524',
-                'border-light' => '#3d3835',
+                // Borders - Visible warm grays
+                'border' => '#363540',
+                'border-light' => '#45444f',
 
                 // Accent - Golden hour amber (photography-inspired)
                 'accent' => '#d4a574',
                 'accent-hover' => '#c4956a',
-                'accent-light' => 'rgba(212, 165, 116, 0.12)',
+                'accent-light' => 'rgba(212, 165, 116, 0.15)',
 
                 // Status colors
                 'success' => '#86efac',
@@ -53,8 +53,8 @@ return [
                 'error' => '#fca5a5',
 
                 // Special
-                'overlay' => 'rgba(12, 12, 12, 0.85)',
-                'shadow' => 'rgba(0, 0, 0, 0.6)',
+                'overlay' => 'rgba(20, 20, 26, 0.85)',
+                'shadow' => 'rgba(0, 0, 0, 0.45)',
             ],
             'styles' => [
                 'font-family' => "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif",
