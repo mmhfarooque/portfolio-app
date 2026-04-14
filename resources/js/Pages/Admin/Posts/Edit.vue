@@ -36,9 +36,11 @@ const isDeleting = ref(false);
 const previewUrl = ref(props.post.featured_image ? `/storage/${props.post.featured_image}` : null);
 
 const submit = () => {
-    form.post(route('admin.posts.update', props.post.id), {
+    form.transform((data) => ({
+        ...data,
         _method: 'PUT',
-        forceFormData: true
+    })).post(route('admin.posts.update', props.post.id), {
+        forceFormData: true,
     });
 };
 
