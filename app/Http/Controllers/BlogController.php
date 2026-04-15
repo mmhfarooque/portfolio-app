@@ -50,7 +50,7 @@ class BlogController extends Controller
             'title' => $post->title,
             'slug' => $post->slug,
             'excerpt' => $post->excerpt,
-            'featured_image' => $post->featured_image,
+            'featured_image' => $post->featured_image ? $post->featured_image . '?v=' . $post->updated_at->timestamp : null,
             'published_at' => $post->published_at?->format('M d, Y'),
             'reading_time' => $post->reading_time,
             'category' => $post->category ? [
@@ -128,7 +128,7 @@ class BlogController extends Controller
                 'title' => $p->title,
                 'slug' => $p->slug,
                 'excerpt' => $p->excerpt,
-                'featured_image' => $p->featured_image,
+                'featured_image' => $p->featured_image ? $p->featured_image . '?v=' . $p->updated_at->timestamp : null,
                 'published_at' => $p->published_at?->format('M d, Y'),
             ]);
 
@@ -166,7 +166,7 @@ class BlogController extends Controller
                 'slug' => $post->slug,
                 'excerpt' => $post->excerpt,
                 'content' => Str::markdown($post->content ?? ''),
-                'featured_image' => $post->featured_image,
+                'featured_image' => $post->featured_image ? $post->featured_image . '?v=' . $post->updated_at->timestamp : null,
                 'published_at' => $post->published_at?->format('M d, Y'),
                 'reading_time' => $post->reading_time,
                 'views' => $post->views,
