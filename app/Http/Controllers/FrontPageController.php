@@ -3,11 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Photo;
-use App\Models\Category;
-use App\Models\Tag;
 use App\Models\Setting;
 use App\Services\ThemeService;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +17,7 @@ class FrontPageController extends Controller
     /**
      * Display the front page / homepage with CV/Resume layout.
      */
-    public function index(Request $request): Response
+    public function index(): Response
     {
         // Get theme data
         $currentTheme = $this->themeService->getCurrentTheme();
@@ -86,44 +83,6 @@ class FrontPageController extends Controller
                 ->get();
         }
 
-        // Gallery data — all published photos with filtering
-        $galleryQuery = Photo::published()->with(['category', 'tags']);
-
-        if ($request->filled('category')) {
-            $galleryQuery->whereHas('category', fn($q) => $q->where('slug', $request->category));
-        }
-        if ($request->filled('tag')) {
-            $galleryQuery->whereHas('tags', fn($q) => $q->where('slug', $request->tag));
-        }
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $galleryQuery->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('location_name', 'like', "%{$search}%");
-            });
-        }
-
-        $galleryPhotos = $galleryQuery->latest('captured_at')->paginate(24)->withQueryString()->through(fn($photo) => [
-            'id' => $photo->id,
-            'title' => $photo->title,
-            'slug' => $photo->slug,
-            'thumbnail_path' => $photo->thumbnail_path,
-            'dominant_color' => $photo->dominant_color,
-            'category' => $photo->category ? [
-                'id' => $photo->category->id,
-                'name' => $photo->category->name,
-                'slug' => $photo->category->slug,
-            ] : null,
-        ]);
-
-        $categories = Category::withCount('publishedPhotos')
-            ->orderBy('sort_order')
-            ->get(['id', 'name', 'slug', 'published_photos_count']);
-
-        $currentCategory = $request->category ? Category::where('slug', $request->category)->first(['id', 'name', 'slug']) : null;
-        $currentTag = $request->tag ? Tag::where('slug', $request->tag)->first(['id', 'name', 'slug']) : null;
-
         return Inertia::render('Public/Home', [
             'profile' => $profile,
             'contact' => $contact,
@@ -138,15 +97,6 @@ class FrontPageController extends Controller
                 'display_path' => $photo->display_path,
                 'category' => $photo->category?->name,
             ]),
-            'galleryPhotos' => $galleryPhotos,
-            'categories' => $categories,
-            'currentCategory' => $currentCategory,
-            'currentTag' => $currentTag,
-            'filters' => [
-                'category' => $request->category,
-                'tag' => $request->tag,
-                'search' => $request->search,
-            ],
         ]);
     }
 
