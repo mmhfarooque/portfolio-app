@@ -72,7 +72,7 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 ./deploy.sh
 ```
 
-### Current Photos (Feb 2026)
+### Current Photos (Apr 2026)
 | ID | Slug | Category | Gallery |
 |----|------|----------|---------|
 | 1 | monpura-sea-beach | Seascapes & Beaches | Coastal Collection |
@@ -83,6 +83,11 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 | 19 | golden-hour-monpura-island-bangladesh | Sunsets & Golden Hour | Coastal Collection |
 | 20 | into-the-mist-suspension-bridge-goechala-trek | Landscapes | Himalaya Collection |
 | 21 | first-light-kanchenjunga-goechala-viewpoint-sikkim | Landscapes | Himalaya Collection |
+| 22 | morning-swing-kaptai-eco-valley-naniarchar | Landscapes | Rangamati |
+| 23 | sunset-over-the-valley-kaptai-eco-valley-naniarchar | Sunsets & Golden Hour | Rangamati |
+| 24 | begnas-lake-pokhara-nepal | Rivers & Waterways | Himalaya Collection |
+| 25 | golden-hour-kanchenjunga-lamuney-campsite-goechala | Landscapes | Himalaya Collection |
+| 26 | august-sunset-over-dhaka-khilkhet | Sunsets & Golden Hour | — |
 
 ### Available Categories
 | ID | Name | Slug |
@@ -100,6 +105,7 @@ ssh user@SERVER_IP "cd /home/mfaruk/web/mfaruk.com/private/portfolio-app && php 
 | 2 | Kashmir Collection | kashmir-collection |
 | 3 | Thailand Collection | thailand-collection |
 | 4 | Himalaya Collection | himalaya-collection |
+| 5 | Rangamati | rangamati |
 
 ---
 
@@ -284,10 +290,10 @@ Check site status and recent errors.
 **Hosting**: HestiaCP on DigitalOcean (SERVER_IP)
 **Git Repo**: github.com/mmhfarooque/portfolio-app (main branch)
 
-### Current Stats (as of Feb 14, 2026)
-- **Photos**: 8 published (all with SEO content, categories, galleries, and personal stories)
+### Current Stats (as of Apr 4, 2026)
+- **Photos**: 10 published (all with SEO content, categories, galleries, and personal stories)
 - **Categories**: 5 (Seascapes, Sunsets, Landscapes, Rivers, Flora)
-- **Galleries**: 4 (Coastal, Kashmir, Thailand, Himalaya)
+- **Galleries**: 5 (Coastal, Kashmir, Thailand, Himalaya, Rangamati)
 - **Contact Email**: farooque7@gmail.com (receives form submissions)
 - **Features Active**: 12+ public features, full admin panel, per-photo watermark control
 
@@ -679,6 +685,11 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
+| 2026-04-04 | **Added Google Search Console integration** — OAuth connect in Settings, dashboard widget with clicks/impressions/CTR/queries/pages |
+| 2026-04-04 | **Moved gallery to homepage** — full gallery with search, filters, pagination below featured section |
+| 2026-04-04 | **Added featured toggle** — click star badge on admin photo list to toggle without entering edit |
+| 2026-04-04 | Added 5 new photos: Kaptai Eco Valley (2), Begnas Lake, Kanchenjunga from Lamuney, Dhaka sunset |
+| 2026-04-04 | Created Rangamati gallery (ID 5) for Bangladesh hill tracts photos |
 | 2026-03-08 | **Added standalone backup & restore system** — `tools/backup.php`, docs at `docs/BACKUP_RESTORE.md` |
 | 2026-02-14 | Added SEO content for photo #21 (Kanchenjunga sunrise from Goechala Viewpoint 1, Sikkim) |
 | 2026-02-14 | Merged `/photo-seo` and `/content` into single unified `/content` command |
@@ -829,5 +840,5 @@ Server files: `/home/mfaruk/backups/backup.php`, `/home/mfaruk/backups/backup.co
 
 ---
 
-*Last Updated: February 14, 2026*
+*Last Updated: April 4, 2026*
 *Update this file after every significant change*
