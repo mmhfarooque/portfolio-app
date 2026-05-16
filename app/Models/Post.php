@@ -15,6 +15,7 @@ class Post extends Model
         'content',
         'featured_image',
         'status',
+        'is_featured',
         'user_id',
         'category_id',
         'seo_title',
@@ -25,6 +26,7 @@ class Post extends Model
 
     protected $casts = [
         'published_at' => 'datetime',
+        'is_featured' => 'boolean',
     ];
 
     /**
@@ -69,6 +71,14 @@ class Post extends Model
     public function scopeDraft($query)
     {
         return $query->where('status', 'draft');
+    }
+
+    /**
+     * Scope for featured posts.
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
     }
 
     /**

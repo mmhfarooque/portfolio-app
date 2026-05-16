@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Photo;
+use App\Models\Post;
 use App\Models\Setting;
 use App\Services\ThemeService;
 use Inertia\Inertia;
@@ -83,6 +84,27 @@ class FrontPageController extends Controller
                 ->get();
         }
 
+        // Latest blog section — featured first, padded with non-featured latest up to 6
+        $featuredPosts = Post::published()
+            ->featured()
+            ->with(['category', 'user'])
+            ->latest('published_at')
+            ->take(6)
+            ->get();
+
+        $fillerNeeded = 6 - $featuredPosts->count();
+        if ($fillerNeeded > 0) {
+            $fillerPosts = Post::published()
+                ->where('is_featured', false)
+                ->with(['category', 'user'])
+                ->latest('published_at')
+                ->take($fillerNeeded)
+                ->get();
+            $latestPosts = $featuredPosts->concat($fillerPosts);
+        } else {
+            $latestPosts = $featuredPosts;
+        }
+
         return Inertia::render('Public/Home', [
             'profile' => $profile,
             'contact' => $contact,
@@ -96,6 +118,22 @@ class FrontPageController extends Controller
                 'thumbnail_path' => $photo->thumbnail_path,
                 'display_path' => $photo->display_path,
                 'category' => $photo->category?->name,
+            ]),
+            'latestPosts' => $latestPosts->values()->map(fn($post) => [
+                'id' => $post->id,
+                'title' => $post->title,
+                'slug' => $post->slug,
+                'excerpt' => $post->excerpt,
+                'featured_image' => $post->featured_image
+                    ? $post->featured_image . '?v=' . $post->updated_at->timestamp
+                    : null,
+                'published_at' => $post->published_at?->format('M d, Y'),
+                'reading_time' => $post->reading_time,
+                'is_featured' => $post->is_featured,
+                'category' => $post->category ? [
+                    'name' => $post->category->name,
+                    'slug' => $post->category->slug,
+                ] : null,
             ]),
         ]);
     }

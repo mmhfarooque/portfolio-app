@@ -17,6 +17,7 @@ const form = useForm({
     excerpt: '',
     content: '',
     status: 'draft',
+    is_featured: false,
     published_at: new Date().toISOString().slice(0, 16),
     category_id: '',
     tags: [],
@@ -108,6 +109,21 @@ const handleFileChange = (e) => {
                                         <option value="draft">Draft</option>
                                         <option value="published">Published</option>
                                     </select>
+                                </div>
+
+                                <!-- Featured -->
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            v-model="form.is_featured"
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span class="ml-2 text-sm font-medium text-gray-700">★ Featured on homepage</span>
+                                    </label>
+                                    <p class="mt-1 text-xs text-gray-500 ml-6">
+                                        Shown first in the "Latest from the Blog" section.
+                                    </p>
                                 </div>
 
                                 <!-- Published Date -->

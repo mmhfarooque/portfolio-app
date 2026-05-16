@@ -32,6 +32,20 @@ const deletePost = () => {
         }
     });
 };
+
+const toggleFeatured = (post) => {
+    fetch(route('admin.posts.toggle-featured', post.id), {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+            'Accept': 'application/json',
+        },
+    })
+    .then(res => res.json())
+    .then(data => {
+        post.is_featured = data.is_featured;
+    });
+};
 </script>
 
 <template>
@@ -58,6 +72,7 @@ const deletePost = () => {
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Post</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Featured</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -96,6 +111,20 @@ const deletePost = () => {
                                             >
                                                 {{ post.status === 'published' ? 'Published' : 'Draft' }}
                                             </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <button
+                                                @click="toggleFeatured(post)"
+                                                :class="[
+                                                    'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                                                    post.is_featured
+                                                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                                        : 'bg-gray-100 text-gray-500 hover:bg-yellow-100 hover:text-yellow-800'
+                                                ]"
+                                                :title="post.is_featured ? 'Remove from featured' : 'Mark as featured'"
+                                            >
+                                                {{ post.is_featured ? '★ Featured' : '☆ Feature' }}
+                                            </button>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {{ post.published_at ? new Date(post.published_at).toLocaleDateString() : '-' }}

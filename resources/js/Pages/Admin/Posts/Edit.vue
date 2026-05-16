@@ -22,6 +22,7 @@ const form = useForm({
     excerpt: props.post.excerpt || '',
     content: props.post.content || '',
     status: props.post.status,
+    is_featured: !!props.post.is_featured,
     published_at: props.post.published_at ? props.post.published_at.slice(0, 16) : '',
     category_id: props.post.category_id || '',
     tags: props.post.tags?.map(t => t.id) || [],
@@ -152,6 +153,21 @@ const deletePost = () => {
                                 </div>
 
                                 <!-- Published Date -->
+                                <!-- Featured -->
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            v-model="form.is_featured"
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span class="ml-2 text-sm font-medium text-gray-700">★ Featured on homepage</span>
+                                    </label>
+                                    <p class="mt-1 text-xs text-gray-500 ml-6">
+                                        Shown first in the "Latest from the Blog" section.
+                                    </p>
+                                </div>
+
                                 <div class="bg-gray-50 p-4 rounded-lg">
                                     <InputLabel for="published_at" value="Publish Date" />
                                     <TextInput

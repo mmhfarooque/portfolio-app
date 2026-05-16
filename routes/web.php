@@ -252,6 +252,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('posts', [AdminPostController::class, 'store'])->name('posts.store');
     Route::get('posts/{post}/edit', [AdminPostController::class, 'edit'])->name('posts.edit');
     Route::put('posts/{post}', [AdminPostController::class, 'update'])->name('posts.update');
+    Route::post('posts/{post}/toggle-featured', [AdminPostController::class, 'toggleFeatured'])->name('posts.toggle-featured');
     Route::delete('posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
 
     // Photo Series

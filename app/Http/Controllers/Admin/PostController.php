@@ -78,6 +78,7 @@ class PostController extends Controller
             'seo_title' => 'nullable|string|max:70',
             'meta_description' => 'nullable|string|max:160',
             'published_at' => 'nullable|date',
+            'is_featured' => 'sometimes|boolean',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
         ]);
@@ -150,6 +151,7 @@ class PostController extends Controller
             'seo_title' => 'nullable|string|max:70',
             'meta_description' => 'nullable|string|max:160',
             'published_at' => 'nullable|date',
+            'is_featured' => 'sometimes|boolean',
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
             'remove_image' => 'boolean',
@@ -196,6 +198,20 @@ class PostController extends Controller
         return redirect()
             ->route('admin.posts.index')
             ->with('success', 'Post updated successfully.');
+    }
+
+    /**
+     * Toggle featured status for a post.
+     */
+    public function toggleFeatured(Post $post)
+    {
+        $this->authorize('update', $post);
+
+        $post->update(['is_featured' => !$post->is_featured]);
+
+        return response()->json([
+            'is_featured' => $post->is_featured,
+        ]);
     }
 
     /**

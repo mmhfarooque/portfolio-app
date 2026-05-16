@@ -10,7 +10,8 @@ const props = defineProps({
     social: Object,
     skills: Object,
     theme: Object,
-    featuredPhotos: Array
+    featuredPhotos: Array,
+    latestPosts: Array
 });
 
 const socialIcons = {
@@ -289,6 +290,66 @@ const whatsappNumber = (num) => num ? num.replace(/[^0-9]/g, '') : '';
                         class="inline-flex items-center gap-2 px-6 py-3 border rounded-full transition shadow-lg bg-theme-bg-card border-theme-border hover:border-theme-accent"
                     >
                         <span class="text-theme-text-primary">View All Photos</span>
+                        <svg class="w-5 h-5 text-theme-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                    </Link>
+                </div>
+            </div>
+        </section>
+
+        <!-- Latest from the Blog -->
+        <section
+            v-if="latestPosts && latestPosts.length > 0"
+            class="py-20"
+        >
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-3 text-theme-text-primary">Latest from the Blog</h2>
+                    <p class="max-w-xl mx-auto text-theme-text-muted">Notes, build logs, and the occasional deep dive</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <Link
+                        v-for="post in latestPosts"
+                        :key="post.id"
+                        :href="route('blog.show', post.slug)"
+                        class="group rounded-xl overflow-hidden border shadow-sm transition hover:shadow-lg bg-theme-bg-card border-theme-border hover:border-theme-accent"
+                    >
+                        <div class="aspect-[16/9] overflow-hidden bg-theme-bg-tertiary">
+                            <img
+                                v-if="post.featured_image"
+                                :src="`/storage/${post.featured_image}`"
+                                :alt="post.title"
+                                class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                loading="lazy"
+                            />
+                            <div v-else class="w-full h-full flex items-center justify-center text-theme-text-muted">
+                                <svg class="w-12 h-12 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-2 text-xs mb-2 text-theme-text-muted">
+                                <span v-if="post.category" class="px-2 py-0.5 rounded-full bg-theme-bg-tertiary text-theme-text-secondary">{{ post.category.name }}</span>
+                                <span v-if="post.published_at">{{ post.published_at }}</span>
+                                <span v-if="post.reading_time">· {{ post.reading_time }} min read</span>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2 text-theme-text-primary group-hover:text-theme-accent transition-colors">
+                                {{ post.title }}
+                            </h3>
+                            <p v-if="post.excerpt" class="text-sm line-clamp-3 text-theme-text-secondary">{{ post.excerpt }}</p>
+                        </div>
+                    </Link>
+                </div>
+
+                <div class="text-center mt-10">
+                    <Link
+                        :href="route('blog.index')"
+                        class="inline-flex items-center gap-2 px-6 py-3 border rounded-full transition shadow-lg bg-theme-bg-card border-theme-border hover:border-theme-accent"
+                    >
+                        <span class="text-theme-text-primary">View All Posts</span>
                         <svg class="w-5 h-5 text-theme-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
