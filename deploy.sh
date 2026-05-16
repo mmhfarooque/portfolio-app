@@ -17,7 +17,7 @@
 
 set -e
 
-SERVER="user@SERVER_IP"
+SERVER="mfaruk"  # SSH alias in ~/.ssh/config — pins User=root and IdentityFile=~/.ssh/mfaruk
 APP_DIR="/home/mfaruk/web/mfaruk.com/private/portfolio-app"
 
 GREEN='\033[0;32m'
