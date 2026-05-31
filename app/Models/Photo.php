@@ -305,12 +305,33 @@ class Photo extends Model
     {
         $exif = $this->exif_data ?? [];
 
+        // Normalise shutter speed (e.g. "10/2000" -> "1/200s", "0.5" -> "1/2s", "2" -> "2s").
+        $shutter = $exif['ExposureTime'] ?? null;
+        if (is_string($shutter) && str_contains($shutter, '/')) {
+            [$n, $d] = array_pad(explode('/', $shutter, 2), 2, 1);
+            $n = (float) $n;
+            $d = (float) $d;
+            if ($n > 0 && $d > 0) {
+                $sec = $n / $d;
+                $shutter = $sec < 1
+                    ? '1/' . (int) round($d / $n) . 's'
+                    : rtrim(rtrim(number_format($sec, 1), '0'), '.') . 's';
+            }
+        } elseif (is_numeric($shutter)) {
+            $sec = (float) $shutter;
+            $shutter = ($sec > 0 && $sec < 1) ? '1/' . (int) round(1 / $sec) . 's' : $shutter . 's';
+        }
+
+        // ISO may be stored as 'ISO' (current pipeline) or 'ISOSpeedRatings' (older EXIF).
+        $iso = $exif['ISO'] ?? $exif['ISOSpeedRatings'] ?? null;
+
         return [
             'camera' => $exif['Make'] ?? null ? ($exif['Make'] . ' ' . ($exif['Model'] ?? '')) : null,
             'lens' => $exif['LensModel'] ?? $exif['Lens'] ?? $exif['LensInfo'] ?? null,
             'aperture' => isset($exif['FNumber']) ? 'f/' . $exif['FNumber'] : null,
-            'shutter_speed' => $exif['ExposureTime'] ?? null,
-            'iso' => isset($exif['ISOSpeedRatings']) ? 'ISO ' . $exif['ISOSpeedRatings'] : null,
+            'shutter' => $shutter,
+            'shutter_speed' => $shutter,
+            'iso' => ($iso !== null && $iso !== '') ? 'ISO ' . $iso : null,
             'focal_length' => isset($exif['FocalLength']) ? $exif['FocalLength'] . 'mm' : null,
             'date_taken' => $exif['DateTimeOriginal'] ?? null,
         ];
