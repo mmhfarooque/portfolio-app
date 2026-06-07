@@ -534,8 +534,8 @@ const testTurnstileConnection = async () => {
                                     <TextInput id="social_instagram" v-model="form.social_instagram" type="url" class="mt-1 block w-full" placeholder="https://instagram.com/..." />
                                 </div>
                                 <div>
-                                    <InputLabel for="social_twitter" value="Twitter/X" />
-                                    <TextInput id="social_twitter" v-model="form.social_twitter" type="url" class="mt-1 block w-full" placeholder="https://twitter.com/..." />
+                                    <InputLabel for="social_twitter" value="X" />
+                                    <TextInput id="social_twitter" v-model="form.social_twitter" type="url" class="mt-1 block w-full" placeholder="https://x.com/..." />
                                 </div>
                                 <div>
                                     <InputLabel for="social_facebook" value="Facebook" />
@@ -1060,7 +1060,7 @@ const testTurnstileConnection = async () => {
                                     <TextInput id="seo_site_keywords" v-model="form.seo_site_keywords" class="mt-1 block w-full" placeholder="photography, landscape, nature" />
                                 </div>
                                 <div>
-                                    <InputLabel for="seo_twitter_handle" value="Twitter/X Handle" />
+                                    <InputLabel for="seo_twitter_handle" value="X Handle" />
                                     <TextInput id="seo_twitter_handle" v-model="form.seo_twitter_handle" class="mt-1 block w-full" placeholder="@yourusername" />
                                 </div>
 

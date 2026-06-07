@@ -67,6 +67,7 @@ if [ "$QUICK" = true ]; then
         && php artisan optimize:clear \
         && php artisan config:cache \
         && php artisan route:cache \
+        && (systemctl restart mfaruk-ssr 2>/dev/null || true) \
         && echo '<?php opcache_reset(); echo \"cleared\"; ?>' > public/oc.php \
         && curl -s http://mfaruk.com/oc.php \
         && rm public/oc.php \
@@ -84,8 +85,9 @@ else
         && npm run build \
         && php artisan config:cache \
         && php artisan route:cache \
-        && chown -R mfaruk:www-data storage bootstrap/cache public/build \
+        && chown -R mfaruk:www-data storage bootstrap/cache public/build bootstrap/ssr \
         && chmod -R 775 storage bootstrap/cache \
+        && (systemctl restart mfaruk-ssr 2>/dev/null || true) \
         && echo '<?php opcache_reset(); echo \"cleared\"; ?>' > public/oc.php \
         && curl -s http://mfaruk.com/oc.php \
         && rm public/oc.php \

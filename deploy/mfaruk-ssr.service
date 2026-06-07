@@ -1,0 +1,20 @@
+[Unit]
+# Inertia SSR server for mfaruk.com — renders the initial HTML (incl. all
+# SEO <head> meta + JSON-LD) so non-JS crawlers see real per-page metadata.
+# If this service is down, Inertia falls back to client-side rendering and the
+# site still works (it just loses the server-rendered head until it is back up).
+Description=Inertia SSR server for mfaruk.com
+After=network.target
+
+[Service]
+Type=simple
+User=mfaruk
+Group=mfaruk
+WorkingDirectory=/home/mfaruk/web/mfaruk.com/private/portfolio-app
+ExecStart=/usr/bin/php artisan inertia:start-ssr
+Restart=always
+RestartSec=2
+# Listens on 127.0.0.1:13714 (see config/inertia.php). Not exposed publicly.
+
+[Install]
+WantedBy=multi-user.target

@@ -62,6 +62,12 @@ class HandleInertiaRequests extends Middleware
                 'styles' => $themeConfig['styles'] ?? [],
                 'isDark' => $themeConfig['is_dark'] ?? false,
             ],
+            // Ziggy route data — required so route() resolves during SSR
+            // (the client also has it via the @routes directive).
+            'ziggy' => fn () => [
+                ...(new \Tighten\Ziggy\Ziggy)->toArray(),
+                'location' => $request->url(),
+            ],
         ];
     }
 }

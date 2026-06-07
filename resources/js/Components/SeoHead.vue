@@ -30,7 +30,13 @@ const baseUrl = 'https://mfaruk.com';
 // Computed values
 const pageTitle = computed(() => props.title || appName.value);
 const pageDescription = computed(() => props.description || 'Photography portfolio by Mahmud Farooque. Capturing moments from Bangladesh, Kashmir, Thailand, and beyond.');
-const pageUrl = computed(() => props.url || (typeof window !== 'undefined' ? window.location.href : baseUrl));
+// Use the Inertia page path (available during SSR) rather than window.location,
+// so canonical / og:url are correct for server-rendered crawlers, not just the homepage.
+const pageUrl = computed(() => {
+    if (props.url) return props.url;
+    const path = page.url || '/';
+    return path.startsWith('http') ? path : `${baseUrl}${path}`;
+});
 const pageImage = computed(() => {
     if (props.image) {
         return props.image.startsWith('http') ? props.image : `${baseUrl}/storage/${props.image}`;
@@ -188,6 +194,9 @@ const jsonLdString = computed(() => JSON.stringify(jsonLd.value));
         <meta name="twitter:image:alt" :content="imageAlt || pageTitle" />
 
         <!-- JSON-LD Structured Data -->
-        <component :is="'script'" type="application/ld+json" v-html="jsonLdString" />
+        <!-- Rendered as a text child (not v-html) so Inertia's head serializer
+             emits the JSON raw inside the <script> under SSR, instead of as an
+             escaped innerHTML attribute that crawlers ignore. -->
+        <component :is="'script'" type="application/ld+json">{{ jsonLdString }}</component>
     </Head>
 </template>

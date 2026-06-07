@@ -410,7 +410,7 @@ class SocialMediaService
     {
         return [
             'twitter' => [
-                'name' => 'Twitter / X',
+                'name' => 'X',
                 'icon' => 'x-twitter',
                 'connected' => SocialAccount::forPlatform('twitter')->active()->exists(),
             ],
