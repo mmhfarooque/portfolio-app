@@ -5,7 +5,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        {{-- When SSR is enabled, Inertia renders the real per-page <title> into
+             @inertiaHead; emitting this static one too would duplicate it (and
+             crawlers take the first). Keep it only as a fallback when SSR is off. --}}
+        @unless(config('inertia.ssr.enabled'))
         <title inertia>{{ config('app.name', 'Photography Portfolio') }}</title>
+        @endunless
 
         <!-- Favicon -->
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
