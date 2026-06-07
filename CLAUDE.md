@@ -685,6 +685,8 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
+| 2026-06-07 | **Enabled Inertia SSR** — non-JS crawlers now get the full per-page `<head>` (title, OG, Twitter, meta desc, ImageObject JSON-LD) in initial HTML. Before this, bots saw only the site name. Runs as systemd service `mfaruk-ssr` (unit: `deploy/mfaruk-ssr.service`, port 127.0.0.1:13714); `deploy.sh` restarts it; falls back to client render if down. See **INERTIA SSR** section below. |
+| 2026-06-07 | **Twitter → X** — user-facing labels only (share button, admin Settings, SocialMediaService display name). `twitter:*` meta tags, DB platform key `twitter`, settings keys, and `x-twitter` icon name deliberately unchanged (still the correct standard). |
 | 2026-04-04 | **Added Google Search Console integration** — OAuth connect in Settings, dashboard widget with clicks/impressions/CTR/queries/pages |
 | 2026-04-04 | **Moved gallery to homepage** — full gallery with search, filters, pagination below featured section |
 | 2026-04-04 | **Added featured toggle** — click star badge on admin photo list to toggle without entering edit |
@@ -719,6 +721,26 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 | 2024-12-22 | Created CLAUDE.md project intelligence doc |
 
 ---
+
+## INERTIA SSR (server-side rendering)
+
+Enabled 2026-06-07 so search engines and AI crawlers (ClaudeBot, GPTBot, Perplexity, Google Images) receive the real per-page `<head>` — without it they got an empty SPA shell with only the site name.
+
+**Pieces:**
+- `resources/js/ssr.js` — SSR entry (eager page glob, Ziggy from shared props, `@vue/server-renderer`).
+- `config/inertia.php` — `ssr.enabled = true`, url `127.0.0.1:13714`.
+- `vite.config.js` — `ssr` input; `manualChunks` scoped to client build only.
+- `package.json` build = `vite build && vite build --ssr` → `bootstrap/ssr/ssr.js` (gitignored, built on server).
+- `HandleInertiaRequests` shares `ziggy` so `route()` resolves server-side.
+- Prod: **systemd service `mfaruk-ssr`** (`deploy/mfaruk-ssr.service`, runs `php artisan inertia:start-ssr` as user `mfaruk`). `deploy.sh` restarts it after build.
+
+**Health / ops:** `php artisan inertia:check-ssr` · `systemctl restart mfaruk-ssr` · logs via `journalctl -u mfaruk-ssr`. If the daemon is down, Inertia falls back to client render — site still works, just no server head.
+
+**SSR gotchas already solved (do not regress):**
+- DOMPurify has no DOM in Node — `composables/useSanitize.js` returns first-party content unchanged server-side (browser re-sanitises on hydration).
+- JSON-LD in `SeoHead.vue` must be a text child `{{ jsonLdString }}`, NOT `v-html` (else it serialises to an escaped `innerHTML` attribute under SSR).
+- `app.blade.php` static `<title>` is gated behind `@unless(config('inertia.ssr.enabled'))` to avoid a duplicate title.
+- Any new component must not touch `window`/`document`/`localStorage` during `setup()` or render (only inside `onMounted`).
 
 ## SEO IMPLEMENTATION
 
