@@ -72,7 +72,7 @@ if [ "$QUICK" = true ]; then
         && curl -s http://mfaruk.com/oc.php \
         && rm public/oc.php \
         && echo '' \
-        && echo 'Deployed: '$(git log --oneline -1)"
+        && echo \"Deployed: \$(git log --oneline -1)\""
 else
     echo -e "${YELLOW}Full deploy (with npm build)...${NC}"
     ssh $SERVER "cd $APP_DIR \
@@ -92,7 +92,7 @@ else
         && curl -s http://mfaruk.com/oc.php \
         && rm public/oc.php \
         && echo '' \
-        && echo 'Deployed: '$(git log --oneline -1)"
+        && echo \"Deployed: \$(git log --oneline -1)\""
 fi
 
 echo ""
