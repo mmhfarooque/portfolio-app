@@ -169,8 +169,11 @@ The solution is an APT hook:</p>
 <pre><code class="language-bash"># /etc/apt/apt.conf.d/99-fix-ibus-avro
 DPkg::Post-Invoke { &quot;/usr/local/bin/fix-ibus-avro.sh || true&quot;; };
 </code></pre>
-<p>After every <code>dpkg</code> operation, it runs a script that checks if the fix is still applied and re-applies it if not. You install system updates, the fix survives. Right now this is Debian-only — Fedora/Arch/openSUSE would need <code>dnf</code>/<code>pacman</code>/<code>zypper</code> equivalents, which is a future port.</p>
+<p>After every <code>dpkg</code> operation, it runs a script that checks if the fix is still applied and re-applies it if not. You install system updates, the fix survives. This hook is Debian-only — but it is only needed where the fix is patched into apt-managed files. The v2.7.1 RPM sidesteps it entirely: it packages the already-fixed source, so there is nothing for a system update to overwrite and no hook to re-apply.</p>
 
+<h2>Why You Used to See Empty Boxes — The Bangla Font Fix</h2>
+<p>There was a subtle trap that bit fresh installs for years. The engine emits Unicode codepoints — it does the transliteration correctly — but a codepoint only becomes a visible glyph if a Bengali font is installed to draw it. On a font-less system you would switch to Bangla, type away, and get rows of empty &quot;tofu&quot; boxes (□□□). Everything was working; you just had nothing to render it with, and the fix was a manual font download nobody told you about.</p>
+<p>As of v2.7.0 every install path depends on a Bangla Unicode font, so a fresh install renders out of the box. <code>install.sh</code> and the <code>.deb</code> pull <code>fonts-beng</code>; the new <code>.rpm</code> and <code>setup-gui.sh</code>&#039;s dnf branch require <code>google-noto-sans-bengali-fonts</code>; the pacman branch adds <code>noto-fonts</code>. No more typing into the void.</p>
 <h2>The GUI Manager — IBus Avro Manager</h2>
 <p>After the CS9711 fingerprint project, I knew the value of a GUI for this kind of tool. The command line is fine for the initial install, but checking what is fixed, updating, troubleshooting — that should be visual.
 The IBus Avro Manager is a GTK4/libadwaita app in Python. The name was deliberately chosen to surface in both KDE Kickoff (search &quot;ibus&quot;) and GNOME overview (search &quot;avro&quot;). It shows:</p>
@@ -182,6 +185,7 @@ The IBus Avro Manager is a GTK4/libadwaita app in Python. The name was deliberat
 <li><strong>Self-update</strong>: checks GitHub for new versions, shows what changed, one-click update</li>
 <li><strong>Diagnostics</strong>: activity log viewer with copy-to-clipboard for bug reporting</li>
 </ul>
+<p>One note for rpm users: the v2.7.x <code>.rpm</code> deliberately ships only the fixed engine and its supporting bits, not this GUI manager (the manager is wired to the apt/git workflow). On openSUSE and Fedora the fix, IBus component, schema and GTK4 preferences are all there — the dashboard app is the one apt-path extra you do not get.</p>
 
 <h2>Bugs I Hit Along the Way</h2>
 <p><strong>GTK3/GTK4 conflict</strong> — The original <code>main-gjs.js</code> imported <code>pref.js</code> at module level. The preferences window used GTK3. The new one uses GTK4. When IBus loaded the engine, it would try to load both GTK3 and GTK4 into the same process, which crashes GJS. The fix: never import pref.js in the engine. Launch preferences as a separate process via <code>GLib.spawn_command_line_async()</code>.
@@ -191,10 +195,10 @@ The IBus Avro Manager is a GTK4/libadwaita app in Python. The name was deliberat
 <strong>Total uninstall meant total uninstall</strong> — The first version of <code>uninstall.sh</code> ran <code>apt install --reinstall ibus-avro</code> to &quot;restore upstream,&quot; which left the IBus tray icon, the registered engine, and all base packages in place. Useless for fresh-install testing on the same machine. Now <code>uninstall.sh</code> purges every IBus apt package, kills running daemons, wipes user state, unbinds the kglobalaccel action, and removes its own source directory. After it finishes, <code>which ibus</code> returns nothing.</p>
 
 <h2>Current State</h2>
-<p>The project is at v2.5.x. One command to install:</p>
+<p>The project is at v2.7.1. One command to install:</p>
 <pre><code class="language-bash">git clone https://github.com/mmhfarooque/ibus-avro-fixed.git ~/ibus-avro-fixed &amp;&amp; cd ~/ibus-avro-fixed &amp;&amp; bash install.sh
 </code></pre>
-<p>Verified on Kubuntu 26.04 LTS / Plasma 6.6.4 Wayland. Code path preserved (and previously verified) on Ubuntu 26.04 / GNOME 50+ Wayland. Should work on Debian, Mint, Pop!_OS, KDE Neon — same Debian-based code path, but I have not personally smoke-tested those on the v2.5.x line. Fedora, Arch, and openSUSE need a port (the patches are distro-agnostic; the install scripts use <code>apt</code>).
+<p>Verified on Kubuntu 26.04 LTS / Plasma 6.6.4 Wayland. Code path preserved (and previously verified) on Ubuntu 26.04 / GNOME 50+ Wayland. Should work on Debian, Mint, Pop!_OS, KDE Neon — same Debian-based code path, but I have not personally smoke-tested those on the v2.7.x line. As of v2.7.0 there is also an RPM (<code>packaging/ibus-avro-fixed.spec</code>) for openSUSE and Fedora — it packages the already-fixed engine, IBus component, GSettings schema and GTK4 preferences, and pulls in the Bangla font, so the old "apt-only" gap is closed for rpm distros. The RPM is verified on real hardware — the machine this update is written from runs it on openSUSE Tumbleweed / Plasma 6 Wayland. (Use v2.7.1, not v2.7.0: the first RPM shipped an XML escaping bug that kept the engine out of IBus discovery; v2.7.1 fixes it.) Arch is still install-script-only (the <code>install.sh</code> path is apt-based; the patches themselves are distro-agnostic).
 After the install finishes, log out and log back in once. Then right-click the IBus tray icon → Preferences → Input Method → Add → Bangla → Avro Phonetic. Press Super+Space. Type. The Shift key works. Bangla appears.
 If you type Bangla on Linux and your Shift key does not work, or you switched to Wayland and lost your input switching shortcut, this fixes it on both major desktops:
 <a href="https://github.com/mmhfarooque/ibus-avro-fixed">github.com/mmhfarooque/ibus-avro-fixed</a></p>
