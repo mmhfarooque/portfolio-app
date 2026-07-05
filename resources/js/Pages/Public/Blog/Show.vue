@@ -213,4 +213,40 @@ const props = defineProps({
     margin: 1.5rem 0;
     max-width: 100%;
 }
+
+.blog-content :deep(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+}
+
+.blog-content :deep(th) {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.65rem 0.9rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.blog-content :deep(td) {
+    color: var(--text-secondary);
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.6;
+}
+
+.blog-content :deep(tbody tr:last-child td) {
+    border-bottom: none;
+}
+
+.blog-content :deep(tbody tr:hover) {
+    background: var(--bg-tertiary);
+}
+
+.blog-content :deep(th strong),
+.blog-content :deep(td strong) {
+    color: var(--text-primary);
+}
 </style>
