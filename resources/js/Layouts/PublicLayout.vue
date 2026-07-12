@@ -44,7 +44,6 @@ onMounted(() => {
                     <!-- Desktop Navigation -->
                     <div class="hidden md:flex items-center gap-8">
                         <Link :href="route('photos.index')" class="text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary">Gallery</Link>
-                        <Link :href="route('series.index')" class="text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary">Series</Link>
                         <Link :href="route('blog.index')" class="text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary">Blog</Link>
                         <Link :href="route('about')" class="text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary">About</Link>
                         <Link :href="route('contact')" class="text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary">Contact</Link>
@@ -74,7 +73,6 @@ onMounted(() => {
             >
                 <div class="px-4 py-3 space-y-1">
                     <Link :href="route('photos.index')" class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-hover" @click="mobileMenuOpen = false">Gallery</Link>
-                    <Link :href="route('series.index')" class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-hover" @click="mobileMenuOpen = false">Series</Link>
                     <Link :href="route('blog.index')" class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-hover" @click="mobileMenuOpen = false">Blog</Link>
                     <Link :href="route('about')" class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-hover" @click="mobileMenuOpen = false">About</Link>
                     <Link :href="route('contact')" class="block px-3 py-2 rounded-md text-sm font-medium transition-colors text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-hover" @click="mobileMenuOpen = false">Contact</Link>
@@ -100,7 +98,6 @@ onMounted(() => {
 
                     <nav class="flex flex-wrap items-center gap-6">
                         <Link :href="route('photos.index')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Gallery</Link>
-                        <Link :href="route('series.index')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Series</Link>
                         <Link :href="route('blog.index')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Blog</Link>
                         <Link :href="route('about')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">About</Link>
                         <Link :href="route('contact')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Contact</Link>

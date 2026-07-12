@@ -93,16 +93,6 @@ class Photo extends Model
     }
 
     /**
-     * Get the series this photo belongs to.
-     */
-    public function series(): BelongsToMany
-    {
-        return $this->belongsToMany(Series::class, 'photo_series')
-            ->withPivot(['sort_order', 'caption'])
-            ->withTimestamps();
-    }
-
-    /**
      * Get the likes for this photo.
      */
     public function likes(): HasMany

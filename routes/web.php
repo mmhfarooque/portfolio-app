@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\GalleryController as AdminGalleryController;
 use App\Http\Controllers\Admin\LogController as AdminLogController;
 use App\Http\Controllers\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Admin\PhotoController as AdminPhotoController;
-use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
@@ -34,7 +33,6 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SeriesController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\LocationController;
@@ -115,10 +113,6 @@ Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.s
 // Blog/Stories routes
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post:slug}', [BlogController::class, 'show'])->name('blog.show');
-
-// Photo Series routes
-Route::get('/series', [SeriesController::class, 'index'])->name('series.index');
-Route::get('/series/{series:slug}', [SeriesController::class, 'show'])->name('series.show');
 
 // Gear/Equipment routes
 Route::get('/gear', [EquipmentController::class, 'index'])->name('gear.index');
@@ -254,17 +248,6 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('posts/{post}', [AdminPostController::class, 'update'])->name('posts.update');
     Route::post('posts/{post}/toggle-featured', [AdminPostController::class, 'toggleFeatured'])->name('posts.toggle-featured');
     Route::delete('posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
-
-    // Photo Series
-    Route::get('series', [AdminSeriesController::class, 'index'])->name('series.index');
-    Route::get('series/create', [AdminSeriesController::class, 'create'])->name('series.create');
-    Route::post('series', [AdminSeriesController::class, 'store'])->name('series.store');
-    Route::get('series/{series}/edit', [AdminSeriesController::class, 'edit'])->name('series.edit');
-    Route::put('series/{series}', [AdminSeriesController::class, 'update'])->name('series.update');
-    Route::delete('series/{series}', [AdminSeriesController::class, 'destroy'])->name('series.destroy');
-    Route::post('series/{series}/add-photos', [AdminSeriesController::class, 'addPhotos'])->name('series.add-photos');
-    Route::delete('series/{series}/photos/{photo}', [AdminSeriesController::class, 'removePhoto'])->name('series.remove-photo');
-    Route::post('series/{series}/update-order', [AdminSeriesController::class, 'updateOrder'])->name('series.update-order');
 
     // Front Page Settings
     Route::get('frontpage', [AdminFrontpageController::class, 'index'])->name('frontpage.index');
