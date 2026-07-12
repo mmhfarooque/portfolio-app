@@ -1,7 +1,8 @@
 # CLAUDE.md - Project Intelligence Document
 # mfaruk.com Photography Portfolio
 
-> **IMPORTANT**: Read this file at the start of every session. This is the single source of truth for the project.
+> **IMPORTANT**: Read this file at the start of every session.
+> **➡️ Operating brain: read [`MFARUK_WORKFLOW.md`](MFARUK_WORKFLOW.md) FIRST** — the authoritative, current source of truth (architecture, access & recovery, R2 photo sync, NAS-orchestrated backups, deploy chain, gotchas, personal-only boundary). This CLAUDE.md holds the detailed `/content` photo-SEO steps.
 
 ---
 

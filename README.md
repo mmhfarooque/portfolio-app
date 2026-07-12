@@ -4,6 +4,8 @@ A professional photography portfolio and CV/Resume website built with Laravel 12
 
 **Live Site:** [mfaruk.com](https://mfaruk.com)
 
+> 🧠 **AI agents & developers — read [`MFARUK_WORKFLOW.md`](MFARUK_WORKFLOW.md) first.** It is the single operating brain: architecture, access & recovery, R2 photo sync, backups, deploy chain, gotchas, and boundaries.
+
 ## Tech Stack
 
 - **Framework:** Laravel 12.x (PHP 8.2+)
