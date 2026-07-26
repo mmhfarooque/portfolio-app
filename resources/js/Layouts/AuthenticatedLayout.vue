@@ -118,6 +118,15 @@ onUnmounted(() => {
                                             <div class="text-xs text-gray-500">Label your photos</div>
                                         </div>
                                     </Link>
+                                    <Link :href="route('admin.comments.index')" class="dropdown-item" :class="{ 'active': isRoute('/admin/comments') }">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                        <div>
+                                            <div class="font-medium">Comments</div>
+                                            <div class="text-xs text-gray-500">Moderate photo comments</div>
+                                        </div>
+                                    </Link>
                                 </template>
                             </NavDropdown>
 
@@ -279,6 +288,7 @@ onUnmounted(() => {
                     <Link :href="route('admin.categories.index')" class="mobile-nav-link">Categories</Link>
                     <Link :href="route('admin.galleries.index')" class="mobile-nav-link">Galleries</Link>
                     <Link :href="route('admin.tags.index')" class="mobile-nav-link">Tags</Link>
+                    <Link :href="route('admin.comments.index')" class="mobile-nav-link">Comments</Link>
 
                     <div class="px-4 py-2 mt-2"><div class="text-xs font-semibold text-gray-400 uppercase">Content</div></div>
                     <Link :href="route('admin.posts.index')" class="mobile-nav-link">Posts</Link>
