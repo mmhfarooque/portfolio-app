@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\GoogleSearchConsoleService;
+use App\Models\AnalyticsSnapshot;
 use App\Models\Photo;
 use App\Models\Category;
 use App\Models\Contact;
@@ -18,7 +18,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(GoogleSearchConsoleService $gsc): Response
+    public function index(): Response
     {
         // Photo statistics
         $totalPhotos = Photo::count();
@@ -114,11 +114,16 @@ class DashboardController extends Controller
             ->where('created_at', '>=', now()->subDays(30))
             ->count();
 
-        // Google Search Console data
-        $gscData = $gsc->getDashboardData();
+        // Latest GA/GSC snapshot pushed by the NAS n8n workflow (single OAuth lives there)
+        $snapshot = AnalyticsSnapshot::fromNas()->latest('id')->first();
+        $analytics = $snapshot ? [
+            'gsc' => $snapshot->payload['gsc'] ?? null,
+            'ga' => $snapshot->payload['ga'] ?? null,
+            'captured_at' => $snapshot->captured_at?->diffForHumans(),
+        ] : null;
 
         return Inertia::render('Admin/Dashboard', [
-            'gscData' => $gscData,
+            'analytics' => $analytics,
             'stats' => [
                 'totalPhotos' => $totalPhotos,
                 'publishedPhotos' => $publishedPhotos,

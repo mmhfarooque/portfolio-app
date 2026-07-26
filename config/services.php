@@ -56,4 +56,8 @@ return [
         'redirect_uri' => env('GOOGLE_GSC_REDIRECT_URI', 'https://mfaruk.com/admin/settings/google/callback'),
     ],
 
+    'nas' => [
+        'analytics_token' => env('NAS_ANALYTICS_TOKEN'),
+    ],
+
 ];
