@@ -86,6 +86,7 @@ Pre-staged, **OFF** until an attack (no always-on latency): a `maydayctl` script
 - **scp lands as `root:root`** → always `chown mfaruk:www-data && chmod 644` after (especially `storage/app/public/`).
 - **Injecting into `.vue`:** use **Python** (`read_text`/`replace`/`write_text`), never `sed` (CSS braces/percent break it).
 - **Deploy from laptop:** `root@IP`, not the `mfaruk` alias (see §4).
+- **Server-side `/home/mfaruk/deploy.sh` vs repo `deploy.sh`:** they are different scripts. The server copy had NO `mfaruk-ssr` restart until 2026-07-26 (daemon ran stale from Jul 12–26; deploys served old SSR HTML with fresh props). Patched on the server — keep the SSR-restart step if that script is ever regenerated.
 
 ## 14. Secrets (encrypted, in-repo)
 Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + plaintext **`install/SECRETS.README`** (decrypt command + hint, **never** the passphrase). Holds: server SSH, backup password, R2 keys, Cloudflare token, admin, GitHub. **Plaintext is `.gitignore`d and never committed.** Repo is private. A master passphrase unlocks it; any AI given the passphrase can decrypt on demand. _(Build pending.)_
