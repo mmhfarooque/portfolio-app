@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AsAppTimezoneDateTime;
 use Illuminate\Database\Eloquent\Model;
 
 class AnalyticsSnapshot extends Model
@@ -16,7 +17,7 @@ class AnalyticsSnapshot extends Model
     {
         return [
             'payload' => 'array',
-            'captured_at' => 'datetime',
+            'captured_at' => AsAppTimezoneDateTime::class,
         ];
     }
 
