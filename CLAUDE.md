@@ -686,6 +686,10 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
+| 2026-07-26 | **Added in-admin contact reply** — reply form on admin contact page sends via ContactReply mailable, stores reply, sets replied status; fixed ContactController logging (nonexistent logActivity → LoggingService static API); rotated dead Gmail app password (all site mail had been silently failing) |
+| 2026-07-26 | **Added blog photo outro section** — PhotoOutro.vue on every article (3 random featured photos → photo pages); dev vs photography copy variants |
+| 2026-07-26 | **Fixed stale SSR** — server deploy.sh now restarts mfaruk-ssr (daemon had served a Jul-12 bundle for 2 weeks); fixed photo.show→photos.show route name crashing SSR on category/gallery/tag pages |
+| 2026-07-26 | Published photo #42 (rusty bicycle, Swiss Sheep Farm Pattaya; new category Still Life & Details); photo #43 (Botanical Garden Srinagar) content-complete in draft |
 | 2026-06-07 | **Enabled Inertia SSR** — non-JS crawlers now get the full per-page `<head>` (title, OG, Twitter, meta desc, ImageObject JSON-LD) in initial HTML. Before this, bots saw only the site name. Runs as systemd service `mfaruk-ssr` (unit: `deploy/mfaruk-ssr.service`, port 127.0.0.1:13714); `deploy.sh` restarts it; falls back to client render if down. See **INERTIA SSR** section below. |
 | 2026-06-07 | **Twitter → X** — user-facing labels only (share button, admin Settings, SocialMediaService display name). `twitter:*` meta tags, DB platform key `twitter`, settings keys, and `x-twitter` icon name deliberately unchanged (still the correct standard). |
 | 2026-04-04 | **Added Google Search Console integration** — OAuth connect in Settings, dashboard widget with clicks/impressions/CTR/queries/pages |

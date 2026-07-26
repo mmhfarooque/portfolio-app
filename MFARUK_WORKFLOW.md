@@ -4,7 +4,7 @@
 > **mfaruk.com** — written for any AI / agent / LLM (or human) on any machine, fresh or old.
 > Personal project of **Mahmud Farooque**. **Nothing here touches Jezweb** (see §0 boundary).
 > This file lives in git, so a `git clone` delivers the whole brain to every machine.
-> _Living doc — edit, update, refine freely. Last updated: 2026-07-12._
+> _Living doc — edit, update, refine freely. Last updated: 2026-07-26._
 
 ---
 
@@ -96,7 +96,33 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Never post / reply / send as Mahmud** on any channel without an explicit ask + double-confirm.
 - **No auto-delete** of data/files/DB/backups; verified backup + explicit go before any destructive op; **backups are sacred**.
 
-## 16. Current state / where we left off (2026-07-12)
+## 16. Current state / where we left off (2026-07-26)
+
+**Session 2026-07-26 (laptop) — everything below is deployed and in git; PC picks up with a plain `git pull`:**
+- **Contact reply feature LIVE** — in-admin reply form (`POST admin/contacts/{id}/reply`): ContactReply mailable (markdown, quotes original), stores `reply_subject`/`reply_message` on contacts, sets replied status. Replaced the dead `mailto:` button. Also fixed the whole ContactController calling nonexistent `LoggingService::logActivity()` (latent 500s) → real static API `LoggingService::activity()/error()`.
+- **Site email FIXED** — Gmail app password had been revoked (all site mail silently dead: contact notifications, OTPs). New app password *mfaruk.com mailer* set in server `.env` `MAIL_PASSWORD` (2026-07-26, backup at `.env.bak-20260726`), verified sending. If mail dies again: check Google app passwords under farooque7@gmail.com first.
+- **Blog photo outro LIVE** — `Components/Blog/PhotoOutro.vue` on every article: 3 random featured photos + browse-all link. Copy variants: dev articles = *When I'm not coding*; photography-category articles = *More frames from my camera* (detected via category name/slug containing photo/camera). Props from `BlogController@show` (`outroPhotos`, `isPhotographyPost`).
+- **SSR was STALE Jul 12–26** — server-side `/home/mfaruk/deploy.sh` lacked the `mfaruk-ssr` restart (see §13). Patched; every deploy now restarts SSR. Also fixed nonexistent `photo.show` route name (→ `photos.show`) that crashed SSR on all category/gallery/tag pages — crawlers had been getting empty fallback HTML there.
+- **Photos:** #42 rusty bicycle (Swiss Sheep Farm, Pattaya) PUBLISHED — created category *Still Life & Details*; #43 fountain channel (JN Memorial Botanical Garden, Srinagar, coords set manually — no GPS in file) content-complete, **DRAFT, awaiting Mahmud's publish**.
+- **Laravel 13 R&D verdict (researched 2026-07-26):** upgrade is LOW RISK, not urgent. L12 bug fixes end 2026-08-13, security until 2027-02-24. PHP 8.4 OK; Inertia/Ziggy/Vite all 13-ready; official upgrade ~10 min. Watch: `Model::automaticallyEagerLoadRelationships()` in AppServiceProvider, `cache.serializable_classes` default, retest `route:cache` + SSR after. Do as its own session with fresh backup.
+- **Hard preference:** everything the **Laravel way** (Mailables, migrations, FormRequests, artisan commands over ad-hoc tinker). Pending retrofits: reply validation → FormRequest; promote photo-content flow → `php artisan photo:content`.
+
+**Photo-reach plan (agreed, plain list — no checkbox tools, Mahmud hates them):**
+1. ~~Blog→photo outro section~~ DONE 07-26
+2. Photo SEO backfill on all older photos (bring to #42/#43 standard)
+3. `php artisan photo:content` command
+4. Reconnect site GSC integration (OAuth client deleted — dead since April) + Google Images baseline
+5. Blog: Kashmir in April — Srinagar gardens photo guide (bundles photos 11, 43, Pahalgam bridge)
+6. Blog: XF23mm f/1.4 field review with samples
+7. Blog (Mahmud's idea): choosing your first real camera beyond a phone — photography category → gets the camera outro variant
+8. SocialMediaService → X auto-share with confirm-before-post queue (engine exists; also fix PHP 8.4 implicit-nullable deprecations in SocialPost/ABTest)
+9. Pinterest evaluation (better than Instagram for referral traffic); Instagram optional brand-only
+
+**Traffic reality check 07-26:** 30d = 6,593 unique humans (+60% vs ~4,110 two weeks prior). Blog drives everything (CS9711 article 1,684/30d). Photos still weak (best photo 38/30d) — hence the plan above. First real reader contact arrived via CS9711 article (contact #9, Jason — replied via new admin reply feature).
+
+---
+
+## 16b. Previous state (2026-07-12)
 - **Series** fully removed (code + DB) and deployed. **git = laptop = prod** in sync.
 - **Open tracks** (see task list): NAS n8n/mcp migration → NAS-orchestrated backups (GFS retention) + NAS config audit + storage fallback; May Day contingency; backlog (photo reach/SEO, blog articles, indexing health, doc hygiene, analytics/growth, infra/commerce); HestiaCP work TBD.
 - **Next dev intent** (from PROGRESS_SUMMARY): photo-upload batch + more articles.
