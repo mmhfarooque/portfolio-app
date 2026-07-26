@@ -261,7 +261,7 @@ const getActivityColor = (type) => {
                             <div
                                 v-for="(views, date) in viewsChartData"
                                 :key="date"
-                                class="flex-1 flex flex-col items-center group relative"
+                                class="flex-1 h-full flex flex-col justify-end items-center group relative"
                             >
                                 <div
                                     class="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
@@ -351,7 +351,7 @@ const getActivityColor = (type) => {
                                     <div
                                         v-for="(data, date) in analytics.gsc.clicksOverTime"
                                         :key="date"
-                                        class="flex-1 group relative"
+                                        class="flex-1 h-full flex flex-col justify-end group relative"
                                     >
                                         <div
                                             class="w-full bg-purple-400 rounded-t transition-all hover:bg-purple-500"
