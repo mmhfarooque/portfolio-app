@@ -87,7 +87,7 @@ class DashboardController extends Controller
             ->get();
 
         // Views over last 30 days (from activity log)
-        $viewsOverTime = ActivityLog::where('action', 'photo_viewed')
+        $viewsOverTime = ActivityLog::where('action', 'photo.viewed')
             ->where('created_at', '>=', now()->subDays(30))
             ->selectRaw('DATE(created_at) as date, COUNT(*) as views')
             ->groupBy('date')

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LoggingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -222,11 +223,13 @@ class Photo extends Model
     }
 
     /**
-     * Increment the view count.
+     * Increment the view count and record the event for the views chart.
      */
     public function incrementViews(): void
     {
         $this->increment('views');
+
+        LoggingService::activity('photo.viewed', null, $this);
     }
 
     /**
