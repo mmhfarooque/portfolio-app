@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ContactReply;
 use App\Models\Contact;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -82,8 +84,48 @@ class ContactController extends Controller
                 'user_agent' => $contact->user_agent,
                 'created_at' => $contact->created_at->format('M j, Y g:i A'),
                 'replied_at' => $contact->replied_at?->format('M j, Y g:i A'),
+                'reply_subject' => $contact->reply_subject,
+                'reply_message' => $contact->reply_message,
             ],
         ]);
+    }
+
+    /**
+     * Send an email reply to the contact.
+     */
+    public function reply(Request $request, Contact $contact)
+    {
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string|max:10000',
+        ]);
+
+        try {
+            Mail::to($contact->email)->send(
+                new ContactReply($contact, $validated['subject'], $validated['message'])
+            );
+        } catch (\Throwable $e) {
+            $this->logger->logActivity('contact_reply_failed', 'error', [
+                'contact_id' => $contact->id,
+                'error' => $e->getMessage(),
+            ], $contact);
+
+            return back()->with('error', 'Failed to send reply: ' . $e->getMessage());
+        }
+
+        $contact->update([
+            'status' => 'replied',
+            'replied_at' => now(),
+            'reply_subject' => $validated['subject'],
+            'reply_message' => $validated['message'],
+        ]);
+
+        $this->logger->logActivity('contact_replied', 'info', [
+            'contact_id' => $contact->id,
+            'email' => $contact->email,
+        ], $contact);
+
+        return back()->with('success', 'Reply sent to ' . $contact->email);
     }
 
     /**

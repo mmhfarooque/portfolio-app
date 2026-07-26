@@ -19,6 +19,8 @@ class Contact extends Model
         'user_agent',
         'read_at',
         'replied_at',
+        'reply_subject',
+        'reply_message',
     ];
 
     protected $casts = [

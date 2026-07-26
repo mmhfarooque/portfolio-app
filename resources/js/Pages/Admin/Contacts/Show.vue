@@ -18,6 +18,21 @@ const statusForm = useForm({
     status: props.contact.status
 });
 
+const replyForm = useForm({
+    subject: `Re: ${props.contact.subject || 'Your message'}`,
+    message: ''
+});
+
+const sendReply = () => {
+    replyForm.post(route('admin.contacts.reply', props.contact.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            replyForm.reset('message');
+            statusForm.status = 'replied';
+        }
+    });
+};
+
 const updateStatus = () => {
     statusForm.patch(route('admin.contacts.update-status', props.contact.id), {
         preserveScroll: true
@@ -83,21 +98,54 @@ const getStatusClass = (status) => {
                             </div>
                         </div>
 
-                        <!-- Reply Button -->
+                        <!-- Previous Reply -->
+                        <div v-if="contact.reply_message" class="bg-green-50 rounded-xl shadow-sm border border-green-100 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                                Your Reply
+                                <span v-if="contact.replied_at" class="text-sm font-normal text-gray-500">— sent {{ contact.replied_at }}</span>
+                            </h3>
+                            <p class="text-sm text-gray-500 mb-3">{{ contact.reply_subject }}</p>
+                            <p class="whitespace-pre-wrap text-gray-700">{{ contact.reply_message }}</p>
+                        </div>
+
+                        <!-- Reply Form -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Reply</h3>
-                            <a
-                                :href="`mailto:${contact.email}?subject=Re: ${contact.subject || 'Your message'}`"
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-                            >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
-                                Reply via Email
-                            </a>
-                            <p class="mt-2 text-sm text-gray-500">
-                                After replying, remember to update the status to "Replied"
-                            </p>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                {{ contact.reply_message ? 'Send Another Reply' : 'Reply' }}
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                                    <input
+                                        v-model="replyForm.subject"
+                                        type="text"
+                                        class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    <p v-if="replyForm.errors.subject" class="mt-1 text-sm text-red-600">{{ replyForm.errors.subject }}</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                                    <textarea
+                                        v-model="replyForm.message"
+                                        rows="8"
+                                        :placeholder="`Hi ${contact.name},`"
+                                        class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                    ></textarea>
+                                    <p v-if="replyForm.errors.message" class="mt-1 text-sm text-red-600">{{ replyForm.errors.message }}</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <PrimaryButton @click="sendReply" :disabled="replyForm.processing || !replyForm.message.trim()">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                        {{ replyForm.processing ? 'Sending…' : 'Send Reply' }}
+                                    </PrimaryButton>
+                                    <span v-if="replyForm.recentlySuccessful" class="text-sm text-green-600">Reply sent ✓</span>
+                                </div>
+                                <p class="text-sm text-gray-500">
+                                    Sends from the site's email to {{ contact.email }} and marks this message as replied.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
