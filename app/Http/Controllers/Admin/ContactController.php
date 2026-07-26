@@ -13,13 +13,6 @@ use Inertia\Response;
 
 class ContactController extends Controller
 {
-    protected LoggingService $logger;
-
-    public function __construct(LoggingService $logger)
-    {
-        $this->logger = $logger;
-    }
-
     /**
      * Display a listing of contacts.
      */
@@ -105,10 +98,7 @@ class ContactController extends Controller
                 new ContactReply($contact, $validated['subject'], $validated['message'])
             );
         } catch (\Throwable $e) {
-            $this->logger->logActivity('contact_reply_failed', 'error', [
-                'contact_id' => $contact->id,
-                'error' => $e->getMessage(),
-            ], $contact);
+            LoggingService::error('contact_reply_failed', 'Failed to send contact reply', $e, $contact);
 
             return back()->with('error', 'Failed to send reply: ' . $e->getMessage());
         }
@@ -120,10 +110,7 @@ class ContactController extends Controller
             'reply_message' => $validated['message'],
         ]);
 
-        $this->logger->logActivity('contact_replied', 'info', [
-            'contact_id' => $contact->id,
-            'email' => $contact->email,
-        ], $contact);
+        LoggingService::activity('contact_replied', 'Reply sent to ' . $contact->email, $contact);
 
         return back()->with('success', 'Reply sent to ' . $contact->email);
     }
@@ -143,10 +130,7 @@ class ContactController extends Controller
             $contact->update(['replied_at' => now()]);
         }
 
-        $this->logger->logActivity('contact_status_updated', 'info', [
-            'contact_id' => $contact->id,
-            'new_status' => $validated['status'],
-        ], $contact);
+        LoggingService::activity('contact_status_updated', 'Status changed to ' . $validated['status'], $contact);
 
         return back()->with('success', 'Contact status updated.');
     }
@@ -156,11 +140,9 @@ class ContactController extends Controller
      */
     public function destroy(Contact $contact)
     {
-        $this->logger->logActivity('contact_deleted', 'info', [
-            'contact_id' => $contact->id,
-            'name' => $contact->name,
+        LoggingService::activity('contact_deleted', 'Deleted message from ' . $contact->name, $contact, [
             'email' => $contact->email,
-        ], $contact);
+        ]);
 
         $contact->delete();
 
@@ -181,9 +163,7 @@ class ContactController extends Controller
 
         $count = Contact::whereIn('id', $validated['ids'])->delete();
 
-        $this->logger->logActivity('contacts_bulk_deleted', 'info', [
-            'count' => $count,
-        ]);
+        LoggingService::activity('contacts_bulk_deleted', "{$count} contacts deleted");
 
         return back()->with('success', "{$count} contacts deleted.");
     }
@@ -199,10 +179,7 @@ class ContactController extends Controller
             ->whereNotIn('status', ['archived'])
             ->update(['status' => 'archived']);
 
-        $this->logger->logActivity('contacts_archived', 'info', [
-            'count' => $count,
-            'older_than_days' => $days,
-        ]);
+        LoggingService::activity('contacts_archived', "{$count} contacts archived (older than {$days} days)");
 
         return back()->with('success', "{$count} contacts archived.");
     }
