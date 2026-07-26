@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAnalyticsSnapshotRequest;
 use App\Models\AnalyticsSnapshot;
+use Illuminate\Support\Carbon;
 
 class NasAnalyticsController extends Controller
 {
@@ -18,7 +19,9 @@ class NasAnalyticsController extends Controller
         $snapshot = AnalyticsSnapshot::create([
             'source' => 'nas-n8n',
             'payload' => collect($validated)->except('captured_at')->all(),
-            'captured_at' => $validated['captured_at'] ?? now(),
+            'captured_at' => isset($validated['captured_at'])
+                ? Carbon::parse($validated['captured_at'])->setTimezone(config('app.timezone'))
+                : now(),
         ]);
 
         // Keep a bounded history — 90 days is plenty for the dashboard.
