@@ -107,6 +107,8 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Laravel 13 R&D verdict (researched 2026-07-26):** upgrade is LOW RISK, not urgent. L12 bug fixes end 2026-08-13, security until 2027-02-24. PHP 8.4 OK; Inertia/Ziggy/Vite all 13-ready; official upgrade ~10 min. Watch: `Model::automaticallyEagerLoadRelationships()` in AppServiceProvider, `cache.serializable_classes` default, retest `route:cache` + SSR after. Do as its own session with fresh backup.
 - **Hard preference:** everything the **Laravel way** (Mailables, migrations, FormRequests, artisan commands over ad-hoc tinker). Pending retrofits: reply validation → FormRequest; promote photo-content flow → `php artisan photo:content`.
 
+- **NAS-pushed analytics LIVE (2026-07-26)** — dashboard GA/GSC widget now reads snapshots pushed by the NAS n8n stack (single Google OAuth lives on the NAS; the site's own GSC OAuth stays dead/retired from the dashboard path). Contract: `POST https://mfaruk.com/api/nas/analytics`, header `Authorization: Bearer <NAS_ANALYTICS_TOKEN from server .env>`, JSON body `{captured_at, gsc:{clicks,impressions,ctr,position,topQueries[],topPages[],clicksOverTime{}}, ga:{activeUsers,sessions,pageViews}}` — all nested keys optional. Stored in `analytics_snapshots` (90-day retention), latest row rendered. ⚠️ First row (id 1) is TEST data pushed during build — real numbers arrive with the first n8n push. n8n side still TODO: add HTTP Request node to the 9am digest workflow.
+
 **Photo-reach plan (agreed, plain list — no checkbox tools, Mahmud hates them):**
 1. ~~Blog→photo outro section~~ DONE 07-26
 2. Photo SEO backfill on all older photos (bring to #42/#43 standard)
