@@ -109,6 +109,14 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 
 - **NAS-pushed analytics LIVE (2026-07-26)** — dashboard GA/GSC widget now reads snapshots pushed by the NAS n8n stack (single Google OAuth lives on the NAS; the site's own GSC OAuth stays dead/retired from the dashboard path). Contract: `POST https://mfaruk.com/api/nas/analytics`, header `Authorization: Bearer <NAS_ANALYTICS_TOKEN from server .env>`, JSON body `{captured_at, gsc:{clicks,impressions,ctr,position,topQueries[],topPages[],clicksOverTime{}}, ga:{activeUsers,sessions,pageViews}}` — all nested keys optional. Stored in `analytics_snapshots` (90-day retention), latest row rendered. ⚠️ First row (id 1) is TEST data pushed during build — real numbers arrive with the first n8n push. n8n side still TODO: add HTTP Request node to the 9am digest workflow.
 
+**NEXT WEEKEND PLAN (agreed 2026-07-26, target Aug 1–2):**
+1. SAT: NAS backup pipeline (n8n SSH→mysqldump+tar→NAS, GFS 12m/8w, DB→R2 offsite) + first full backup + RESTORE TEST to scratch dir
+2. SAT: decommission /backup-panel + backup cron + stale scripts — ONLY after restore test passes (portal still LIVE at /backup-panel as of 07-26; schedule off since Mar 15, password stale since May, last backup Mar 8 — full story + rationale in §9)
+3. SUN: Laravel 12→13 upgrade (plan in §16 R&D verdict) — on top of fresh backups
+4. SUN: Laravel-way retrofits — reply validation → FormRequest; photo flow → `php artisan photo:content`
+5. Optional: first-camera-beyond-phone blog post / Kashmir April guide / photo SEO backfill
+Weekday check: 9am digest now auto-pushes full analytics (sessions+pageViews added 07-26); views chart builds history from 07-26.
+
 **Photo-reach plan (agreed, plain list — no checkbox tools, Mahmud hates them):**
 1. ~~Blog→photo outro section~~ DONE 07-26
 2. Photo SEO backfill on all older photos (bring to #42/#43 standard)
