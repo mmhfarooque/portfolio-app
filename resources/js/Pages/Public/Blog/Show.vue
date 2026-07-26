@@ -1,10 +1,13 @@
 <script setup>
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import PhotoOutro from '@/Components/Blog/PhotoOutro.vue';
 import { sanitizeHtml } from '@/composables/useSanitize.js';
 
 const props = defineProps({
     post: Object,
+    outroPhotos: { type: Array, default: () => [] },
+    isPhotographyPost: { type: Boolean, default: false },
     relatedPosts: Array,
     previousPost: Object,
     nextPost: Object
@@ -89,6 +92,9 @@ const props = defineProps({
                 </Link>
             </nav>
         </article>
+
+        <!-- Photography outro -->
+        <PhotoOutro :photos="outroPhotos" :is-photography-post="isPhotographyPost" />
 
         <!-- Related Posts -->
         <section v-if="relatedPosts.length > 0" class="bg-theme-bg-secondary py-12">

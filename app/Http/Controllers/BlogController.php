@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Photo;
 use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Http\Request;
@@ -159,7 +160,26 @@ class BlogController extends Controller
             ->orderBy('id', 'asc')
             ->first(['id', 'title', 'slug']);
 
+        // Featured photos for the article outro section
+        $outroPhotos = Photo::published()
+            ->featured()
+            ->inRandomOrder()
+            ->take(3)
+            ->get()
+            ->map(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_url' => $photo->thumbnail_url,
+                'location_name' => $photo->location_name,
+            ]);
+
+        $isPhotographyPost = $post->category
+            && Str::contains(Str::lower($post->category->name . ' ' . $post->category->slug), ['photo', 'camera']);
+
         return Inertia::render('Public/Blog/Show', [
+            'outroPhotos' => $outroPhotos,
+            'isPhotographyPost' => $isPhotographyPost,
             'post' => [
                 'id' => $post->id,
                 'title' => $post->title,
