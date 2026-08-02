@@ -1,9 +1,8 @@
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { router, InfiniteScroll } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
-import Pagination from '@/Components/Pagination.vue';
 
 const props = defineProps({
     photos: Object,
@@ -40,6 +39,17 @@ const clearFilters = () => {
 const galleryGrid = ref(null);
 let observer = null;
 
+// Hand any not-yet-watched cards to the observer. Load-more appends new .photo-card
+// nodes whose images are still data-src only, so without re-observing them after each
+// page they would sit blank forever.
+const observeCards = () => {
+    if (!observer || !galleryGrid.value) return;
+    galleryGrid.value.querySelectorAll('.photo-card:not([data-observed])').forEach(el => {
+        el.setAttribute('data-observed', '');
+        observer.observe(el);
+    });
+};
+
 const setupObserver = () => {
     observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -55,13 +65,14 @@ const setupObserver = () => {
         });
     }, { rootMargin: '200px' });
 
-    if (galleryGrid.value) {
-        galleryGrid.value.querySelectorAll('.photo-card').forEach(el => observer.observe(el));
-    }
+    observeCards();
 };
 
 onMounted(() => setupObserver());
 onUnmounted(() => observer?.disconnect());
+
+// Appended pages (and filter changes, which replace the list) both need observing.
+watch(() => props.photos.data.length, () => nextTick(observeCards));
 </script>
 
 <template>
@@ -134,27 +145,53 @@ onUnmounted(() => observer?.disconnect());
             </div>
 
             <!-- Photos Grid -->
-            <div v-if="photos.data.length > 0" ref="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Link
-                    v-for="photo in photos.data"
-                    :key="photo.id"
-                    :href="route('photos.show', photo.slug)"
-                    class="group photo-card"
+            <div v-if="photos.data.length > 0" ref="galleryGrid">
+                <InfiniteScroll
+                    data="photos"
+                    manual
+                    class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
                 >
-                    <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
-                        <img
-                            :data-src="`/storage/${photo.thumbnail_path}`"
-                            :alt="photo.title"
-                            class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 opacity-0"
-                        />
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div class="absolute bottom-0 left-0 right-0 p-3">
-                                <p class="text-white text-sm font-medium truncate">{{ photo.title }}</p>
-                                <p v-if="photo.category" class="text-white/70 text-xs">{{ photo.category.name }}</p>
+                    <Link
+                        v-for="photo in photos.data"
+                        :key="photo.id"
+                        :href="route('photos.show', photo.slug)"
+                        class="group photo-card"
+                    >
+                        <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
+                            <img
+                                :data-src="`/storage/${photo.thumbnail_path}`"
+                                :alt="photo.title"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 opacity-0"
+                            />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div class="absolute bottom-0 left-0 right-0 p-3">
+                                    <p class="text-white text-sm font-medium truncate">{{ photo.title }}</p>
+                                    <p v-if="photo.category" class="text-white/70 text-xs">{{ photo.category.name }}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </Link>
+                    </Link>
+
+                    <!-- Manual mode: nothing loads until this is clicked -->
+                    <template #next="{ loading, fetch, hasMore }">
+                        <div class="mt-8 flex justify-center">
+                            <button
+                                v-if="hasMore"
+                                type="button"
+                                @click="fetch"
+                                :disabled="loading"
+                                class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                            >
+                                <svg v-if="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                                </svg>
+                                {{ loading ? 'Loading…' : 'Load more photos' }}
+                            </button>
+                            <p v-else class="text-sm text-gray-400">That is every photo.</p>
+                        </div>
+                    </template>
+                </InfiniteScroll>
             </div>
 
             <!-- Empty State -->
@@ -166,10 +203,6 @@ onUnmounted(() => observer?.disconnect());
                 <p class="text-sm mt-1">Try adjusting your filters or search terms.</p>
             </div>
 
-            <!-- Pagination -->
-            <div v-if="photos.data.length > 0" class="mt-8">
-                <Pagination :links="photos.links" />
-            </div>
         </div>
     </PublicLayout>
 </template>

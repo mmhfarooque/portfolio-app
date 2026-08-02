@@ -134,7 +134,10 @@ class GalleryController extends Controller
         $photosWithLocation = Photo::published()->withLocation()->count();
 
         return Inertia::render('Public/Gallery/Index', [
-            'photos' => $photos,
+            // Inertia::scroll() marks the paginator's data array for appending on
+            // partial reloads and normalises the page metadata the <InfiniteScroll>
+            // component needs. The prop shape is unchanged, so photos.data still works.
+            'photos' => Inertia::scroll($photos),
             'categories' => $categories,
             'tags' => $tags,
             'currentCategory' => $currentCategory,
