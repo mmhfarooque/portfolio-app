@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\AboutController as AdminAboutController;
 use App\Http\Controllers\Admin\AnalyticsController as AdminAnalyticsController;
-use App\Http\Controllers\Admin\BackupController as AdminBackupController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FrontpageController as AdminFrontpageController;
@@ -308,12 +307,6 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Media Library API
     Route::get('media/photos', [AdminMediaController::class, 'photos'])->name('media.photos');
-
-    // Backup
-    Route::get('backup', [AdminBackupController::class, 'index'])->name('backup.index');
-    Route::post('backup/run', [AdminBackupController::class, 'runBackup'])->name('backup.run');
-    Route::post('backup/test', [AdminBackupController::class, 'testConnection'])->name('backup.test');
-    Route::get('backup/list', [AdminBackupController::class, 'listBackups'])->name('backup.list');
 
     // Analytics
     Route::get('analytics/referrals', [AdminAnalyticsController::class, 'referrals'])->name('analytics.referrals');

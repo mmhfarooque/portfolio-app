@@ -67,7 +67,14 @@ When R2's ~500-master free ceiling is ever approached: **NAS + MinIO** (S3-compa
 - **Scope:** 4 TB NAS ⇒ **full backups incl. images** (drop the old no-images/restore-from-R2 space trick — that only existed for the tiny server disk).
 - **Offsite leg (true 3-2-1):** push the small **DB dump → R2** periodically (free). ⚠️ **RAID ≠ backup** — it guards against a dead drive, not deletion/corruption/ransomware/NAS loss. Images are already independently safe in R2.
 - **Retention (GFS):** **12 monthly** (rolling year — always exactly 12, oldest pruned on new) **+ 8 weekly** (rolling ~2 months / 8 weeks, older pruned). Max **~20 backups**, bounded forever. n8n owns the rotation.
-- **⚠️ STATE 2026-07-12:** the OLD server backups have been **DISABLED since 15 Mar** (toggled off, never re-enabled); the backup password is stale (reset ~May, script still hard-codes old one); last real backup **8 Mar**. **Interim protection = manual DB dumps** (`pre-series-removal-20260712-071454.sql.gz` exists). Full fix waits on n8n-on-NAS.
+- **✅ OLD SYSTEM REMOVED 2026-08-02.** The server now hosts **no backup system at all**. What was actually found (the earlier note that it was simply *disabled* was wrong):
+  - `public/backup-panel/` was **live and publicly reachable** — HTTP 200, a 60 KB PHP file executing outside Laravel via its own `.htaccess`. It was **tracked in git**, so a server-side delete alone would have been undone by the next `deploy.sh`.
+  - The `mfaruk` crontab **still fired** `scheduled-backup.sh` weekly + monthly. It exited at line 1 every time because `.schedule-enabled` / `.schedule-config` were deleted from the panel on **15 Mar 2026 11:46:17**. Five silent no-ops a month for ~5 months — no error, no alert. That is why the gap went unnoticed.
+  - `scheduled-backup.sh` **hardcoded the pre-May password in plaintext**; `ACCESS.md` carried the panel password in plaintext too.
+  - A **second** system existed: a Backblaze **B2** integration in the Laravel admin (`/admin/backup`, `BackupController`, `backup:photos`, Vue page). `B2_*` was never set, `last_backup_at` was never — it **never ran once**. Removed as dead code.
+  - Backups were written to the **same 30 GB disk they protected**. Never offsite.
+- **Removal was non-destructive.** Server files moved to `/home/mfaruk/_retired/backup-system-20260802/` (incl. the pre-change crontab). Repo files removed with `git rm` — full contents stay in history. All archives copied to **laptop** (`~/mfaruk-backups/legacy-server-backups-20260802/`) **and NAS** (`Backup/mfaruk.com/legacy-server-backups-20260802/` on the `home` share), MD5-verified identical, with a `README.md` documenting inventory and rollback.
+- **⚠️ STATE 2026-08-02: mfaruk.com has NO automated backup.** Newest usable DB dump is `pre-series-removal-20260712-071454.sql.gz` (12 Jul 2026). Note `pre-phase2-20260308.sql.gz` is **20 bytes — a truncated, unusable gzip**. Building the n8n pipeline is now the top open item.
 
 ## 10. Content workflows
 - **`/content [photo-id | URL]`** (see `CLAUDE.md` for the full step list): reverse-geocode GPS → **confirm location with Mahmud** → generate title / slug / first-person story (no travel-brochure fluff) / `seo_title` ≤70 / `meta_description` ≤160 / assign category + gallery / 10–15 tags → publish + feature.
@@ -79,7 +86,7 @@ When R2's ~500-master free ceiling is ever approached: **NAS + MinIO** (S3-compa
 - **Reach reality (30 d, Jul 2026):** ~4,110 unique humans. **Blog drives everything** (Linux articles: 855 / 463 / 267 / 244 views); individual **photo pages get single-digit-to-~34** views. Photos are crawlable (SSR) but not yet *found* — the fix is content + search-intent SEO + blog→photo internal links, not infra.
 
 ## 12. Security — "May Day" contingency (dormant, flip-a-switch)
-Pre-staged, **OFF** until an attack (no always-on latency): a `maydayctl` script (enable Cloudflare **Under Attack Mode** + pre-staged rate-limits + WAF + Bot Fight; `normal` reverts), **origin cloaking** (proxied A record; optional firewall origin 80/443 to Cloudflare IPs — SSH:22 stays direct so mfaruk-mcp is unaffected), and a Cloudflare **fallback holding page**. Needs a **personal, scoped** Cloudflare API token (mfaruk.com zone only). Also **decommission the public `/backup-panel`** (attack surface). Cloudflare already absorbs volumetric L3/L4 DDoS by default.
+Pre-staged, **OFF** until an attack (no always-on latency): a `maydayctl` script (enable Cloudflare **Under Attack Mode** + pre-staged rate-limits + WAF + Bot Fight; `normal` reverts), **origin cloaking** (proxied A record; optional firewall origin 80/443 to Cloudflare IPs — SSH:22 stays direct so mfaruk-mcp is unaffected), and a Cloudflare **fallback holding page**. Needs a **personal, scoped** Cloudflare API token (mfaruk.com zone only). ~~Decommission the public `/backup-panel`~~ **DONE 2026-08-02** (§9). Cloudflare already absorbs volumetric L3/L4 DDoS by default.
 
 ## 13. Gotchas (don't relearn these)
 - **tinker:** strip `<?php` and `use …;` lines (or use fully-qualified names); pipe scripts via **stdin**; `--execute="…"` mangles backslashes/backticks.
@@ -111,7 +118,7 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 
 **NEXT WEEKEND PLAN (agreed 2026-07-26, target Aug 1–2):**
 1. SAT: NAS backup pipeline (n8n SSH→mysqldump+tar→NAS, GFS 12m/8w, DB→R2 offsite) + first full backup + RESTORE TEST to scratch dir
-2. SAT: decommission /backup-panel + backup cron + stale scripts — ONLY after restore test passes (portal still LIVE at /backup-panel as of 07-26; schedule off since Mar 15, password stale since May, last backup Mar 8 — full story + rationale in §9)
+2. ~~SAT: decommission /backup-panel + backup cron + stale scripts~~ **DONE 2026-08-02** — removed ahead of the restore test rather than after it, because the panel was found publicly reachable and the archives were already MD5-verified onto laptop + NAS first. Also caught and removed a second, never-configured B2 backup system. Full story in §9.
 3. SUN: Laravel 12→13 upgrade (plan in §16 R&D verdict) — on top of fresh backups
 4. SUN: Laravel-way retrofits — reply validation → FormRequest; photo flow → `php artisan photo:content`
 5. Optional: first-camera-beyond-phone blog post / Kashmir April guide / photo SEO backfill

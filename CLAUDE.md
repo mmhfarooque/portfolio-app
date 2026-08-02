@@ -686,6 +686,7 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
+| 2026-08-02 | **Retired the entire backup system** — removed the publicly-reachable `/backup-panel`, its CLI and docs, the never-configured B2 admin integration (`/admin/backup`, `BackupController`, `backup:photos`, Vue page), the stale cron, and the plaintext password in `ACCESS.md`. Non-destructive: server files quarantined to `/home/mfaruk/_retired/`, archives MD5-verified onto laptop + NAS. **No automated backup until the NAS/n8n pipeline is built.** |
 | 2026-07-26 | **Added in-admin contact reply** — reply form on admin contact page sends via ContactReply mailable, stores reply, sets replied status; fixed ContactController logging (nonexistent logActivity → LoggingService static API); rotated dead Gmail app password (all site mail had been silently failing) |
 | 2026-07-26 | **Added blog photo outro section** — PhotoOutro.vue on every article (3 random featured photos → photo pages); dev vs photography copy variants |
 | 2026-07-26 | **Fixed stale SSR** — server deploy.sh now restarts mfaruk-ssr (daemon had served a Jul-12 bundle for 2 weeks); fixed photo.show→photos.show route name crashing SSR on category/gallery/tag pages |
@@ -827,25 +828,33 @@ npm run build                    # Rebuild assets
 
 ## BACKUP & RESTORE
 
-**Full documentation:** `docs/BACKUP_RESTORE.md`
+⚠️ **RETIRED 2026-08-02 — mfaruk.com currently has NO automated backup.**
 
-Standalone backup system at `/home/mfaruk/backups/backup.php` — works independently of Laravel.
+Three things were removed in one pass (full rationale in `MFARUK_WORKFLOW.md` §9):
 
-```bash
-# From local machine (or SSH first)
-ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php backup"        # Full backup
-ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php backup --db-only"  # DB only
-ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php list"          # List backups
-ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php restore <name> --dry-run"  # Preview restore
-ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php restore <name> --force"    # Emergency restore
-ssh user@SERVER_IP "php /home/mfaruk/backups/backup.php cleanup --keep=5"          # Prune old backups
-```
+1. **Standalone panel + CLI** — `public/backup-panel/` was publicly reachable (HTTP 200,
+   executing outside Laravel), the cron fired weekly/monthly but exited immediately
+   because the enable-flag files were deleted from the panel on 15 Mar 2026, and the
+   wrapper hardcoded a stale plaintext password. Last real backup: **8 Mar 2026.**
+2. **Backblaze B2 admin integration** — `/admin/backup`, `BackupController`,
+   `backup:photos`, and the Vue page. `B2_*` was never set and `last_backup_at` was
+   never — it never ran once.
+3. **The plaintext panel password** committed in `ACCESS.md`.
 
-**Backs up:** MySQL database, `.env`, storage photos, Vite build, HestiaCP configs, composer files
-**Does NOT backup:** App source (in git), vendor (composer install), node_modules, R2 originals (in cloud)
+Nothing was destroyed. Server files moved to
+`/home/mfaruk/_retired/backup-system-20260802/`; repo files removed via `git rm` so they
+remain in history; all archives copied to laptop and NAS
+(`Backup/mfaruk.com/legacy-server-backups-20260802/`, MD5-verified, with a README
+covering rollback).
 
-Git-tracked files: `tools/backup.php` (script), `tools/backup.conf.example.php` (config template)
-Server files: `/home/mfaruk/backups/backup.php`, `/home/mfaruk/backups/backup.conf.php`
+**Newest usable DB dump on hand: `pre-series-removal-20260712-071454.sql.gz` (12 Jul 2026).**
+
+**Replacement (to build):** n8n on the DS923+ SSHes to the server → mysqldump + files
+archive → NAS RAID → DB dump pushed to R2 for the offsite leg. GFS retention, 12 monthly
++ 8 weekly. Design in `MFARUK_WORKFLOW.md` §9.
+
+Cloudflare R2 (photo originals) is unaffected and remains live — that is storage, not
+backup.
 
 ---
 
