@@ -68,7 +68,15 @@ const setupObserver = () => {
     observeCards();
 };
 
-onMounted(() => setupObserver());
+// hasMore is only known once InfiniteScroll has mounted and read the page metadata.
+// Server-side it is false, so without this guard SSR renders the end-of-list message
+// on a list that has more pages — it then flips to the button on hydration.
+const mounted = ref(false);
+
+onMounted(() => {
+    mounted.value = true;
+    setupObserver();
+});
 onUnmounted(() => observer?.disconnect());
 
 // Appended pages (and filter changes, which replace the list) both need observing.
@@ -188,7 +196,7 @@ watch(() => props.photos.data.length, () => nextTick(observeCards));
                                 </svg>
                                 {{ loading ? 'Loading…' : 'Load more photos' }}
                             </button>
-                            <p v-else class="text-sm text-gray-400">That is every photo.</p>
+                            <p v-else-if="mounted" class="text-sm text-gray-400">That is every photo.</p>
                         </div>
                     </template>
                 </InfiniteScroll>
