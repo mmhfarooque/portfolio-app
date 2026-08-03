@@ -1,8 +1,20 @@
 # CLAUDE.md - Project Intelligence Document
 # mfaruk.com Photography Portfolio
 
-> **IMPORTANT**: Read this file at the start of every session.
-> **➡️ Operating brain: read [`MFARUK_WORKFLOW.md`](MFARUK_WORKFLOW.md) FIRST** — the authoritative, current source of truth (architecture, access & recovery, R2 photo sync, NAS-orchestrated backups, deploy chain, gotchas, personal-only boundary). This CLAUDE.md holds the detailed `/content` photo-SEO steps.
+> ## ⚠️ THIS FILE IS PARTLY STALE — DO NOT TRUST ITS FACTS
+>
+> Keep it for **one thing only: the `/content` photo-SEO step list** (still authoritative).
+> Everything else here has drifted and is known-wrong in places: it names DigitalOcean hosting
+> (it is VPSDime), claims 10 published photos and 5 categories (actually 26 and 12), says there
+> is no automated backup (there is, since 2026-08-02), and describes an rsync deploy in one
+> section while forbidding rsync in another.
+>
+> **➡️ Technical source of truth: [`docs/reference/00-INDEX.md`](docs/reference/00-INDEX.md)** —
+> a sequential 12-part set verified against the live server and NAS on 2026-08-03.
+> **➡️ Policy source of truth: [`MFARUK_WORKFLOW.md`](MFARUK_WORKFLOW.md)** — golden rules,
+> boundaries, access, secrets, contingency.
+>
+> Where this file and either of those disagree, **this file loses**.
 
 ---
 
@@ -686,7 +698,7 @@ $photo->shouldApplyWatermark();  // returns false if watermark_disabled=true
 
 | Date | Change |
 |------|--------|
-| 2026-08-02 | **Retired the entire backup system** — removed the publicly-reachable `/backup-panel`, its CLI and docs, the never-configured B2 admin integration (`/admin/backup`, `BackupController`, `backup:photos`, Vue page), the stale cron, and the plaintext password in `ACCESS.md`. Non-destructive: server files quarantined to `/home/mfaruk/_retired/`, archives MD5-verified onto laptop + NAS. **No automated backup until the NAS/n8n pipeline is built.** |
+| 2026-08-02 | **Retired the entire backup system** — removed the publicly-reachable `/backup-panel`, its CLI and docs, the never-configured B2 admin integration (`/admin/backup`, `BackupController`, `backup:photos`, Vue page), the stale cron, and the plaintext password in `ACCESS.md`. Non-destructive: server files quarantined to `/home/mfaruk/_retired/`, archives MD5-verified onto laptop + NAS. Replaced the SAME DAY by the NAS n8n pipeline — see `docs/reference/09-backup-and-automation.md`. |
 | 2026-07-26 | **Added in-admin contact reply** — reply form on admin contact page sends via ContactReply mailable, stores reply, sets replied status; fixed ContactController logging (nonexistent logActivity → LoggingService static API); rotated dead Gmail app password (all site mail had been silently failing) |
 | 2026-07-26 | **Added blog photo outro section** — PhotoOutro.vue on every article (3 random featured photos → photo pages); dev vs photography copy variants |
 | 2026-07-26 | **Fixed stale SSR** — server deploy.sh now restarts mfaruk-ssr (daemon had served a Jul-12 bundle for 2 weeks); fixed photo.show→photos.show route name crashing SSR on category/gallery/tag pages |
@@ -828,7 +840,12 @@ npm run build                    # Rebuild assets
 
 ## BACKUP & RESTORE
 
-⚠️ **RETIRED 2026-08-02 — mfaruk.com currently has NO automated backup.**
+> ✅ **SUPERSEDED — mfaruk.com HAS automated backup since 2026-08-02.** Five n8n workflows on the
+> NAS: weekly ×4 + monthly ×12, checksum-verified, with a daily staleness watchdog. The section
+> below describes only the **removal of the old system** and is kept for history.
+> **Current design and state: [`docs/reference/09-backup-and-automation.md`](docs/reference/09-backup-and-automation.md).**
+
+⚠️ **The OLD system was retired 2026-08-02.**
 
 Three things were removed in one pass (full rationale in `MFARUK_WORKFLOW.md` §9):
 
@@ -847,11 +864,14 @@ remain in history; all archives copied to laptop and NAS
 (`Backup/mfaruk.com/legacy-server-backups-20260802/`, MD5-verified, with a README
 covering rollback).
 
-**Newest usable DB dump on hand: `pre-series-removal-20260712-071454.sql.gz` (12 Jul 2026).**
+**Newest usable DB dump:** every weekly/monthly NAS archive now carries a fresh gzipped dump. The old `pre-series-removal-20260712-071454.sql.gz` (12 Jul 2026) is superseded.
 
-**Replacement (to build):** n8n on the DS923+ SSHes to the server → mysqldump + files
-archive → NAS RAID → DB dump pushed to R2 for the offsite leg. GFS retention, 12 monthly
-+ 8 weekly. Design in `MFARUK_WORKFLOW.md` §9.
+**Replacement — ✅ BUILT AND LIVE 2026-08-02:** n8n on the DS923+ SSHes to the server →
+mysqldump + files archive → NAS collector pulls it, verifies sha256, prunes → server staging
+cleared → Telegram. Retention as actually built: **monthly keep 12, weekly keep 4** (the older
+8-weekly figure was the design, not the build). ⚠️ The **DB→R2 offsite leg is still NOT built**,
+and **no restore test has been run**. Verified state:
+[`docs/reference/09-backup-and-automation.md`](docs/reference/09-backup-and-automation.md).
 
 Cloudflare R2 (photo originals) is unaffected and remains live — that is storage, not
 backup.

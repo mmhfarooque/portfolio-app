@@ -1,10 +1,16 @@
 # MFARUK_WORKFLOW.md — the mfaruk.com operating brain
 
-> **Read this FIRST.** Single source of truth for developing, deploying, and operating
-> **mfaruk.com** — written for any AI / agent / LLM (or human) on any machine, fresh or old.
+> **Read this FIRST for POLICY** — golden rules, boundaries, access, secrets, contingency.
 > Personal project of **Mahmud Farooque**. **Nothing here touches Jezweb** (see §0 boundary).
 > This file lives in git, so a `git clone` delivers the whole brain to every machine.
-> _Living doc — edit, update, refine freely. Last updated: 2026-07-26._
+>
+> 📚 **For TECHNICAL depth, read [`docs/reference/`](docs/reference/00-INDEX.md)** — a sequential
+> 12-part set (architecture, data model, HTTP surface, services, photo pipeline, frontend,
+> operations, backups, gotchas, roadmap) verified against the live server and NAS on
+> **2026-08-03**. Start at `docs/reference/00-INDEX.md`. Where that set and any other doc in this
+> repo disagree, **the reference set wins** — it is the only one checked against live systems.
+>
+> _Living doc — edit, update, refine freely. Last updated: 2026-08-03._
 
 ---
 
@@ -66,7 +72,7 @@ When R2's ~500-master free ceiling is ever approached: **NAS + MinIO** (S3-compa
 - **Model:** n8n (on the NAS) runs a scheduled workflow → **SSH into the server** (via mfaruk-mcp / SSH node) → `mysqldump` + `tar` files → **store on the NAS** (Synology RAID mirrors to the 2nd drive). The **server hosts no backup system** — retire the old `backup.php` + cron + public `/backup-panel` + server-disk backups. Server load = a brief dump/tar only.
 - **Scope:** 4 TB NAS ⇒ **full backups incl. images** (drop the old no-images/restore-from-R2 space trick — that only existed for the tiny server disk).
 - **Offsite leg (true 3-2-1):** push the small **DB dump → R2** periodically (free). ⚠️ **RAID ≠ backup** — it guards against a dead drive, not deletion/corruption/ransomware/NAS loss. Images are already independently safe in R2.
-- **Retention (GFS):** **12 monthly** (rolling year — always exactly 12, oldest pruned on new) **+ 8 weekly** (rolling ~2 months / 8 weeks, older pruned). Max **~20 backups**, bounded forever. n8n owns the rotation.
+- **Retention (GFS) — AS BUILT:** **12 monthly + 4 weekly** (the original design said 8 weekly; the shipped workflow keeps 4). Oldest pruned on each new archive, and **prune only runs after the new file has landed and its sha256 matches**, so a failed run can never shrink the pool. Pruning sorts by **filename** (timestamps are embedded) not mtime, because a copy or restore rewrites mtime. n8n owns the rotation.
 - **✅ OLD SYSTEM REMOVED 2026-08-02.** The server now hosts **no backup system at all**. What was actually found (the earlier note that it was simply *disabled* was wrong):
   - `public/backup-panel/` was **live and publicly reachable** — HTTP 200, a 60 KB PHP file executing outside Laravel via its own `.htaccess`. It was **tracked in git**, so a server-side delete alone would have been undone by the next `deploy.sh`.
   - The `mfaruk` crontab **still fired** `scheduled-backup.sh` weekly + monthly. It exited at line 1 every time because `.schedule-enabled` / `.schedule-config` were deleted from the panel on **15 Mar 2026 11:46:17**. Five silent no-ops a month for ~5 months — no error, no alert. That is why the gap went unnoticed.
@@ -74,7 +80,18 @@ When R2's ~500-master free ceiling is ever approached: **NAS + MinIO** (S3-compa
   - A **second** system existed: a Backblaze **B2** integration in the Laravel admin (`/admin/backup`, `BackupController`, `backup:photos`, Vue page). `B2_*` was never set, `last_backup_at` was never — it **never ran once**. Removed as dead code.
   - Backups were written to the **same 30 GB disk they protected**. Never offsite.
 - **Removal was non-destructive.** Server files moved to `/home/mfaruk/_retired/backup-system-20260802/` (incl. the pre-change crontab). Repo files removed with `git rm` — full contents stay in history. All archives copied to **laptop** (`~/mfaruk-backups/legacy-server-backups-20260802/`) **and NAS** (`Backup/mfaruk.com/legacy-server-backups-20260802/` on the `home` share), MD5-verified identical, with a `README.md` documenting inventory and rollback.
-- **⚠️ STATE 2026-08-02: mfaruk.com has NO automated backup.** Newest usable DB dump is `pre-series-removal-20260712-071454.sql.gz` (12 Jul 2026). Note `pre-phase2-20260308.sql.gz` is **20 bytes — a truncated, unusable gzip**. Building the n8n pipeline is now the top open item.
+- **✅ STATE 2026-08-03: the pipeline is BUILT and LIVE.** Five n8n workflows on the NAS —
+  backup (`IpJIdLb6fzqtouDl`, weekly Sun 10:00 keep 4 / monthly 1st 10:30 keep 12), staleness
+  watchdog (`7ebLQGWs2DJjZsHz`, daily 11:00), failure alert, update notifier, digest. The
+  archive never passes through n8n: SSH `create <tier>` on the server → JSON receipt with a hard
+  throw → NAS collector pulls, verifies sha256, prunes → `cleanup` → Telegram. Verified against
+  real files: 4 weekly + 1 monthly, each with a `.sha256` sidecar matching the execution
+  receipt, `gzip -t` clean, ~194 entries incl. a gzipped DB dump. The old 12 Jul dump is
+  superseded. **Full detail: [`docs/reference/09-backup-and-automation.md`](docs/reference/09-backup-and-automation.md).**
+- **⚠️ STILL OPEN:** (a) **no restore test has ever been run** — integrity is verified, restore
+  is not; (b) the **offsite DB→R2 leg is designed but not built** (RAID ≠ backup); (c) the NAS is
+  off overnight and n8n never back-fills; (d) the n8n image is unpinned `:latest`.
+- Historical note: `pre-phase2-20260308.sql.gz` was **20 bytes — a truncated, unusable gzip**.
 
 ## 10. Content workflows
 - **`/content [photo-id | URL]`** (see `CLAUDE.md` for the full step list): reverse-geocode GPS → **confirm location with Mahmud** → generate title / slug / first-person story (no travel-brochure fluff) / `seo_title` ≤70 / `meta_description` ≤160 / assign category + gallery / 10–15 tags → publish + feature.
