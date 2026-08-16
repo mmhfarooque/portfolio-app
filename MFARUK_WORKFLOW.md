@@ -161,6 +161,19 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   #24 seo_title tail → Annapurna & Manaslu Views. Everything else deliberately left unchanged.
   **Still open: draft #31** (`dsf2503-enhanced-nr`, X-T5 + XC50-230 @230mm, 2024-11-10 16:55,
   no GPS) — FLOW-1 content package awaits Mahmud's what/where.
+- **✅ Social cards + X queue SHIPPED (`f138d0c`), live-verified:** (a) new
+  `/photo/{slug}/card.jpg` — lazily GD-transcoded JPEG (max 1200px, q85, cached in
+  `storage/photos/social/`) because social scrapers are unreliable with AVIF (researched);
+  `og:image`/`twitter:image` now advertise the card, JSON-LD keeps the AVIF. (b) X
+  confirm-before-post queue: PhotoObserver/PostObserver draft a **pending** SocialPost on
+  publish (dedup-guarded, nothing auto-sends); photo captions end with the page URL;
+  `publishToTwitter` trims without ever cutting the trailing URL. Fixed latent fatal
+  (`SocialPost::getImageUrl` called nonexistent methods) + PHP 8.4 nullable deprecations.
+  Verified: card 1200×682 JPEG live; observer test drafted queue item #1 (photo 47).
+  **Mahmud's account legs still open:** (1) Pinterest Business account under farooque7 +
+  claim mfaruk.com (send me the verification meta tag to install), then boards from existing
+  galleries; (2) X developer app → paste token into Admin → Social → Accounts; the queue
+  publish button does the rest.
 - **✅ Licensable-badge schema SHIPPED (`263ec51`), live-verified:** ImageObject on every photo
   page now carries `license` (→ new `/image-license` static page, footer-linked),
   `acquireLicensePage` (→ the photo's own `/photo/{slug}/print` page), `creditText`, and
