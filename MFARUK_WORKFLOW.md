@@ -251,9 +251,19 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   local composer**, and `composer.lock` is git-tracked, so a bumped `composer.json` + stale lock
   = `composer install` refuses. Decide where the lock is regenerated BEFORE starting.
   **PRE-EXISTING BUGS found by the audit (fix these regardless of any upgrade):**
-  - **6 nonexistent route names in Vue.** Confirmed: `GalleryView.vue:18` posts to
-    `gallery.password` but the route is **`gallery.unlock`** → **password-protected galleries
-    cannot be unlocked, live, right now**. `Logs/Index.vue:155` links `admin.logs.show` (actual:
+  - ~~`gallery.password` broken route~~ **RESOLVED 2026-08-16 by REMOVING the feature** (`c04f897`).
+    Mahmud never asked for password-protected galleries; measured on prod first — 0 galleries had
+    a password, 0 were client galleries, 0 access tokens, 0 client_selections rows. Deleted
+    `ClientGalleryController` + 4 `Public/ClientGallery/` Vue pages, the `gallery.unlock` route +
+    6 `client-gallery.*` routes, the password gate/`verifyGalleryPassword`, and all password +
+    client fields from the Gallery model, admin controller and admin Create/Edit/Index/Show.
+    **Deliberately NOT touched: `ClientProofingController` + the `client_selections` table**
+    (separate visitor photo-selection feature — do NOT drop that table), and the
+    SocialAccount/GSC `access_token` columns (unrelated). **DB columns left in place** (11 on
+    `galleries`) — dropping them is an unapproved Stage B. Verified live: SSR active, gallery
+    page renders under Googlebot UA, `/client-gallery/*` 404s, 8 galleries + 27 photos intact,
+    221 routes, `client.selections` still present.
+  - `Logs/Index.vue:155` links `admin.logs.show` (actual:
     `admin.logs.details`) **inside a `<Link>` → crashes SSR on /admin/logs**.
     `About/EditorJs.vue:51` uses `admin.media.upload` (never defined) → Editor.js image upload
     broken. Also `admin.orders.add-note`→`admin.orders.note`, `admin.orders.update-status`→
