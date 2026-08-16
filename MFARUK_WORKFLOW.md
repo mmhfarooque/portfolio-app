@@ -124,9 +124,11 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 
 **Session 2026-08-16 (PC) — Google Images investigation + sitemap fixes (deployed, `fe77cb9`):**
 - **Why photos never reached Google Images (measured from origin logs, 6 weeks retained):**
-  (1) **Googlebot never fetched either sitemap — zero times ever.** ClaudeBot read them 800×,
-  bingbot 189×, GPTBot 70×; Google 0×. Root cause: never submitted to GSC (site GSC integration
-  dead since April) and robots.txt discovery alone didn't trigger reads. (2) Images were invisible
+  (1) **Googlebot never fetched either sitemap — zero times in all retained logs.** ClaudeBot
+  read them 800×, bingbot 189×, GPTBot 70×; Google 0×. CORRECTED 2026-08-16 against Mahmud's GSC
+  screenshot: `/sitemap.xml` WAS submitted 8 Mar 2026 (Success, 135 pages discovered) but Google
+  **last read it 22 Mar 2026 and never returned** — it went stale, not unsubmitted.
+  `/sitemap-images.xml` was genuinely never submitted. (2) Images were invisible
   pre-SSR (before 2026-06-07 crawlers got an empty shell) + the Jul 12–26 SSR outage — Google's
   first real look at photo pages was late July. (3) Tiny crawl budget: robots.txt fetched 3× in
   6 weeks, photo pages single-digit crawls/day. (4) Split signal: sitemap advertised
