@@ -187,10 +187,14 @@ class SocialMediaService
         }
         $text = $body . $suffix;
 
-        $response = Http::withToken($account->access_token)
-            ->post('https://api.twitter.com/2/tweets', [
-                'text' => $text,
-            ]);
+        $endpoint = 'https://api.twitter.com/2/tweets';
+        $request = $account->consumer_key
+            ? Http::withHeaders(['Authorization' => $this->oauth1Header('POST', $endpoint, [], $account)])
+            : Http::withToken($account->access_token);
+
+        $response = $request->post($endpoint, [
+            'text' => $text,
+        ]);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -416,12 +420,47 @@ class SocialMediaService
         }
     }
 
+    /**
+     * Build an OAuth 1.0a Authorization header (HMAC-SHA1). Only query/form
+     * params participate in the signature — JSON bodies are excluded per spec.
+     */
+    protected function oauth1Header(string $method, string $url, array $params, SocialAccount $account): string
+    {
+        $oauth = [
+            'oauth_consumer_key' => $account->consumer_key,
+            'oauth_nonce' => bin2hex(random_bytes(16)),
+            'oauth_signature_method' => 'HMAC-SHA1',
+            'oauth_timestamp' => (string) time(),
+            'oauth_token' => $account->access_token,
+            'oauth_version' => '1.0',
+        ];
+
+        $all = array_merge($oauth, $params);
+        ksort($all);
+        $base = strtoupper($method)
+            . '&' . rawurlencode($url)
+            . '&' . rawurlencode(http_build_query($all, '', '&', PHP_QUERY_RFC3986));
+        $key = rawurlencode($account->consumer_secret) . '&' . rawurlencode($account->token_secret ?? '');
+        $oauth['oauth_signature'] = base64_encode(hash_hmac('sha1', $base, $key, true));
+        ksort($oauth);
+
+        $pairs = [];
+        foreach ($oauth as $k => $v) {
+            $pairs[] = rawurlencode($k) . '="' . rawurlencode($v) . '"';
+        }
+
+        return 'OAuth ' . implode(', ', $pairs);
+    }
+
     protected function getTwitterEngagement(SocialPost $post, SocialAccount $account): ?array
     {
-        $response = Http::withToken($account->access_token)
-            ->get("https://api.twitter.com/2/tweets/{$post->external_id}", [
-                'tweet.fields' => 'public_metrics',
-            ]);
+        $endpoint = "https://api.twitter.com/2/tweets/{$post->external_id}";
+        $query = ['tweet.fields' => 'public_metrics'];
+        $request = $account->consumer_key
+            ? Http::withHeaders(['Authorization' => $this->oauth1Header('GET', $endpoint, $query, $account)])
+            : Http::withToken($account->access_token);
+
+        $response = $request->get($endpoint, $query);
 
         if ($response->successful()) {
             $metrics = $response->json('data.public_metrics');

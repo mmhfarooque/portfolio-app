@@ -17,6 +17,9 @@ class SocialAccount extends Model
         'username',
         'access_token',
         'refresh_token',
+        'consumer_key',
+        'consumer_secret',
+        'token_secret',
         'token_expires_at',
         'is_active',
     ];
@@ -29,6 +32,9 @@ class SocialAccount extends Model
     protected $hidden = [
         'access_token',
         'refresh_token',
+        'consumer_key',
+        'consumer_secret',
+        'token_secret',
     ];
 
     public function user(): BelongsTo
