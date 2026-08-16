@@ -70,7 +70,7 @@ class SocialMediaController extends Controller
         $request->validate([
             'photo_id' => 'required|exists:photos,id',
             'platforms' => 'required|array',
-            'platforms.*' => 'in:twitter,facebook,instagram',
+            'platforms.*' => 'in:twitter,facebook,instagram,pinterest',
             'caption' => 'nullable|string|max:2200',
             'hashtags' => 'nullable|string',
             'schedule_at' => 'nullable|date|after:now',

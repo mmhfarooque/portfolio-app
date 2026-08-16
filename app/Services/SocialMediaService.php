@@ -135,6 +135,7 @@ class SocialMediaService
                 'twitter' => $this->publishToTwitter($socialPost, $account),
                 'facebook' => $this->publishToFacebook($socialPost, $account),
                 'instagram' => $this->publishToInstagram($socialPost, $account),
+                'pinterest' => $this->publishToPinterest($socialPost, $account),
                 default => throw new \Exception("Unsupported platform: {$socialPost->platform}"),
             };
 
@@ -259,6 +260,12 @@ class SocialMediaService
     {
         $imageUrl = $post->getImageUrl();
 
+        // Landscape photos go out as the 4:5 vertical card (photo on a blurred
+        // fill of itself) — the tallest ratio Instagram's feed API accepts.
+        if ($post->photo && ($post->photo->width ?? 0) > ($post->photo->height ?? 0)) {
+            $imageUrl = route('photos.card-vertical', $post->photo);
+        }
+
         if (!$imageUrl) {
             return [
                 'success' => false,
@@ -305,6 +312,54 @@ class SocialMediaService
         return [
             'success' => false,
             'error' => $publishResponse->json('error.message') ?? 'Failed to publish media',
+        ];
+    }
+
+    /**
+     * Publish to Pinterest (API v5).
+     * Convention: the account's platform_user_id holds the destination board id.
+     */
+    protected function publishToPinterest(SocialPost $post, SocialAccount $account): array
+    {
+        $imageUrl = $post->getImageUrl();
+
+        if (!$imageUrl) {
+            return [
+                'success' => false,
+                'error' => 'Pinterest requires an image',
+            ];
+        }
+
+        $link = $post->photo
+            ? route('photos.show', $post->photo)
+            : ($post->post ? route('blog.show', $post->post) : null);
+        $title = $post->photo->title ?? $post->post->title ?? '';
+        $description = trim(preg_replace('#https?://\S+#', '', $post->caption ?? ''));
+
+        $response = Http::withToken($account->access_token)
+            ->post('https://api.pinterest.com/v5/pins', [
+                'board_id' => $account->platform_user_id,
+                'title' => mb_substr($title, 0, 100),
+                'description' => mb_substr($description, 0, 500),
+                'link' => $link,
+                'media_source' => [
+                    'source_type' => 'image_url',
+                    'url' => $imageUrl,
+                ],
+            ]);
+
+        if ($response->successful()) {
+            $id = $response->json('id');
+            return [
+                'success' => true,
+                'external_id' => $id,
+                'external_url' => $id ? "https://www.pinterest.com/pin/{$id}/" : null,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => $response->json('message') ?? 'Pinterest API error',
         ];
     }
 
@@ -438,6 +493,11 @@ class SocialMediaService
                 'name' => 'Instagram',
                 'icon' => 'instagram',
                 'connected' => SocialAccount::forPlatform('instagram')->active()->exists(),
+            ],
+            'pinterest' => [
+                'name' => 'Pinterest',
+                'icon' => 'pinterest',
+                'connected' => SocialAccount::forPlatform('pinterest')->active()->exists(),
             ],
         ];
     }

@@ -71,6 +71,7 @@ Route::get('/photo/{photo:slug}/download/{format?}', [DownloadController::class,
 
 // Print store routes
 Route::get('/photo/{photo:slug}/card.jpg', [GalleryController::class, 'socialCard'])->name('photos.card');
+Route::get('/photo/{photo:slug}/card-vertical.jpg', [GalleryController::class, 'socialCardVertical'])->name('photos.card-vertical');
 Route::get('/photo/{photo:slug}/print', [PrintController::class, 'show'])->name('print.options');
 Route::post('/photo/{photo:slug}/print/inquiry', [PrintController::class, 'inquiry'])->name('print.inquiry');
 Route::get('/api/print/products', [PrintController::class, 'products'])->name('print.products');

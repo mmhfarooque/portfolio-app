@@ -354,6 +354,76 @@ class GalleryController extends Controller
         ]);
     }
 
+    /**
+     * Vertical 4:5 social card (1080×1350) — the photo fit full-width on a
+     * blurred, darkened fill of itself. Instagram's publishing API rejects
+     * anything taller than 4:5, so this is the tallest feed-safe treatment
+     * for landscape photos.
+     */
+    public function socialCardVertical(Photo $photo)
+    {
+        abort_unless($photo->status === 'published', 404);
+
+        $source = $photo->watermarked_path ?? $photo->display_path;
+        abort_unless((bool) $source, 404);
+
+        $sourceFile = storage_path('app/public/' . $source);
+        abort_unless(file_exists($sourceFile), 404);
+
+        $cacheRel = 'photos/social/' . pathinfo($source, PATHINFO_FILENAME) . '-45.jpg';
+        $cacheFile = storage_path('app/public/' . $cacheRel);
+
+        if (!file_exists($cacheFile) || filemtime($cacheFile) < filemtime($sourceFile)) {
+            if (!is_dir(dirname($cacheFile))) {
+                mkdir(dirname($cacheFile), 0755, true);
+            }
+            $src = str_ends_with($source, '.avif')
+                ? imagecreatefromavif($sourceFile)
+                : imagecreatefromstring(file_get_contents($sourceFile));
+            abort_if($src === false, 500);
+
+            $sw = imagesx($src);
+            $sh = imagesy($src);
+            $cw = 1080;
+            $ch = 1350;
+            $canvas = imagecreatetruecolor($cw, $ch);
+
+            // Background: fill-crop the photo to the canvas, blur hard, darken.
+            // Blur trick: GD gaussian is weak, so blur a 1/20-scale copy and
+            // scale it back up — cheap and strong.
+            $bgScale = max($cw / $sw, $ch / $sh);
+            $bw = (int) ceil($sw * $bgScale);
+            $bh = (int) ceil($sh * $bgScale);
+            $bg = imagescale($src, max(1, (int) round($bw / 20)), max(1, (int) round($bh / 20)));
+            for ($i = 0; $i < 8; $i++) {
+                imagefilter($bg, IMG_FILTER_GAUSSIAN_BLUR);
+            }
+            imagefilter($bg, IMG_FILTER_BRIGHTNESS, -55);
+            $bgFull = imagescale($bg, $bw, $bh, IMG_BILINEAR_FIXED);
+            imagecopy($canvas, $bgFull, (int) (($cw - $bw) / 2), (int) (($ch - $bh) / 2), 0, 0, $bw, $bh);
+            imagedestroy($bg);
+            imagedestroy($bgFull);
+
+            // Foreground: the photo fit inside with a small margin.
+            $margin = 40;
+            $fgScale = min(($cw - 2 * $margin) / $sw, ($ch - 2 * $margin) / $sh);
+            $fw = (int) round($sw * $fgScale);
+            $fh = (int) round($sh * $fgScale);
+            $fg = imagescale($src, $fw, $fh);
+            imagecopy($canvas, $fg, (int) (($cw - $fw) / 2), (int) (($ch - $fh) / 2), 0, 0, $fw, $fh);
+            imagedestroy($fg);
+            imagedestroy($src);
+
+            imagejpeg($canvas, $cacheFile, 85);
+            imagedestroy($canvas);
+        }
+
+        return response()->file($cacheFile, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'public, max-age=604800',
+        ]);
+    }
+
     public function category(Category $category): Response
     {
         $photos = $category->publishedPhotos()

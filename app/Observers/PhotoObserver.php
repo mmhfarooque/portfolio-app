@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Photo;
+use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Services\SocialMediaService;
 
@@ -31,10 +32,19 @@ class PhotoObserver
             return;
         }
 
-        if (SocialPost::where('photo_id', $photo->id)->where('platform', 'twitter')->exists()) {
-            return;
+        // One draft per connected platform; twitter as a fallback so the
+        // queue is never empty before any account is wired up.
+        $platforms = SocialAccount::query()->active()->pluck('platform')->unique()->values();
+        if ($platforms->isEmpty()) {
+            $platforms = collect(['twitter']);
         }
 
-        app(SocialMediaService::class)->createPhotoPost($photo, 'twitter');
+        $service = app(SocialMediaService::class);
+        foreach ($platforms as $platform) {
+            if (SocialPost::where('photo_id', $photo->id)->where('platform', $platform)->exists()) {
+                continue;
+            }
+            $service->createPhotoPost($photo, $platform);
+        }
     }
 }
