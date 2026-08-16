@@ -177,9 +177,14 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   live-verified visually) because **the IG feed API hard-rejects anything taller than 4:5;
   true 9:16 is Stories-only** (researched 2026-08-16). Observers draft one pending post per
   connected platform, twitter fallback when none.
-  **Mahmud's account legs still open:** (1) Pinterest Business account under farooque7 +
-  claim mfaruk.com (send me the verification meta tag to install), create a board, paste its
-  board id + token into Admin → Social → Accounts; (2) X developer app → token likewise;
+  **✅ Pinterest DONE 2026-08-16: mfaruk.com CLAIMED** (Business account, Content
+  creator/Travel; `p:domain_verify` tag hardcoded in `app.blade.php`, `96ebed0`). Boards
+  *Nature* + *Social* exist; IG @mahmudfarooque claimed there with auto-publish→Social ON
+  (those pins link to IG, not the site — ambient only). Stale `mahmudfarooque.com` (dead DNS)
+  worth unclaiming.
+  **Mahmud's account legs still open:** (1) Pinterest developer app → token with
+  `pins:write`+`boards:read` + the target board id (Nature) into Admin → Social → Accounts
+  (board id goes in `platform_user_id`); (2) X developer app → token likewise;
   (3) Instagram — CORRECTED 2026-08-16: Mahmud has @mahmudfarooque and **no Facebook is
   needed**: convert to a Creator account, create a Meta developer account with EMAIL,
   app with the Instagram-Login use case, own account as Instagram Tester (dev mode, no app
