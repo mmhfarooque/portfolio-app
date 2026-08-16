@@ -151,6 +151,13 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   Performance → Search results → Search appearance / Image filter.
 - Housekeeping: repo-local git identity set on the PC (`farooque7@gmail.com`) — the global
   `includeIf` only covers `~/Jezweb/`; fresh machines will hit the same author-unknown error.
+- **✅ Photo SEO backfill (plan item 2) RESOLVED same day:** full audit of all 27 photos found
+  the fleet already at the #42/#43 standard — only 4 targeted fixes needed, applied via tinker
+  and live-verified: #41 location_name added (geo now in image sitemap) + Thailand in seo_title
+  + tags 24→15; #26 assigned to Dhaka gallery; #18 seo_title tail → Sleeping Buddha View (+tag);
+  #24 seo_title tail → Annapurna & Manaslu Views. Everything else deliberately left unchanged.
+  **Still open: draft #31** (`dsf2503-enhanced-nr`, X-T5 + XC50-230 @230mm, 2024-11-10 16:55,
+  no GPS) — FLOW-1 content package awaits Mahmud's what/where.
 
 ## 16a. Previous state (2026-07-26)
 
