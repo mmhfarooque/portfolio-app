@@ -142,9 +142,13 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   increment in `timestamps = false` so views no longer churn `lastmod`. **Verified live:** all 26
   image-sitemap entries watermarked, 0 display; tinker test — views +1, `updated_at` unchanged
   on both models. Likes/comments counters still bump `updated_at` (low-frequency, left as-is).
-- **⚠️ REMAINING — Mahmud only:** verify mfaruk.com in personal GSC (farooque7) and **submit
-  `sitemap.xml` + `sitemap-images.xml`** — the single highest-leverage act (plan item 4 below).
-  Then give Google Images 2–6 weeks.
+- **✅ GSC SUBMISSION DONE 2026-08-16 (same session):** property was already verified (URL prefix,
+  farooque7). `sitemap.xml` resubmitted → Googlebot fetched it ~1 min later (200), GSC Success,
+  **442 pages discovered** (was 135 in Mar). `sitemap-images.xml` submitted fresh → after one
+  trailing-dot typo (404, removed) the correct URL fetched 200, GSC Success, **26 images
+  discovered**. All fetches log-verified from origin (66.249.64.x). The five-month sitemap
+  staleness is fully broken. Now: give Google Images 2–6 weeks; baseline lives in GSC
+  Performance → Search results → Search appearance / Image filter.
 - Housekeeping: repo-local git identity set on the PC (`farooque7@gmail.com`) — the global
   `includeIf` only covers `~/Jezweb/`; fresh machines will hit the same author-unknown error.
 
