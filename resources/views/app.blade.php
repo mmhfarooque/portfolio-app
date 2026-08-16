@@ -25,6 +25,8 @@
         @if($bingVerification = \App\Models\Setting::get('seo_bing_verification'))
         <meta name="msvalidate.01" content="{{ $bingVerification }}" />
         @endif
+        <meta name="p:domain_verify" content="03f7cc73849996cd41a736554091d52f"/>
+
 
         <!-- Robots Control -->
         @if(\App\Models\Setting::get('seo_robots_allow') !== '1')
