@@ -192,9 +192,13 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   draft sits as Failed-retryable. To activate the X leg: buy a minimal credit pack in
   console.x.com → Billing, then re-publish. Note: the queue Index shows no Publish action on
   Failed rows — retry via the post's View page or flip status back to pending.
-  **Mahmud's account legs still open:** (1) Pinterest developer app → token with
-  `pins:write`+`boards:read` + the target board id (Nature) into Admin → Social → Accounts
-  (board id goes in `platform_user_id`);
+  **Pinterest app SUBMITTED 2026-08-16: mfaruk social queue, App id 1601547 — TRIAL ACCESS
+  PENDING** (Pinterest reviews the connect request; hours-to-days). When approved: Manage →
+  grab App secret, add redirect URI `https://mfaruk.com/`, then OAuth code flow
+  (`boards:read`,`pins:read`,`pins:write`) → tokens + Nature board id into SocialAccount
+  (board id in `platform_user_id`). Trial pins are INVISIBLE to the public — use for the
+  end-to-end proof, then apply for Standard (free, needs a short demo video of the queue
+  publishing a pin). A `/privacy` page was built for the form (`8765951`, footer-linked).
   (3) Instagram — CORRECTED 2026-08-16: Mahmud has @mahmudfarooque and **no Facebook is
   needed**: convert to a Creator account, create a Meta developer account with EMAIL,
   app with the Instagram-Login use case, own account as Instagram Tester (dev mode, no app
