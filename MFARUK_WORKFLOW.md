@@ -187,8 +187,11 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   OFF-LIMITS). OAuth 1.0a portal tokens (permanent) stored in SocialAccount id 1
   (`consumer_key`/`consumer_secret`/`token_secret` columns added in `6e10cb7`, signing
   implemented in SocialMediaService). Signed `GET /2/users/me` returned 200 = @MMHFarooque.
-  First real publish still untested — pay-per-use credits are $0; the free-allowance question
-  resolves on the first Admin → Social publish click (photo 47 draft is waiting).
+  First real publish MEASURED 2026-08-16: **failed cleanly with credits depleted — the
+  pay-per-use tier has NO free posting allowance** (auth passed; billing blocked). Photo 47
+  draft sits as Failed-retryable. To activate the X leg: buy a minimal credit pack in
+  console.x.com → Billing, then re-publish. Note: the queue Index shows no Publish action on
+  Failed rows — retry via the post's View page or flip status back to pending.
   **Mahmud's account legs still open:** (1) Pinterest developer app → token with
   `pins:write`+`boards:read` + the target board id (Nature) into Admin → Social → Accounts
   (board id goes in `platform_user_id`);
