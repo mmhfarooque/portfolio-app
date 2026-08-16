@@ -82,6 +82,10 @@ const jsonLd = computed(() => {
                 "name": appName.value
             },
             "copyrightYear": props.photo.captured_at ? new Date(props.photo.captured_at).getFullYear() : new Date().getFullYear(),
+            "copyrightNotice": `© ${props.photo.captured_at ? new Date(props.photo.captured_at).getFullYear() : new Date().getFullYear()} ${appName.value}`,
+            "creditText": `${appName.value} — mfaruk.com`,
+            "license": `${baseUrl}/image-license`,
+            "acquireLicensePage": `${baseUrl}/photo/${props.photo.slug}/print`,
             "datePublished": props.photo.created_at,
             "dateModified": props.photo.updated_at,
             ...(props.photo.location_name && {

@@ -101,6 +101,7 @@ onMounted(() => {
                         <Link :href="route('blog.index')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Blog</Link>
                         <Link :href="route('about')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">About</Link>
                         <Link :href="route('contact')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Contact</Link>
+                        <Link :href="route('image-license')" class="text-sm transition-colors text-theme-text-muted hover:text-theme-text-primary">Licensing</Link>
                     </nav>
                 </div>
 

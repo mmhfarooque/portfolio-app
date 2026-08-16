@@ -37,6 +37,14 @@ class PageController extends Controller
     }
 
     /**
+     * Display the image licensing page.
+     */
+    public function imageLicense(): Response
+    {
+        return Inertia::render('Public/ImageLicense');
+    }
+
+    /**
      * Display the contact page.
      */
     public function contact(): Response
