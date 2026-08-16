@@ -158,6 +158,12 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   #24 seo_title tail → Annapurna & Manaslu Views. Everything else deliberately left unchanged.
   **Still open: draft #31** (`dsf2503-enhanced-nr`, X-T5 + XC50-230 @230mm, 2024-11-10 16:55,
   no GPS) — FLOW-1 content package awaits Mahmud's what/where.
+- **✅ Licensable-badge schema SHIPPED (`263ec51`), live-verified:** ImageObject on every photo
+  page now carries `license` (→ new `/image-license` static page, footer-linked),
+  `acquireLicensePage` (→ the photo's own `/photo/{slug}/print` page), `creditText`, and
+  `copyrightNotice` (year from `captured_at`). Qualifies photos for the Google Images
+  Licensable badge. Optional follow-up NOT built: embedding IPTC creator/copyright into the
+  derivatives so GSC's Image metadata report lights up (schema alone already qualifies).
 
 ## 16a. Previous state (2026-07-26)
 
