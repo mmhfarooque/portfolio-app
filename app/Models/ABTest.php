@@ -68,7 +68,7 @@ class ABTest extends Model
         $this->update(['status' => 'paused']);
     }
 
-    public function complete(string $winner = null): void
+    public function complete(?string $winner = null): void
     {
         $this->update([
             'status' => 'completed',

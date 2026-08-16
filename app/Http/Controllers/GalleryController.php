@@ -313,6 +313,47 @@ class GalleryController extends Controller
     /**
      * Display photos by category.
      */
+    /**
+     * Social share card — a JPEG derivative for og:image / social scrapers.
+     * AVIF og:image breaks on several platforms (Pinterest, iOS Messenger),
+     * so social cards are always served as JPEG, lazily transcoded and cached.
+     */
+    public function socialCard(Photo $photo)
+    {
+        abort_unless($photo->status === 'published', 404);
+
+        $source = $photo->watermarked_path ?? $photo->display_path;
+        abort_unless((bool) $source, 404);
+
+        $sourceFile = storage_path('app/public/' . $source);
+        abort_unless(file_exists($sourceFile), 404);
+
+        $cacheRel = 'photos/social/' . pathinfo($source, PATHINFO_FILENAME) . '.jpg';
+        $cacheFile = storage_path('app/public/' . $cacheRel);
+
+        if (!file_exists($cacheFile) || filemtime($cacheFile) < filemtime($sourceFile)) {
+            if (!is_dir(dirname($cacheFile))) {
+                mkdir(dirname($cacheFile), 0755, true);
+            }
+            $img = str_ends_with($source, '.avif')
+                ? imagecreatefromavif($sourceFile)
+                : imagecreatefromstring(file_get_contents($sourceFile));
+            abort_if($img === false, 500);
+
+            $w = imagesx($img);
+            if ($w > 1200) {
+                $img = imagescale($img, 1200, (int) round(imagesy($img) * 1200 / $w));
+            }
+            imagejpeg($img, $cacheFile, 85);
+            imagedestroy($img);
+        }
+
+        return response()->file($cacheFile, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'public, max-age=604800',
+        ]);
+    }
+
     public function category(Category $category): Response
     {
         $photos = $category->publishedPhotos()

@@ -43,6 +43,12 @@ const pageImage = computed(() => {
     }
     return `${baseUrl}/images/og-default.jpg`;
 });
+// Social scrapers (Pinterest, Facebook, X cards) are unreliable with AVIF —
+// photo pages advertise a JPEG card instead; JSON-LD keeps the real derivative.
+const ogImage = computed(() => {
+    if (props.photo?.slug) return `${baseUrl}/photo/${props.photo.slug}/card.jpg`;
+    return pageImage.value;
+});
 
 // JSON-LD Structured Data
 const jsonLd = computed(() => {
@@ -179,7 +185,7 @@ const jsonLdString = computed(() => JSON.stringify(jsonLd.value));
         <meta property="og:url" :content="pageUrl" />
         <meta property="og:title" :content="pageTitle" />
         <meta property="og:description" :content="pageDescription" />
-        <meta property="og:image" :content="pageImage" />
+        <meta property="og:image" :content="ogImage" />
         <meta property="og:image:alt" :content="imageAlt || pageTitle" />
         <meta property="og:site_name" :content="appName" />
         <meta property="og:locale" content="en_US" />
@@ -194,7 +200,7 @@ const jsonLdString = computed(() => JSON.stringify(jsonLd.value));
         <meta name="twitter:url" :content="pageUrl" />
         <meta name="twitter:title" :content="pageTitle" />
         <meta name="twitter:description" :content="pageDescription" />
-        <meta name="twitter:image" :content="pageImage" />
+        <meta name="twitter:image" :content="ogImage" />
         <meta name="twitter:image:alt" :content="imageAlt || pageTitle" />
 
         <!-- JSON-LD Structured Data -->

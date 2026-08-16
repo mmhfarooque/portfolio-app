@@ -83,7 +83,7 @@ class SocialPost extends Model
         return $this->status === 'published';
     }
 
-    public function markAsPublished(string $externalId = null, string $externalUrl = null): void
+    public function markAsPublished(?string $externalId = null, ?string $externalUrl = null): void
     {
         $this->update([
             'status' => 'published',
@@ -109,12 +109,13 @@ class SocialPost extends Model
 
     public function getImageUrl(): ?string
     {
+        // Always hand social platforms the JPEG card — several reject AVIF.
         if ($this->photo) {
-            return $this->photo->getImageUrl('large');
+            return route('photos.card', $this->photo);
         }
 
         if ($this->post && $this->post->hasFeaturedImage()) {
-            return $this->post->featured_image_url;
+            return asset('storage/' . $this->post->featured_image);
         }
 
         return null;

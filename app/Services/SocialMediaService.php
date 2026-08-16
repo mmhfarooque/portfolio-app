@@ -19,7 +19,7 @@ class SocialMediaService
         return SocialPost::create([
             'photo_id' => $photo->id,
             'platform' => $platform,
-            'status' => $options['schedule_at'] ? 'scheduled' : 'pending',
+            'status' => ($options['schedule_at'] ?? null) ? 'scheduled' : 'pending',
             'caption' => $options['caption'] ?? $this->generatePhotoCaption($photo),
             'hashtags' => $options['hashtags'] ?? $this->generateHashtags($photo),
             'scheduled_at' => $options['schedule_at'] ?? null,
@@ -34,7 +34,7 @@ class SocialMediaService
         return SocialPost::create([
             'post_id' => $post->id,
             'platform' => $platform,
-            'status' => $options['schedule_at'] ? 'scheduled' : 'pending',
+            'status' => ($options['schedule_at'] ?? null) ? 'scheduled' : 'pending',
             'caption' => $options['caption'] ?? $this->generateBlogCaption($post),
             'hashtags' => $options['hashtags'] ?? [],
             'scheduled_at' => $options['schedule_at'] ?? null,
@@ -64,6 +64,10 @@ class SocialMediaService
             $camera = trim(($photo->camera_make ?? '') . ' ' . ($photo->camera_model ?? ''));
             $parts[] = "\u{1F4F7} Shot on " . $camera;
         }
+
+        // The link must be last: publishToTwitter keeps the final URL line
+        // intact when it has to trim the body, and X renders the card from it.
+        $parts[] = route('photos.show', $photo);
 
         return implode("\n\n", $parts);
     }
@@ -162,18 +166,29 @@ class SocialMediaService
      */
     protected function publishToTwitter(SocialPost $post, SocialAccount $account): array
     {
-        $text = $post->caption;
+        // Compose within 280 chars without ever cutting the trailing URL —
+        // a truncated URL loses the card AND the click. We count real chars,
+        // which over-estimates URLs (X counts any URL as 23), so this only
+        // ever trims more than strictly necessary, never too little.
+        $caption = trim($post->caption ?? '');
+        $tags = $post->hashtags ? implode(' ', array_slice($post->hashtags, 0, 5)) : '';
 
-        // Add hashtags
-        if ($post->hashtags) {
-            $text .= "\n\n" . implode(' ', array_slice($post->hashtags, 0, 5));
+        $lines = preg_split('/\n+/', $caption);
+        $url = '';
+        if ($lines && preg_match('#^https?://\S+$#', trim(end($lines)))) {
+            $url = trim(array_pop($lines));
         }
+        $body = trim(implode("\n\n", $lines));
+        $suffix = ($url !== '' ? "\n\n" . $url : '') . ($tags !== '' ? "\n\n" . $tags : '');
+        $budget = 280 - mb_strlen($suffix);
+        if (mb_strlen($body) > $budget) {
+            $body = mb_substr($body, 0, max(0, $budget - 1)) . '…';
+        }
+        $text = $body . $suffix;
 
-        // Twitter API v2 - This is a placeholder implementation
-        // In production, use proper OAuth and the Twitter API
         $response = Http::withToken($account->access_token)
             ->post('https://api.twitter.com/2/tweets', [
-                'text' => mb_substr($text, 0, 280),
+                'text' => $text,
             ]);
 
         if ($response->successful()) {
