@@ -120,7 +120,33 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Never post / reply / send as Mahmud** on any channel without an explicit ask + double-confirm.
 - **No auto-delete** of data/files/DB/backups; verified backup + explicit go before any destructive op; **backups are sacred**.
 
-## 16. Current state / where we left off (2026-07-26)
+## 16. Current state / where we left off (2026-08-16)
+
+**Session 2026-08-16 (PC) — Google Images investigation + sitemap fixes (deployed, `fe77cb9`):**
+- **Why photos never reached Google Images (measured from origin logs, 6 weeks retained):**
+  (1) **Googlebot never fetched either sitemap — zero times ever.** ClaudeBot read them 800×,
+  bingbot 189×, GPTBot 70×; Google 0×. Root cause: never submitted to GSC (site GSC integration
+  dead since April) and robots.txt discovery alone didn't trigger reads. (2) Images were invisible
+  pre-SSR (before 2026-06-07 crawlers got an empty shell) + the Jul 12–26 SSR outage — Google's
+  first real look at photo pages was late July. (3) Tiny crawl budget: robots.txt fetched 3× in
+  6 weeks, photo pages single-digit crawls/day. (4) Split signal: sitemap advertised
+  `display/*.avif` while pages (og:image, JSON-LD, img) exposed `watermarked/*.avif`.
+  **NOT the problem:** robots.txt, AVIF, file serving (all 200 via CF), SEO markup.
+- **Turnaround already visible:** Googlebot-Image arrived in force **15 Aug** — 74 image fetches
+  (28 display / 25 watermarked / 17 thumbnails, all 200) + 29 photo-page crawls that day, vs
+  ~0/week prior. Google scraped `display/` URLs from the Inertia props JSON embedded in page HTML.
+- **Shipped `fe77cb9`:** both sitemap blades now emit `watermarked_path ?? display_path`
+  (exactly mirrors `Show.vue`); `Photo::incrementViews()` + `Post::incrementViews()` wrap the
+  increment in `timestamps = false` so views no longer churn `lastmod`. **Verified live:** all 26
+  image-sitemap entries watermarked, 0 display; tinker test — views +1, `updated_at` unchanged
+  on both models. Likes/comments counters still bump `updated_at` (low-frequency, left as-is).
+- **⚠️ REMAINING — Mahmud only:** verify mfaruk.com in personal GSC (farooque7) and **submit
+  `sitemap.xml` + `sitemap-images.xml`** — the single highest-leverage act (plan item 4 below).
+  Then give Google Images 2–6 weeks.
+- Housekeeping: repo-local git identity set on the PC (`farooque7@gmail.com`) — the global
+  `includeIf` only covers `~/Jezweb/`; fresh machines will hit the same author-unknown error.
+
+## 16a. Previous state (2026-07-26)
 
 **Session 2026-07-26 (laptop) — everything below is deployed and in git; PC picks up with a plain `git pull`:**
 - **Contact reply feature LIVE** — in-admin reply form (`POST admin/contacts/{id}/reply`): ContactReply mailable (markdown, quotes original), stores `reply_subject`/`reply_message` on contacts, sets replied status. Replaced the dead `mailto:` button. Also fixed the whole ContactController calling nonexistent `LoggingService::logActivity()` (latent 500s) → real static API `LoggingService::activity()/error()`.
