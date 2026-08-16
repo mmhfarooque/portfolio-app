@@ -170,10 +170,19 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   `publishToTwitter` trims without ever cutting the trailing URL. Fixed latent fatal
   (`SocialPost::getImageUrl` called nonexistent methods) + PHP 8.4 nullable deprecations.
   Verified: card 1200×682 JPEG live; observer test drafted queue item #1 (photo 47).
+  **Cross-post extension also SHIPPED (`ff5ffb6`):** one publish click fans out to every
+  connected platform. Pinterest publishing added (API v5; **board id lives in
+  `platform_user_id`**); Instagram sends landscape photos as a new **4:5 vertical card**
+  (`/photo/{slug}/card-vertical.jpg`, 1080×1350, photo on a blurred darkened fill —
+  live-verified visually) because **the IG feed API hard-rejects anything taller than 4:5;
+  true 9:16 is Stories-only** (researched 2026-08-16). Observers draft one pending post per
+  connected platform, twitter fallback when none.
   **Mahmud's account legs still open:** (1) Pinterest Business account under farooque7 +
-  claim mfaruk.com (send me the verification meta tag to install), then boards from existing
-  galleries; (2) X developer app → paste token into Admin → Social → Accounts; the queue
-  publish button does the rest.
+  claim mfaruk.com (send me the verification meta tag to install), create a board, paste its
+  board id + token into Admin → Social → Accounts; (2) X developer app → token likewise;
+  (3) Instagram: professional account linked to a Facebook Page, token via Meta app.
+  **NEXT after accounts: Laravel 12→13 upgrade** (§16 R&D verdict, ride a fresh weekly
+  backup, own session).
 - **✅ Licensable-badge schema SHIPPED (`263ec51`), live-verified:** ImageObject on every photo
   page now carries `license` (→ new `/image-license` static page, footer-linked),
   `acquireLicensePage` (→ the photo's own `/photo/{slug}/print` page), `creditText`, and
