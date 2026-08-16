@@ -222,7 +222,33 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Blog photo outro LIVE** — `Components/Blog/PhotoOutro.vue` on every article: 3 random featured photos + browse-all link. Copy variants: dev articles = *When I'm not coding*; photography-category articles = *More frames from my camera* (detected via category name/slug containing photo/camera). Props from `BlogController@show` (`outroPhotos`, `isPhotographyPost`).
 - **SSR was STALE Jul 12–26** — server-side `/home/mfaruk/deploy.sh` lacked the `mfaruk-ssr` restart (see §13). Patched; every deploy now restarts SSR. Also fixed nonexistent `photo.show` route name (→ `photos.show`) that crashed SSR on all category/gallery/tag pages — crawlers had been getting empty fallback HTML there.
 - **Photos:** #42 rusty bicycle (Swiss Sheep Farm, Pattaya) PUBLISHED — created category *Still Life & Details*; #43 fountain channel (JN Memorial Botanical Garden, Srinagar, coords set manually — no GPS in file) content-complete, **DRAFT, awaiting Mahmud's publish**.
-- **Laravel 13 R&D verdict (researched 2026-07-26):** upgrade is LOW RISK, not urgent. L12 bug fixes end 2026-08-13, security until 2027-02-24. PHP 8.4 OK; Inertia/Ziggy/Vite all 13-ready; official upgrade ~10 min. Watch: `Model::automaticallyEagerLoadRelationships()` in AppServiceProvider, `cache.serializable_classes` default, retest `route:cache` + SSR after. Do as its own session with fresh backup.
+- **Laravel 13 UPGRADE PLAN — re-measured 2026-08-16 (supersedes the 07-26 R&D note below):**
+  Live: **L12.54.1 / PHP 8.4.10 / Node 22.21.0**, database cache+session+queue drivers.
+  Target: **L13.25.0** (13.0 shipped 2026-03-17; min PHP ^8.3 — 8.4.10 qualifies).
+  **`composer why-not laravel/framework 13.25.0` on prod says the ONLY blocker is
+  `laravel/tinker` 2.11.1 → needs `^3.0`.** Inertia 2.0.22, Ziggy 2.6.2, Intervention 1.5.7,
+  Breeze 2.3, google/apiclient, flysystem-s3 are all clear; the symfony polyfills auto-bump.
+  Breaking changes that ACTUALLY touch this codebase (audited, not assumed):
+  1. **CSRF (HIGH)** — `bootstrap/app.php:21` calls `validateCsrfTokens(except:
+     ['stripe/webhook'])`; rename to `preventRequestForgery(...)`. New `Sec-Fetch-Site` origin
+     check ships with it → retest contact form, comment OTP, admin login. `/api/nas/analytics`
+     is an **api** route, so the web-group middleware does not apply — NAS push is unaffected.
+  2. **Cache `serializable_classes` (MEDIUM)** — `FeedController` caches an Eloquent
+     **Collection of Post (with user+category eager-loaded)** and `EmailTemplate::findBySlug`
+     caches a **model**. The L13 skeleton sets `serializable_classes => false`; syncing that
+     blindly BREAKS RSS/Atom and email templates. Either leave the key out, or allow-list
+     `Post`, `User`, `Category`, `EmailTemplate`.
+  3. **Session `serialization` php→json (LOW)** — invalidates active sessions (one user).
+     Recommended: adopt json, accept one re-login.
+  4. **Cache prefix rename — DOES NOT APPLY**: `config/cache.php:115` already uses the
+     hyphenated L13-style default.
+  5. Not applicable (verified absent): `upsert`, JobAttempted/QueueBusy listeners, custom cache
+     stores/contracts, Bootstrap pagination, global `array_first`/`array_last`. Model `boot`
+     methods are event hooks only — no nested instantiation.
+  Also: phpunit `^11.5.3` → `^12`. Separate (non-Laravel) finding: **`@tailwindcss/vite` 4.2.1
+  is installed but UNUSED** — the build is Tailwind **v3** (`@tailwind` directives +
+  postcss.config.js); either drop the dead dep or do a deliberate v4 migration.
+- **Laravel 13 R&D verdict (researched 2026-07-26, now superseded):** upgrade is LOW RISK, not urgent. L12 bug fixes end 2026-08-13, security until 2027-02-24. PHP 8.4 OK; Inertia/Ziggy/Vite all 13-ready; official upgrade ~10 min. Watch: `Model::automaticallyEagerLoadRelationships()` in AppServiceProvider, `cache.serializable_classes` default, retest `route:cache` + SSR after. Do as its own session with fresh backup.
 - **Hard preference:** everything the **Laravel way** (Mailables, migrations, FormRequests, artisan commands over ad-hoc tinker). Pending retrofits: reply validation → FormRequest; promote photo-content flow → `php artisan photo:content`.
 
 - **NAS-pushed analytics LIVE (2026-07-26)** — dashboard GA/GSC widget now reads snapshots pushed by the NAS n8n stack (single Google OAuth lives on the NAS; the site's own GSC OAuth stays dead/retired from the dashboard path). Contract: `POST https://mfaruk.com/api/nas/analytics`, header `Authorization: Bearer <NAS_ANALYTICS_TOKEN from server .env>`, JSON body `{captured_at, gsc:{clicks,impressions,ctr,position,topQueries[],topPages[],clicksOverTime{}}, ga:{activeUsers,sessions,pageViews}}` — all nested keys optional. Stored in `analytics_snapshots` (90-day retention), latest row rendered. ⚠️ First row (id 1) is TEST data pushed during build — real numbers arrive with the first n8n push. n8n side still TODO: add HTTP Request node to the 9am digest workflow.
