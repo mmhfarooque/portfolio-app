@@ -182,9 +182,16 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   *Nature* + *Social* exist; IG @mahmudfarooque claimed there with auto-publish→Social ON
   (those pins link to IG, not the site — ambient only). Stale `mahmudfarooque.com` (dead DNS)
   worth unclaiming.
+  **✅ X leg WIRED AND VERIFIED 2026-08-16:** app `2088961215854698496MMHFarooque` on
+  console.x.com (new pay-per-use console; the old JEZWEB TWEETER FEED app on the same login is
+  OFF-LIMITS). OAuth 1.0a portal tokens (permanent) stored in SocialAccount id 1
+  (`consumer_key`/`consumer_secret`/`token_secret` columns added in `6e10cb7`, signing
+  implemented in SocialMediaService). Signed `GET /2/users/me` returned 200 = @MMHFarooque.
+  First real publish still untested — pay-per-use credits are $0; the free-allowance question
+  resolves on the first Admin → Social publish click (photo 47 draft is waiting).
   **Mahmud's account legs still open:** (1) Pinterest developer app → token with
   `pins:write`+`boards:read` + the target board id (Nature) into Admin → Social → Accounts
-  (board id goes in `platform_user_id`); (2) X developer app → token likewise;
+  (board id goes in `platform_user_id`);
   (3) Instagram — CORRECTED 2026-08-16: Mahmud has @mahmudfarooque and **no Facebook is
   needed**: convert to a Creator account, create a Meta developer account with EMAIL,
   app with the Instagram-Login use case, own account as Instagram Tester (dev mode, no app
