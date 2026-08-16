@@ -109,6 +109,7 @@ Route::prefix('client-gallery')->group(function () {
 // Static pages
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/image-license', [PageController::class, 'imageLicense'])->name('image-license');
+Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.send');
 

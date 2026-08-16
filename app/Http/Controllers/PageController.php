@@ -45,6 +45,14 @@ class PageController extends Controller
     }
 
     /**
+     * Display the privacy policy page.
+     */
+    public function privacy(): Response
+    {
+        return Inertia::render('Public/Privacy');
+    }
+
+    /**
      * Display the contact page.
      */
     public function contact(): Response
