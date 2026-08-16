@@ -17,7 +17,7 @@ class SitemapController extends Controller
     public function index(): Response
     {
         $photos = Photo::published()
-            ->select(['slug', 'updated_at', 'display_path'])
+            ->select(['slug', 'updated_at', 'display_path', 'watermarked_path'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -48,7 +48,7 @@ class SitemapController extends Controller
     {
         $photos = Photo::published()
             ->with('category')
-            ->select(['id', 'slug', 'title', 'description', 'display_path', 'category_id', 'location_name', 'updated_at'])
+            ->select(['id', 'slug', 'title', 'description', 'display_path', 'watermarked_path', 'category_id', 'location_name', 'updated_at'])
             ->orderBy('updated_at', 'desc')
             ->get();
 

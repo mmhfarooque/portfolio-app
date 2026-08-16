@@ -12,7 +12,7 @@
     <url>
         <loc>{{ $secure(route('photos.show', $photo->slug)) }}</loc>
         <image:image>
-            <image:loc>{{ $secure(url('storage/' . $photo->display_path)) }}</image:loc>
+            <image:loc>{{ $secure(url('storage/' . ($photo->watermarked_path ?? $photo->display_path))) }}</image:loc>
             <image:title>{{ htmlspecialchars($photo->title, ENT_XML1, 'UTF-8') }}</image:title>
             @if($photo->description)
             <image:caption>{{ htmlspecialchars(Str::limit($photo->description, 200), ENT_XML1, 'UTF-8') }}</image:caption>

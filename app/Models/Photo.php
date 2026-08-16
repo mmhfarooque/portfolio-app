@@ -227,7 +227,10 @@ class Photo extends Model
      */
     public function incrementViews(): void
     {
+        // View counts must not bump updated_at — sitemap <lastmod> reads it.
+        $this->timestamps = false;
         $this->increment('views');
+        $this->timestamps = true;
 
         LoggingService::activity('photo.viewed', null, $this);
     }

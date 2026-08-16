@@ -51,7 +51,7 @@
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
         <image:image>
-            <image:loc>{{ $secure(url('storage/' . $photo->display_path)) }}</image:loc>
+            <image:loc>{{ $secure(url('storage/' . ($photo->watermarked_path ?? $photo->display_path))) }}</image:loc>
         </image:image>
     </url>
     @endforeach
