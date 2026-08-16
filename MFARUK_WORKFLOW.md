@@ -80,9 +80,12 @@ When R2's ~500-master free ceiling is ever approached: **NAS + MinIO** (S3-compa
   - A **second** system existed: a Backblaze **B2** integration in the Laravel admin (`/admin/backup`, `BackupController`, `backup:photos`, Vue page). `B2_*` was never set, `last_backup_at` was never — it **never ran once**. Removed as dead code.
   - Backups were written to the **same 30 GB disk they protected**. Never offsite.
 - **Removal was non-destructive.** Server files moved to `/home/mfaruk/_retired/backup-system-20260802/` (incl. the pre-change crontab). Repo files removed with `git rm` — full contents stay in history. All archives copied to **laptop** (`~/mfaruk-backups/legacy-server-backups-20260802/`) **and NAS** (`Backup/mfaruk.com/legacy-server-backups-20260802/` on the `home` share), MD5-verified identical, with a `README.md` documenting inventory and rollback.
-- **✅ STATE 2026-08-03: the pipeline is BUILT and LIVE.** Five n8n workflows on the NAS —
-  backup (`IpJIdLb6fzqtouDl`, weekly Sun 10:00 keep 4 / monthly 1st 10:30 keep 12), staleness
-  watchdog (`7ebLQGWs2DJjZsHz`, daily 11:00), failure alert, update notifier, digest. The
+- **✅ STATE 2026-08-03: the pipeline is BUILT and LIVE.** Six n8n workflows on the NAS —
+  backup (`IpJIdLb6fzqtouDl`, weekly Sun 10:00 keep 4 / monthly 1st 10:30 keep 12), backup
+  staleness watchdog (`7ebLQGWs2DJjZsHz`, daily 11:00), failure alert, update notifier, digest,
+  and (added 2026-08-16) sitemap staleness watchdog (`OnQPFp72l32FcGx1`, daily 09:20 Dhaka —
+  GSC Sitemaps API `lastDownloaded` > 30 days, missing submission, or Google-reported errors
+  → Telegram; silent when healthy). The
   archive never passes through n8n: SSH `create <tier>` on the server → JSON receipt with a hard
   throw → NAS collector pulls, verifies sha256, prunes → `cleanup` → Telegram. Verified against
   real files: 4 weekly + 1 monthly, each with a `.sha256` sidecar matching the execution

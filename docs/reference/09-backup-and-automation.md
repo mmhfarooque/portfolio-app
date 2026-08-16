@@ -42,10 +42,11 @@ it sidesteps a hard platform limitation (§9.5).
 
 ---
 
-## 9.2 The five n8n workflows
+## 9.2 The six n8n workflows
 
 All on the NAS at `http://192.168.0.96:5678`, all Published, **all with `errorWorkflow` set** so
-any failure routes to the alert handler. All created 2026-08-02, all timezone Asia/Dhaka.
+any failure routes to the alert handler. Created 2026-08-02 (sitemap watchdog added
+2026-08-16), all timezone Asia/Dhaka.
 
 | ID | Name | Schedule |
 |----|------|----------|
@@ -54,6 +55,14 @@ any failure routes to the alert handler. All created 2026-08-02, all timezone As
 | `RiVRpnX39OGJjfL8` | n8n FAILURE alert (error handler) | on error |
 | `mCvlNwHSVZ8Qh5xW` | n8n update available | weekly Mon 09:30 |
 | `1zbRwOKT2o7AUzQU` | mfaruk daily digest to Telegram | daily 09:00 Dhaka |
+| `OnQPFp72l32FcGx1` | sitemap staleness watchdog | daily 09:20 Dhaka |
+
+The sitemap watchdog closes the failure mode discovered 2026-08-16: `sitemap.xml` was submitted
+to Search Console on 8 Mar 2026 but Google silently stopped reading it after 22 Mar and nothing
+noticed for five months. It calls the GSC Sitemaps API (`googleOAuth2Api` credential, URL-prefix
+property encoding) and alerts to Telegram when either sitemap is missing from GSC, has never
+been downloaded, was last downloaded more than 30 days ago, or carries Google-reported errors.
+Healthy → `return []` → silent, same contract as the backup watchdog (§9.4).
 
 Timezone is **Asia/Dhaka** on the workflows, overriding the container's
 `GENERIC_TIMEZONE=Australia/Sydney`. Mahmud is in Dhaka; a Sydney-timed cron fired at 05:00
