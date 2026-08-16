@@ -32,12 +32,9 @@ class PostObserver
             return;
         }
 
-        // One draft per connected platform; twitter as a fallback so the
-        // queue is never empty before any account is wired up.
+        // One draft per ACTIVE platform only — no fallback; an unconnected
+        // or deactivated platform gets no drafts.
         $platforms = SocialAccount::query()->active()->pluck('platform')->unique()->values();
-        if ($platforms->isEmpty()) {
-            $platforms = collect(['twitter']);
-        }
 
         $service = app(SocialMediaService::class);
         foreach ($platforms as $platform) {
