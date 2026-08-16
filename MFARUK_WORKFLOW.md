@@ -222,7 +222,94 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Blog photo outro LIVE** — `Components/Blog/PhotoOutro.vue` on every article: 3 random featured photos + browse-all link. Copy variants: dev articles = *When I'm not coding*; photography-category articles = *More frames from my camera* (detected via category name/slug containing photo/camera). Props from `BlogController@show` (`outroPhotos`, `isPhotographyPost`).
 - **SSR was STALE Jul 12–26** — server-side `/home/mfaruk/deploy.sh` lacked the `mfaruk-ssr` restart (see §13). Patched; every deploy now restarts SSR. Also fixed nonexistent `photo.show` route name (→ `photos.show`) that crashed SSR on all category/gallery/tag pages — crawlers had been getting empty fallback HTML there.
 - **Photos:** #42 rusty bicycle (Swiss Sheep Farm, Pattaya) PUBLISHED — created category *Still Life & Details*; #43 fountain channel (JN Memorial Botanical Garden, Srinagar, coords set manually — no GPS in file) content-complete, **DRAFT, awaiting Mahmud's publish**.
-- **Laravel 13 UPGRADE PLAN — re-measured 2026-08-16 (supersedes the 07-26 R&D note below):**
+- **⚠️ LARAVEL 13 — PLAN REVISED 2026-08-16 after a 5-agent deep audit. READ THIS FIRST; the
+  older plan below UNDERSTATED the work. Key reversals:**
+  1. **SECURITY: 12.54.1 carries an unpatched HIGH advisory.** PKSA-3r5d-mb8f-1qw9, CRLF
+     injection in the default **email validation rule** (fixed 12.60.0) — hits the contact form
+     and comment-OTP paths. Plus PKSA-m5cs-t1y6-qpcs, signed-URL path confusion (fixed 12.61.1).
+     Latest 12.x is **12.66.0**. **Doing nothing is NOT the safe option; patching 12.x is the
+     urgent act, and it is much smaller than the major upgrade.**
+  2. **BLOCKER for current L13: Intervention Image collision.** Verified from source —
+     **L13.25.0 registers a first-party `image` container alias** (`Application.php:1668` →
+     `Illuminate\Image\ImageManager`), and installed `intervention/image-laravel` **1.5.7 binds
+     the same `image` key**. Intervention's own 4.1.0 notes call it a Laravel-13.20 naming
+     conflict. The fix exists ONLY in image-laravel **4.x**, which requires
+     **intervention/image ^4** (we run **3.11.7**) — i.e. a major image-library migration
+     through `PhotoProcessingService`, `BlurHashService` + 4 controllers. **That is the photo
+     pipeline — the product core.** L13 ≤ 13.19 predates the collision.
+  3. **PHP is NOT a blocker (measured):** vhost uses `php8.4-fpm-mfaruk.com.sock`; CLI 8.4.10.
+  4. **The DB backup is the WRONG rollback tool here.** composer never touches the DB, and
+     restoring the 04:00 dump would DELETE today's X OAuth row + the oauth1 migration. Real
+     rollback = git + a **`vendor/` snapshot** (the composer cache does NOT hold 12.54.1, so a
+     cold rollback means re-downloading ~130 packages, 3–8 min).
+  **PRE-FLIGHT, must happen before any framework work:**
+  `cp -a vendor vendor.bak-12.54.1` (302 MB, 6.0 GB free — makes rollback an instant offline
+  `mv`) · **stop the queue worker** (live: `queue:work database`, PID seen 3961264) and **pause
+  the every-minute `schedule:run` cron** (else a half-installed app emails farooque7 every 60s)
+  · `optimize:clear` **as root** (`bootstrap/cache/routes-v7.php` is the L12 format and is
+  root-owned inside a mfaruk:www-data dir) · note prod runs `composer` itself — **there is no
+  local composer**, and `composer.lock` is git-tracked, so a bumped `composer.json` + stale lock
+  = `composer install` refuses. Decide where the lock is regenerated BEFORE starting.
+  **PRE-EXISTING BUGS found by the audit (fix these regardless of any upgrade):**
+  - **6 nonexistent route names in Vue.** Confirmed: `GalleryView.vue:18` posts to
+    `gallery.password` but the route is **`gallery.unlock`** → **password-protected galleries
+    cannot be unlocked, live, right now**. `Logs/Index.vue:155` links `admin.logs.show` (actual:
+    `admin.logs.details`) **inside a `<Link>` → crashes SSR on /admin/logs**.
+    `About/EditorJs.vue:51` uses `admin.media.upload` (never defined) → Editor.js image upload
+    broken. Also `admin.orders.add-note`→`admin.orders.note`, `admin.orders.update-status`→
+    `admin.orders.status`, `admin.social.disconnect` (undefined).
+  - **`bootstrap/app.php:61` returns false from the exception reporter, which STOPS Laravel's
+    default log stack** — `storage/logs/laravel.log` has not been written since 2026-08-02.
+    DB ActivityLog still works (36 entries today). Change to `return true` so we have file logs
+    during any upgrade. (Line 45's `return false` for the skip-list is correct.)
+  - `app/Services/PaymentService.php:302` — last implicit-nullable (`string $state = null`).
+  - `deploy/cpanel-deploy.sh:69-73` — PHP gate still `>= 8.1`.
+  - `@tailwindcss/vite` 4.2.1 is installed but **UNUSED** (7.8 MB); build is Tailwind v3 via
+    postcss. Dropping it is a zero-risk win. A real v4 migration is ~700 class edits
+    (237 `shadow-sm`, 288 bare `border`, 144 `space-x/y`) — **NO-GO as a ride-along.**
+  **DEPLOY-CHAIN GAPS (measured; these are why this is not a 25-minute job):**
+  - **The server's GitHub deploy key is READ-ONLY** (`git push --dry-run` → marked as read only).
+    Combined with no local composer, the lock round-trip is: edit `composer.json` + run
+    `COMPOSER_ALLOW_SUPERUSER=1 composer update --no-scripts` **on the server** → copy
+    `composer.json`+`composer.lock` **down** to the laptop → commit/push from laptop → deploy.
+    ⚠️ The regenerated lock sits UNCOMMITTED in the server tree and `git reset --hard origin/main`
+    (deploy step 1) **destroys it** — pull it off the server first.
+  - **Supervisor queue worker `portfolio-worker`** runs `queue:work database --tries=3
+    --max-time=3600`; **neither deploy script runs `queue:restart`**, and `stopwaitsecs=3600`
+    means a naive stop can hang for an hour. Swapping `vendor/` under it = fatals burning tries.
+  - **Cron `* * * * * schedule:run` with `MAILTO=farooque7@gmail.com`** — fires mid-deploy and
+    emails on every failure.
+  - **No `artisan down` anywhere** → between `git reset --hard` and the end of `composer install`
+    visitors get hard 500s (new code, old vendor). Minutes on a major bump.
+  - `systemctl restart mfaruk-ssr 2>/dev/null || true` **swallows SSR failure and the deploy
+    reports success**; unit is `Restart=always/RestartSec=2`, so a fatal SSR restart-loops
+    silently. Drop the `|| true` and assert `systemctl is-active`.
+  - `composer install` runs **without `COMPOSER_ALLOW_SUPERUSER=1`**, so `package:discover` is
+    already degraded on every deploy today.
+  - **Disk 79% (6.0 GB free), ZERO swap.** `/backup` 11 GB, `/var/log/journal` 3.0 GB unbounded.
+  - **HestiaCP's OWN backup has failed for 28 days** (Error 8 = needs 2× user disk: 6688 MB
+    required vs 6144 MB free; last good archive 2026-07-19). ⚠️ Do NOT confuse this with the
+    NAS n8n pipeline, which is **healthy and verified** (16 Aug 04:00 archive, sha256 matches
+    sidecar, gzip clean, complete 41.8 MB dump with completion marker, real row counts match).
+    The NAS one is the backup that matters; Hestia's is redundant but its failure is a symptom
+    of the disk pressure.
+  - ⚠️ **NEVER run `git clean` on the server** — `public/robots.txt` (live, 475 b) and
+    `public/app-path.php` (required to boot) are untracked.
+  - `/usr/bin/php` in the SSR unit is unversioned on a box with 13 PHP versions installed.
+  - ⚠️ MANIFEST row counts inside every backup are `information_schema` ESTIMATES and read
+    `users: 0` — a false catastrophe signal. Verify with real `COUNT(*)`, never the manifest.
+  **RECOMMENDED PHASING (not one job):** Phase 1 = pre-flight + pre-existing bug fixes.
+  Phase 2 = security patch **within 12.x** (12.54.1 → 12.66.0) — clears the HIGH advisory, no
+  collision, same major. Phase 3 = Intervention Image v3→v4 as its own project. Phase 4 = then
+  Laravel 13 latest. L12 has security support to **2027-02-24**, so there is runway.
+  **Post-upgrade verification that actually matters** (SSR fails SILENTLY — `HttpGateway`
+  swallows every exception and falls back to client render, exactly the Jul 12–26 outage):
+  `systemctl is-active mfaruk-ssr` + `curl 127.0.0.1:13714/health`; Googlebot-UA fetch of a
+  photo page asserting exactly ONE `<title>`, ONE ld+json, ZERO `innerHTML=`; Ziggy route count
+  via tinker (~220, non-empty `uri`); category/gallery/tag pages under Googlebot UA; admin login
+  (proves session+CSRF); Editor.js; contact form + comment OTP; RSS/Atom + an email template.
+- **Laravel 13 UPGRADE PLAN — first pass 2026-08-16 (kept for the package-level detail; see the
+  revision above for what changed):**
   Live: **L12.54.1 / PHP 8.4.10 / Node 22.21.0**, database cache+session+queue drivers.
   Target: **L13.25.0** (13.0 shipped 2026-03-17; min PHP ^8.3 — 8.4.10 qualifies).
   **`composer why-not laravel/framework 13.25.0` on prod says the ONLY blocker is
