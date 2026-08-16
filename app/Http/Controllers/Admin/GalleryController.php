@@ -52,29 +52,12 @@ class GalleryController extends Controller
             'is_published' => 'boolean',
             'is_featured' => 'boolean',
             'sort_order' => 'nullable|integer',
-            'password' => 'nullable|string|max:255',
-            // Client gallery fields
-            'is_client_gallery' => 'boolean',
-            'client_name' => 'nullable|string|max:255',
-            'client_email' => 'nullable|email|max:255',
-            'expires_at' => 'nullable|date|after:now',
-            'allow_downloads' => 'boolean',
-            'allow_selections' => 'boolean',
-            'selection_limit' => 'nullable|integer|min:1',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(6);
         $validated['user_id'] = auth()->id();
         $validated['is_published'] = $request->boolean('is_published');
         $validated['is_featured'] = $request->boolean('is_featured');
-        $validated['is_client_gallery'] = $request->boolean('is_client_gallery');
-        $validated['allow_downloads'] = $request->boolean('allow_downloads');
-        $validated['allow_selections'] = $request->boolean('allow_selections');
-
-        // Generate access token for client galleries
-        if ($validated['is_client_gallery']) {
-            $validated['access_token'] = Gallery::generateAccessToken();
-        }
 
         // Handle cover image - either from media library or file upload
         if ($request->filled('cover_image_from_media')) {
@@ -84,18 +67,9 @@ class GalleryController extends Controller
         }
         unset($validated['cover_image_from_media']);
 
-        // Password is automatically hashed by the model mutator
-        // Only set if provided, otherwise leave null
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        }
-
         $gallery = Gallery::create($validated);
 
         $message = 'Gallery created successfully.';
-        if ($gallery->is_client_gallery && $gallery->access_token) {
-            $message .= ' Share URL: ' . $gallery->getShareUrl();
-        }
 
         return redirect()
             ->route('admin.galleries.index')
@@ -144,32 +118,10 @@ class GalleryController extends Controller
             'is_published' => 'boolean',
             'is_featured' => 'boolean',
             'sort_order' => 'nullable|integer',
-            'password' => 'nullable|string|max:255',
-            'remove_password' => 'boolean',
-            // Client gallery fields
-            'is_client_gallery' => 'boolean',
-            'client_name' => 'nullable|string|max:255',
-            'client_email' => 'nullable|email|max:255',
-            'expires_at' => 'nullable|date',
-            'allow_downloads' => 'boolean',
-            'allow_selections' => 'boolean',
-            'selection_limit' => 'nullable|integer|min:1',
-            'regenerate_token' => 'boolean',
         ]);
 
         $validated['is_published'] = $request->boolean('is_published');
         $validated['is_featured'] = $request->boolean('is_featured');
-        $validated['is_client_gallery'] = $request->boolean('is_client_gallery');
-        $validated['allow_downloads'] = $request->boolean('allow_downloads');
-        $validated['allow_selections'] = $request->boolean('allow_selections');
-
-        // Generate or regenerate access token for client galleries
-        if ($validated['is_client_gallery'] && (!$gallery->access_token || $request->boolean('regenerate_token'))) {
-            $validated['access_token'] = Gallery::generateAccessToken();
-        } elseif (!$validated['is_client_gallery']) {
-            $validated['access_token'] = null;
-        }
-        unset($validated['regenerate_token']);
 
         // Handle cover image - either from media library or file upload
         if ($request->filled('cover_image_from_media')) {
@@ -186,19 +138,6 @@ class GalleryController extends Controller
             $validated['cover_image'] = $this->processAndStoreCoverImage($request->file('cover_image'), 'galleries');
         }
         unset($validated['cover_image_from_media']);
-
-        // Handle password: remove, update, or keep current
-        if ($request->boolean('remove_password')) {
-            // Explicitly remove password protection
-            $validated['password'] = null;
-        } elseif (!empty($validated['password'])) {
-            // New password provided - will be hashed by model mutator
-            // Keep password in validated array
-        } else {
-            // No new password and not removing - keep current password
-            unset($validated['password']);
-        }
-        unset($validated['remove_password']);
 
         $gallery->update($validated);
 

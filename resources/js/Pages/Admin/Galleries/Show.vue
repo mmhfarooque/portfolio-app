@@ -73,12 +73,6 @@ const removePhoto = () => {
                             >
                                 Featured
                             </span>
-                            <span
-                                v-if="gallery.password"
-                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
-                            >
-                                Password Protected
-                            </span>
                         </div>
                         <p v-if="gallery.description" class="mt-2 text-gray-600">{{ gallery.description }}</p>
                     </div>

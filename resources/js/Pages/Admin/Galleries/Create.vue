@@ -15,14 +15,6 @@ const form = useForm({
     is_published: false,
     is_featured: false,
     sort_order: 0,
-    password: '',
-    is_client_gallery: false,
-    client_name: '',
-    client_email: '',
-    expires_at: '',
-    allow_downloads: false,
-    allow_selections: true,
-    selection_limit: ''
 });
 
 const previewUrl = ref(null);
@@ -136,104 +128,6 @@ const submit = () => {
                             />
                         </div>
 
-                        <!-- Password Protection -->
-                        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                            <InputLabel for="password">
-                                <span class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                                    </svg>
-                                    Password Protection (Optional)
-                                </span>
-                            </InputLabel>
-                            <TextInput
-                                id="password"
-                                v-model="form.password"
-                                type="text"
-                                class="mt-2 block w-full"
-                                placeholder="Leave empty for public gallery"
-                            />
-                            <p class="mt-1 text-xs text-gray-500">Set a password to restrict access to this gallery.</p>
-                        </div>
-
-                        <!-- Client Gallery Section -->
-                        <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <div class="flex items-center mb-4">
-                                <input
-                                    id="is_client_gallery"
-                                    type="checkbox"
-                                    v-model="form.is_client_gallery"
-                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <label for="is_client_gallery" class="ml-2 text-sm font-medium text-gray-700">Client Gallery</label>
-                            </div>
-                            <p class="text-xs text-gray-500 mb-4">Enable to create a private gallery with a shareable link for clients.</p>
-
-                            <div v-if="form.is_client_gallery" class="space-y-4 pt-4 border-t border-blue-200">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <InputLabel for="client_name" value="Client Name" />
-                                        <TextInput
-                                            id="client_name"
-                                            v-model="form.client_name"
-                                            class="mt-1 block w-full"
-                                        />
-                                    </div>
-                                    <div>
-                                        <InputLabel for="client_email" value="Client Email" />
-                                        <TextInput
-                                            id="client_email"
-                                            v-model="form.client_email"
-                                            type="email"
-                                            class="mt-1 block w-full"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <InputLabel for="expires_at" value="Expiration Date" />
-                                    <TextInput
-                                        id="expires_at"
-                                        v-model="form.expires_at"
-                                        type="datetime-local"
-                                        class="mt-1 block w-full"
-                                    />
-                                    <p class="mt-1 text-xs text-gray-500">Leave empty for no expiration.</p>
-                                </div>
-
-                                <div class="grid grid-cols-3 gap-4">
-                                    <div class="flex items-center">
-                                        <input
-                                            id="allow_downloads"
-                                            type="checkbox"
-                                            v-model="form.allow_downloads"
-                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <label for="allow_downloads" class="ml-2 text-sm text-gray-600">Allow Downloads</label>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <input
-                                            id="allow_selections"
-                                            type="checkbox"
-                                            v-model="form.allow_selections"
-                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <label for="allow_selections" class="ml-2 text-sm text-gray-600">Allow Selections</label>
-                                    </div>
-                                    <div>
-                                        <InputLabel for="selection_limit" value="Selection Limit" />
-                                        <TextInput
-                                            id="selection_limit"
-                                            v-model="form.selection_limit"
-                                            type="number"
-                                            min="1"
-                                            class="mt-1 block w-full"
-                                            placeholder="Unlimited"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Form Actions -->

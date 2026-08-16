@@ -457,22 +457,16 @@ class GalleryController extends Controller
             abort(404);
         }
 
-        // Check if gallery is password protected
-        $needsPassword = $gallery->isPasswordProtected() && !$gallery->hasAccess();
-
-        $photos = null;
-        if (!$needsPassword) {
-            $photos = $gallery->photos()
-                ->published()
-                ->latest('captured_at')
-                ->paginate(24)
-                ->through(fn($photo) => [
-                    'id' => $photo->id,
-                    'title' => $photo->title,
-                    'slug' => $photo->slug,
-                    'thumbnail_path' => $photo->thumbnail_path,
-                ]);
-        }
+        $photos = $gallery->photos()
+            ->published()
+            ->latest('captured_at')
+            ->paginate(24)
+            ->through(fn($photo) => [
+                'id' => $photo->id,
+                'title' => $photo->title,
+                'slug' => $photo->slug,
+                'thumbnail_path' => $photo->thumbnail_path,
+            ]);
 
         return Inertia::render('Public/Gallery/GalleryView', [
             'gallery' => [
@@ -481,26 +475,8 @@ class GalleryController extends Controller
                 'slug' => $gallery->slug,
                 'description' => $gallery->description,
             ],
-            'photos' => $photos ?? ['data' => [], 'links' => []],
-            'needsPassword' => $needsPassword,
+            'photos' => $photos,
         ]);
-    }
-
-    /**
-     * Verify gallery password.
-     */
-    public function verifyGalleryPassword(Request $request, Gallery $gallery)
-    {
-        $request->validate([
-            'password' => 'required|string',
-        ]);
-
-        if ($gallery->verifyPassword($request->password)) {
-            $gallery->grantAccess();
-            return redirect()->route('gallery.show', $gallery);
-        }
-
-        return back()->withErrors(['password' => 'Incorrect password. Please try again.']);
     }
 
     /**

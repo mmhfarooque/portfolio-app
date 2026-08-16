@@ -38,7 +38,6 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PrintController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\ClientGalleryController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,7 +50,6 @@ Route::get('/photos/map', [GalleryController::class, 'map'])->name('photos.map')
 Route::get('/photo/{photo:slug}', [GalleryController::class, 'show'])->name('photos.show');
 Route::get('/category/{category:slug}', [GalleryController::class, 'category'])->name('category.show');
 Route::get('/gallery/{gallery:slug}', [GalleryController::class, 'gallery'])->name('gallery.show');
-Route::post('/gallery/{gallery:slug}/unlock', [GalleryController::class, 'verifyGalleryPassword'])->name('gallery.unlock');
 Route::get('/tag/{tag:slug}', [GalleryController::class, 'tag'])->name('tag.show');
 
 // Photo interactions (likes & comments)
@@ -94,16 +92,6 @@ Route::prefix('selections')->name('client.')->group(function () {
     Route::post('/clear', [ClientProofingController::class, 'clear'])->name('clear');
     Route::get('/export', [ClientProofingController::class, 'export'])->name('export');
     Route::post('/send', [ClientProofingController::class, 'sendToPhotographer'])->name('send');
-});
-
-// Client gallery routes (token-based access)
-Route::prefix('client-gallery')->group(function () {
-    Route::get('/{token}', [ClientGalleryController::class, 'view'])->name('client-gallery.view');
-    Route::post('/{token}/password', [ClientGalleryController::class, 'verifyPassword'])->name('client-gallery.password');
-    Route::get('/{token}/download/{photo}', [ClientGalleryController::class, 'download'])->name('client-gallery.download');
-    Route::post('/{token}/toggle/{photo}', [ClientGalleryController::class, 'toggleSelection'])->name('client-gallery.toggle');
-    Route::get('/{token}/selections', [ClientGalleryController::class, 'getSelections'])->name('client-gallery.selections');
-    Route::post('/{token}/submit', [ClientGalleryController::class, 'submitSelections'])->name('client-gallery.submit');
 });
 
 // Static pages
