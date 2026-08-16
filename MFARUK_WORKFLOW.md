@@ -180,7 +180,11 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   **Mahmud's account legs still open:** (1) Pinterest Business account under farooque7 +
   claim mfaruk.com (send me the verification meta tag to install), create a board, paste its
   board id + token into Admin → Social → Accounts; (2) X developer app → token likewise;
-  (3) Instagram: professional account linked to a Facebook Page, token via Meta app.
+  (3) Instagram — CORRECTED 2026-08-16: Mahmud has @mahmudfarooque and **no Facebook is
+  needed**: convert to a Creator account, create a Meta developer account with EMAIL,
+  app with the Instagram-Login use case, own account as Instagram Tester (dev mode, no app
+  review for own-account posting), long-lived token. When connected, switch
+  `publishToInstagram` from `graph.facebook.com` to `graph.instagram.com` endpoints.
   **NEXT after accounts: Laravel 12→13 upgrade** (§16 R&D verdict, ride a fresh weekly
   backup, own session).
 - **✅ Licensable-badge schema SHIPPED (`263ec51`), live-verified:** ImageObject on every photo
