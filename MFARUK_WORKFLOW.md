@@ -222,8 +222,26 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Blog photo outro LIVE** — `Components/Blog/PhotoOutro.vue` on every article: 3 random featured photos + browse-all link. Copy variants: dev articles = *When I'm not coding*; photography-category articles = *More frames from my camera* (detected via category name/slug containing photo/camera). Props from `BlogController@show` (`outroPhotos`, `isPhotographyPost`).
 - **SSR was STALE Jul 12–26** — server-side `/home/mfaruk/deploy.sh` lacked the `mfaruk-ssr` restart (see §13). Patched; every deploy now restarts SSR. Also fixed nonexistent `photo.show` route name (→ `photos.show`) that crashed SSR on all category/gallery/tag pages — crawlers had been getting empty fallback HTML there.
 - **Photos:** #42 rusty bicycle (Swiss Sheep Farm, Pattaya) PUBLISHED — created category *Still Life & Details*; #43 fountain channel (JN Memorial Botanical Garden, Srinagar, coords set manually — no GPS in file) content-complete, **DRAFT, awaiting Mahmud's publish**.
-- **⚠️ LARAVEL 13 — PLAN REVISED 2026-08-16 after a 5-agent deep audit. READ THIS FIRST; the
-  older plan below UNDERSTATED the work. Key reversals:**
+- **✅ LARAVEL 13 — DONE 2026-08-30. LIVE IS 13.29.0.** Everything from here to the end of the
+  Laravel 13 material is KEPT AS HISTORY, not as pending work. Do not re-plan it.
+  Shipped in five phases (`7ab8c67` `84ca229` `94a160e` `ad558e4` `59f6a1f`), merged and deployed;
+  working record in `docs/UPGRADE-2026-08-30.md`, deploy script `deploy/upgrade-l13.sh`.
+  Outcome: **composer advisories 38 to 0, npm vulnerabilities 12 to 0**, Intervention Image on v4,
+  53/53 live URLs 200, SSR verified, watermark output proven pixel-equivalent to v3.
+  **Where the audit below was wrong:** it counted 2 advisories when there were 38 (it missed a
+  CRITICAL code injection in `mtdowling/jmespath.php`); it built a fragile lock round-trip around
+  *there is no local composer* — there is one now at `~/.local/bin/composer` with
+  `config.platform.php` pinned to 8.4.10, so locks are built locally and the server only pulls; and
+  it called `validateCsrfTokens()` a HIGH break when L13 still has it delegating to
+  `preventRequestForgery()`. It also under-scoped Intervention v4 to `read()` plus encoders — the
+  renames that actually bit were `pickColor()`, `ColorChannel::toInt()` and `FontFactory::valign()`,
+  none findable by static grep.
+  **Two pre-existing bugs the upgrade exposed and that are now fixed:** `/locations` had never
+  worked (`withCount('photos')` against an accessor, not a relationship — `116fd17`), and
+  `admin.media.upload` had never existed so Editor.js image upload on About was dead (`059fd93`).
+  Both were invisible until Phase 1 restored the file logging that died 2026-08-02.
+
+- **Original plan, 2026-08-16, kept for the reasoning only — the work is DONE:**
   1. **SECURITY: 12.54.1 carries an unpatched HIGH advisory.** PKSA-3r5d-mb8f-1qw9, CRLF
      injection in the default **email validation rule** (fixed 12.60.0) — hits the contact form
      and comment-OTP paths. Plus PKSA-m5cs-t1y6-qpcs, signed-URL path confusion (fixed 12.61.1).
