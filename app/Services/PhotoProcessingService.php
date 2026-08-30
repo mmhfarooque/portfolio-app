@@ -13,6 +13,8 @@ use Intervention\Image\Interfaces\ImageInterface;
 use App\Services\LoggingService;
 use App\Services\AIImageService;
 use App\Services\ImageHashService;
+use Intervention\Image\Encoders\AvifEncoder;
+use Intervention\Image\Encoders\WebpEncoder;
 
 class PhotoProcessingService
 {
@@ -365,7 +367,7 @@ class PhotoProcessingService
             // Only optimized display, thumbnail, and watermarked versions are stored.
 
             // Get image dimensions and file info
-            $image = Image::read($filePath);
+            $image = Image::decode($filePath);
             $width = $image->width();
             $height = $image->height();
 
@@ -607,7 +609,7 @@ class PhotoProcessingService
         // Save the image as WebP for better compression
         $path = $directory . '/' . $filename;
         $fullPath = storage_path('app/public/' . $path);
-        $resized->toWebp($quality)->save($fullPath);
+        $resized->encode(new WebpEncoder(quality: $quality))->save($fullPath);
 
         return $path;
     }
@@ -648,7 +650,7 @@ class PhotoProcessingService
         // Save the image as AVIF for optimal compression (30-50% smaller than WebP)
         $path = $directory . '/' . $filename;
         $fullPath = storage_path('app/public/' . $path);
-        $resized->toAvif($quality)->save($fullPath);
+        $resized->encode(new AvifEncoder(quality: $quality))->save($fullPath);
 
         return $path;
     }
@@ -717,7 +719,7 @@ class PhotoProcessingService
             }
             $path = $directory . '/' . $filename;
             $fullPath = storage_path('app/public/' . $path);
-            $watermarked->toWebp($quality)->save($fullPath);
+            $watermarked->encode(new WebpEncoder(quality: $quality))->save($fullPath);
             return $path;
         }
 
@@ -737,7 +739,7 @@ class PhotoProcessingService
             // Apply image watermark
             $watermarkPath = storage_path('app/public/' . $watermarkImage);
             if (file_exists($watermarkPath)) {
-                $watermarkImg = Image::read($watermarkPath);
+                $watermarkImg = Image::decode($watermarkPath);
 
                 // Calculate watermark size as percentage of main image width
                 $targetWidth = (int) ($watermarked->width() * ($watermarkImageSize / 100));
@@ -749,7 +751,7 @@ class PhotoProcessingService
                 $watermarkImg->brightness((int) (($opacity - 1) * 100));
 
                 // Place watermark
-                $watermarked->place($watermarkImg, $align . '-' . $valign);
+                $watermarked->insert($watermarkImg, alignment: $align . '-' . $valign);
             }
         } else {
             // Apply text watermark with dual fonts
@@ -789,8 +791,7 @@ class PhotoProcessingService
                             $font->filename($scriptFont);
                             $font->size($scriptSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align($align);
-                            $font->valign($valign);
+                            $font->align($align, $valign);
                         }
                     );
 
@@ -803,8 +804,7 @@ class PhotoProcessingService
                             $font->filename($regularFont);
                             $font->size($watermarkSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align('right');
-                            $font->valign($valign);
+                            $font->align('right', $valign);
                         }
                     );
                 } elseif ($align === 'center') {
@@ -818,8 +818,7 @@ class PhotoProcessingService
                             $font->filename($scriptFont);
                             $font->size($scriptSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align($align);
-                            $font->valign($valign);
+                            $font->align($align, $valign);
                         }
                     );
                 } else {
@@ -832,8 +831,7 @@ class PhotoProcessingService
                             $font->filename($regularFont);
                             $font->size($watermarkSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align('left');
-                            $font->valign($valign);
+                            $font->align('left', $valign);
                         }
                     );
 
@@ -845,8 +843,7 @@ class PhotoProcessingService
                             $font->filename($scriptFont);
                             $font->size($scriptSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align('left');
-                            $font->valign($valign);
+                            $font->align('left', $valign);
                         }
                     );
                 }
@@ -862,8 +859,7 @@ class PhotoProcessingService
                         }
                         $font->size($watermarkSize);
                         $font->color("rgba(255, 255, 255, {$opacity})");
-                        $font->align($align);
-                        $font->valign($valign);
+                        $font->align($align, $valign);
                     }
                 );
             }
@@ -878,7 +874,7 @@ class PhotoProcessingService
         // Save the image as WebP
         $path = $directory . '/' . $filename;
         $fullPath = storage_path('app/public/' . $path);
-        $watermarked->toWebp($quality)->save($fullPath);
+        $watermarked->encode(new WebpEncoder(quality: $quality))->save($fullPath);
 
         return $path;
     }
@@ -945,7 +941,7 @@ class PhotoProcessingService
             }
             $path = $directory . '/' . $filename;
             $fullPath = storage_path('app/public/' . $path);
-            $watermarked->toAvif($quality)->save($fullPath);
+            $watermarked->encode(new AvifEncoder(quality: $quality))->save($fullPath);
             return $path;
         }
 
@@ -965,13 +961,13 @@ class PhotoProcessingService
             // Apply image watermark
             $watermarkPath = storage_path('app/public/' . $watermarkImage);
             if (file_exists($watermarkPath)) {
-                $watermarkImg = Image::read($watermarkPath);
+                $watermarkImg = Image::decode($watermarkPath);
                 $targetWidth = (int) ($watermarked->width() * ($watermarkImageSize / 100));
                 if ($watermarkImg->width() > $targetWidth) {
                     $watermarkImg->scale(width: $targetWidth);
                 }
                 $watermarkImg->brightness((int) (($opacity - 1) * 100));
-                $watermarked->place($watermarkImg, $align . '-' . $valign);
+                $watermarked->insert($watermarkImg, alignment: $align . '-' . $valign);
             }
         } else {
             // Apply text watermark with dual fonts
@@ -1001,8 +997,7 @@ class PhotoProcessingService
                             $font->filename($scriptFont);
                             $font->size($scriptSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align($align);
-                            $font->valign($valign);
+                            $font->align($align, $valign);
                         }
                     );
                     $watermarked->text(
@@ -1013,8 +1008,7 @@ class PhotoProcessingService
                             $font->filename($regularFont);
                             $font->size($watermarkSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align('right');
-                            $font->valign($valign);
+                            $font->align('right', $valign);
                         }
                     );
                 } elseif ($align === 'center') {
@@ -1026,8 +1020,7 @@ class PhotoProcessingService
                             $font->filename($scriptFont);
                             $font->size($scriptSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align($align);
-                            $font->valign($valign);
+                            $font->align($align, $valign);
                         }
                     );
                 } else {
@@ -1039,8 +1032,7 @@ class PhotoProcessingService
                             $font->filename($regularFont);
                             $font->size($watermarkSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align('left');
-                            $font->valign($valign);
+                            $font->align('left', $valign);
                         }
                     );
                     $watermarked->text(
@@ -1051,8 +1043,7 @@ class PhotoProcessingService
                             $font->filename($scriptFont);
                             $font->size($scriptSize);
                             $font->color("rgba(255, 255, 255, {$opacity})");
-                            $font->align('left');
-                            $font->valign($valign);
+                            $font->align('left', $valign);
                         }
                     );
                 }
@@ -1067,8 +1058,7 @@ class PhotoProcessingService
                         }
                         $font->size($watermarkSize);
                         $font->color("rgba(255, 255, 255, {$opacity})");
-                        $font->align($align);
-                        $font->valign($valign);
+                        $font->align($align, $valign);
                     }
                 );
             }
@@ -1083,7 +1073,7 @@ class PhotoProcessingService
         // Save the image as AVIF (30-50% smaller than WebP)
         $path = $directory . '/' . $filename;
         $fullPath = storage_path('app/public/' . $path);
-        $watermarked->toAvif($quality)->save($fullPath);
+        $watermarked->encode(new AvifEncoder(quality: $quality))->save($fullPath);
 
         return $path;
     }
@@ -1102,9 +1092,9 @@ class PhotoProcessingService
             'top-left' => [$paddingX, $paddingY, 'left', 'top'],
             'top-center' => [$width / 2, $paddingY, 'center', 'top'],
             'top-right' => [$width - $paddingX, $paddingY, 'right', 'top'],
-            'middle-left' => [$paddingX, $height / 2, 'left', 'middle'],
-            'center' => [$width / 2, $height / 2, 'center', 'middle'],
-            'middle-right' => [$width - $paddingX, $height / 2, 'right', 'middle'],
+            'middle-left' => [$paddingX, $height / 2, 'left', 'center'],
+            'center' => [$width / 2, $height / 2, 'center', 'center'],
+            'middle-right' => [$width - $paddingX, $height / 2, 'right', 'center'],
             'bottom-left' => [$paddingX, $height - $paddingY, 'left', 'bottom'],
             'bottom-center' => [$width / 2, $height - $paddingY, 'center', 'bottom'],
             'bottom-right' => [$width - $paddingX, $height - $paddingY, 'right', 'bottom'],
@@ -1430,7 +1420,7 @@ class PhotoProcessingService
         $extension = 'avif';
 
         // Read image
-        $image = Image::read($file);
+        $image = Image::decode($file);
         $originalWidth = $image->width();
         $originalHeight = $image->height();
 
@@ -1449,7 +1439,7 @@ class PhotoProcessingService
 
         // Save display version
         $displayPath = "photos/display/{$uuid}.{$extension}";
-        $image->toAvif($avifQuality)->save(
+        $image->encode(new AvifEncoder(quality: $avifQuality))->save(
             storage_path('app/public/' . $displayPath)
         );
 
@@ -1457,14 +1447,14 @@ class PhotoProcessingService
         $thumbnailImage = clone $image;
         $thumbnailImage->cover(400, 300);
         $thumbnailPath = "photos/thumbnails/{$uuid}.webp";
-        $thumbnailImage->toWebp(85)->save(
+        $thumbnailImage->encode(new WebpEncoder(quality: 85))->save(
             storage_path('app/public/' . $thumbnailPath)
         );
 
         // Generate watermarked version
         $watermarkedPath = "photos/watermarked/{$uuid}.{$extension}";
         $this->applyWatermark($image);
-        $image->toAvif($avifQuality)->save(
+        $image->encode(new AvifEncoder(quality: $avifQuality))->save(
             storage_path('app/public/' . $watermarkedPath)
         );
 
@@ -1568,7 +1558,7 @@ class PhotoProcessingService
         }
 
         $displaySettings = $this->getDisplaySettings();
-        $image = Image::read($displayPath);
+        $image = Image::decode($displayPath);
         $filename = pathinfo($photo->display_path, PATHINFO_FILENAME) . '.webp';
 
         // Respects per-photo watermark_disabled setting
@@ -1608,7 +1598,7 @@ class PhotoProcessingService
         }
 
         try {
-            $image = Image::read($sourcePath);
+            $image = Image::decode($sourcePath);
 
             // Determine settings: custom params > per-photo settings > global settings
             if ($customResolution !== null) {
@@ -1675,7 +1665,7 @@ class PhotoProcessingService
             $photo->watermarked_path = $newWatermarkedPath;
 
             // Update width/height to match the new display dimensions
-            $newImage = Image::read(storage_path('app/public/' . $newDisplayPath));
+            $newImage = Image::decode(storage_path('app/public/' . $newDisplayPath));
             $photo->width = $newImage->width();
             $photo->height = $newImage->height();
 

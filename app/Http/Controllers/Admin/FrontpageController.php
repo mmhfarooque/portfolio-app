@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Intervention\Image\Laravel\Facades\Image;
 use Inertia\Inertia;
 use Inertia\Response;
+use Intervention\Image\Encoders\PngEncoder;
 
 class FrontpageController extends Controller
 {
@@ -96,7 +97,7 @@ class FrontpageController extends Controller
                     $value = $path;
                 } else {
                     // Handle image files
-                    $image = Image::read($file->getRealPath());
+                    $image = Image::decode($file->getRealPath());
 
                     // Resize profile images to reasonable size
                     if ($image->width() > 500) {
@@ -111,7 +112,7 @@ class FrontpageController extends Controller
                         mkdir($storagePath, 0755, true);
                     }
 
-                    $image->toPng()->save(storage_path('app/public/' . $path));
+                    $image->encode(new PngEncoder())->save(storage_path('app/public/' . $path));
                     $value = $path;
                     $uploadedFiles[$key] = asset('storage/' . $path);
                 }

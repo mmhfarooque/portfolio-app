@@ -44,16 +44,16 @@ class ImageHashService
 
         try {
             // Load image and resize to 8x8 for hash calculation
-            $image = Image::read($filePath);
+            $image = Image::decode($filePath);
 
             // Convert to grayscale and resize to 9x8 (for DCT-like comparison)
-            $image->greyscale()->resize(9, 8);
+            $image->grayscale()->resize(9, 8);
 
             // Get pixel values
             $pixels = [];
             for ($y = 0; $y < 8; $y++) {
                 for ($x = 0; $x < 9; $x++) {
-                    $color = $image->pickColor($x, $y);
+                    $color = $image->colorAt($x, $y);
                     // Get the red channel (grayscale so all channels are same)
                     $pixels[] = $color->red();
                 }

@@ -14,14 +14,14 @@ class BlurHashService
     public function generatePlaceholder(string $imagePath): array
     {
         try {
-            $image = Image::read($imagePath);
+            $image = Image::decode($imagePath);
 
             // Resize to tiny size for color analysis
             $tiny = $image->resize(10, 10);
 
             // Get dominant color by sampling center pixel
-            $color = $tiny->pickColor(5, 5);
-            $hex = sprintf('#%02x%02x%02x', $color->red()->toInt(), $color->green()->toInt(), $color->blue()->toInt());
+            $color = $tiny->colorAt(5, 5);
+            $hex = sprintf('#%02x%02x%02x', $color->red()->value(), $color->green()->value(), $color->blue()->value());
 
             // Generate a simple gradient placeholder SVG
             $svg = $this->generateGradientSvg($imagePath, $image->width(), $image->height());
@@ -48,21 +48,21 @@ class BlurHashService
     protected function generateGradientSvg(string $imagePath, int $width, int $height): string
     {
         try {
-            $image = Image::read($imagePath);
+            $image = Image::decode($imagePath);
 
             // Sample 4 corners for gradient
             $tiny = $image->resize(2, 2);
 
-            $tl = $tiny->pickColor(0, 0);
-            $tr = $tiny->pickColor(1, 0);
-            $bl = $tiny->pickColor(0, 1);
-            $br = $tiny->pickColor(1, 1);
+            $tl = $tiny->colorAt(0, 0);
+            $tr = $tiny->colorAt(1, 0);
+            $bl = $tiny->colorAt(0, 1);
+            $br = $tiny->colorAt(1, 1);
 
             $colors = [
-                sprintf('rgb(%d,%d,%d)', $tl->red()->toInt(), $tl->green()->toInt(), $tl->blue()->toInt()),
-                sprintf('rgb(%d,%d,%d)', $tr->red()->toInt(), $tr->green()->toInt(), $tr->blue()->toInt()),
-                sprintf('rgb(%d,%d,%d)', $bl->red()->toInt(), $bl->green()->toInt(), $bl->blue()->toInt()),
-                sprintf('rgb(%d,%d,%d)', $br->red()->toInt(), $br->green()->toInt(), $br->blue()->toInt()),
+                sprintf('rgb(%d,%d,%d)', $tl->red()->value(), $tl->green()->value(), $tl->blue()->value()),
+                sprintf('rgb(%d,%d,%d)', $tr->red()->value(), $tr->green()->value(), $tr->blue()->value()),
+                sprintf('rgb(%d,%d,%d)', $bl->red()->value(), $bl->green()->value(), $bl->blue()->value()),
+                sprintf('rgb(%d,%d,%d)', $br->red()->value(), $br->green()->value(), $br->blue()->value()),
             ];
 
             // Create simple gradient SVG

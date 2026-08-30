@@ -18,7 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         // Exclude Stripe webhook from CSRF verification
-        $middleware->validateCsrfTokens(except: [
+        // L13 renamed validateCsrfTokens() -> preventRequestForgery(); the old
+        // name still delegates but is deprecated.
+        $middleware->preventRequestForgery(except: [
             'stripe/webhook',
         ]);
 
@@ -58,6 +60,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 error_log('Failed to log exception to database: ' . $e->getMessage() . ' | Logging error: ' . $loggingException->getMessage());
             }
 
-            return false; // Continue with default exception handling
+            return true; // Continue with default exception handling (false STOPS the default log stack)
         });
     })->create();

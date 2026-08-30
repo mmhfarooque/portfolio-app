@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Intervention\Image\Encoders\JpegEncoder;
 
 class DownloadController extends Controller
 {
@@ -93,8 +94,8 @@ class DownloadController extends Controller
     protected function downloadJpeg(string $path, string $filename): StreamedResponse
     {
         return response()->streamDownload(function () use ($path) {
-            $image = Image::read($path);
-            echo $image->toJpeg(90)->toString();
+            $image = Image::decode($path);
+            echo $image->encode(new JpegEncoder(quality: 90))->toString();
         }, $filename, [
             'Content-Type' => 'image/jpeg',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',

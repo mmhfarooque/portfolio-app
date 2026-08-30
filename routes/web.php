@@ -103,6 +103,7 @@ Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.s
 
 // Blog/Stories routes
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/feed.xml', [FeedController::class, 'rss'])->name('feed.blog');
 Route::get('/blog/{post:slug}', [BlogController::class, 'show'])->name('blog.show');
 
 // Gear/Equipment routes
@@ -120,7 +121,6 @@ Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->nam
 // RSS/Atom Feeds
 Route::get('/feed/rss', [FeedController::class, 'rss'])->name('feed.rss');
 Route::get('/feed/atom', [FeedController::class, 'atom'])->name('feed.atom');
-Route::get('/blog/feed.xml', [FeedController::class, 'rss'])->name('feed.blog');
 
 // Newsletter
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
@@ -332,6 +332,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('social/{socialPost}/publish', [AdminSocialController::class, 'publish'])->name('social.publish');
     Route::delete('social/{socialPost}', [AdminSocialController::class, 'destroy'])->name('social.destroy');
     Route::get('social/accounts', [AdminSocialController::class, 'accounts'])->name('social.accounts');
+    Route::post('social/accounts/{account}/disconnect', [AdminSocialController::class, 'disconnect'])->name('social.disconnect');
 
     // A/B Testing
     Route::get('abtests', [AdminABTestController::class, 'index'])->name('abtests.index');

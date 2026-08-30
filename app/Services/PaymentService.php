@@ -299,7 +299,7 @@ class PaymentService
     /**
      * Calculate tax (simplified - should use proper tax service in production).
      */
-    public function calculateTax(float $subtotal, string $state = null, string $country = 'US'): float
+    public function calculateTax(float $subtotal, ?string $state = null, string $country = 'US'): float
     {
         if ($country !== 'US') {
             return 0;
