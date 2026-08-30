@@ -64,7 +64,7 @@ EOSSH
 
 # Backup freshness: the NAS weekly is the backup that matters.
 say "Confirm a recent backup exists on the NAS"
-ssh Synology 'ls -t /volume1/homes/mimocloud/Backup/mfaruk.com/weekly/*.tar.gz 2>/dev/null | head -1 | xargs -r stat -c "  newest weekly: %n (%y)"' \
+ssh -n Synology 'ls -t /volume1/homes/mimocloud/Backup/mfaruk.com/weekly/*.tar.gz 2>/dev/null | head -1 | xargs -r stat -c "  newest weekly: %n (%y)"' \
   || warn "could not reach the NAS to confirm - check before continuing"
 read -r -p "Backup looks current and you want to proceed? [type DEPLOY] " ans
 [[ "$ans" == "DEPLOY" ]] || die "aborted by operator"
@@ -174,7 +174,7 @@ echo "  title=$T ld+json=$L innerHTML=$I"
 rm -f "$TMP"
 
 say "Server-side checks"
-ssh "$SERVER" "cd $APP && php artisan --version && systemctl is-active mfaruk-ssr && supervisorctl status portfolio-worker:* | head -2 && php artisan about --only=environment 2>/dev/null | head -8"
+ssh -n "$SERVER" "cd $APP && php artisan --version && systemctl is-active mfaruk-ssr && supervisorctl status portfolio-worker:* | head -2 && php artisan about --only=environment 2>/dev/null | head -8"
 
 if [[ "$FAILED" == "0" ]]; then
     echo -e "\n${G}=== DEPLOY OK ===${N}"
