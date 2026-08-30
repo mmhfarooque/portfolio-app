@@ -81,7 +81,11 @@ onMounted(() => {
         </nav>
 
         <!-- Page Content -->
-        <main>
+        <!-- Capped at max-w-7xl (1280px) and centred, matching every inner
+             wrapper. The photo hero used to escape this and stretch to the
+             full viewport, so on a wide screen it rendered at ~1661px from a
+             1280px master and the browser upscaled it. -->
+        <main class="max-w-7xl mx-auto w-full">
             <slot />
         </main>
 
