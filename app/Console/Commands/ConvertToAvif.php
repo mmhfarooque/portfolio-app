@@ -8,6 +8,7 @@ use App\Models\Photo;
 use App\Models\Setting;
 use App\Services\LoggingService;
 use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Encoders\AvifEncoder;
 
 class ConvertToAvif extends Command
 {
@@ -194,10 +195,10 @@ class ConvertToAvif extends Command
         }
 
         // Read the WebP image
-        $image = Image::read($fullPath);
+        $image = Image::decode($fullPath);
 
         // Save as AVIF
-        $image->toAvif($quality)->save($avifFullPath);
+        $image->encode(new AvifEncoder(quality: $quality))->save($avifFullPath);
 
         // Log size reduction
         $webpSize = filesize($fullPath);

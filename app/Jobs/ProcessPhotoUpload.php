@@ -99,7 +99,7 @@ class ProcessPhotoUpload implements ShouldQueue
 
             // Read image for dimensions
             $this->photo->update(['processing_stage' => 'reading_image']);
-            $image = \Intervention\Image\Laravel\Facades\Image::read($filePath);
+            $image = \Intervention\Image\Laravel\Facades\Image::decode($filePath);
             $width = $image->width();
             $height = $image->height();
 

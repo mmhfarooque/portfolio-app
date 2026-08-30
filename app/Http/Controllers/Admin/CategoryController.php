@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
 use Inertia\Inertia;
 use Inertia\Response;
+use Intervention\Image\Encoders\JpegEncoder;
 
 class CategoryController extends Controller
 {
@@ -158,7 +159,7 @@ class CategoryController extends Controller
      */
     protected function processAndStoreCoverImage($file, string $directory): string
     {
-        $image = Image::read($file->getRealPath());
+        $image = Image::decode($file->getRealPath());
 
         // Resize to max 1200px width while maintaining aspect ratio
         if ($image->width() > 1200) {
@@ -177,7 +178,7 @@ class CategoryController extends Controller
 
         // Save as optimized JPEG
         $fullPath = storage_path('app/public/' . $path);
-        $image->toJpeg(85)->save($fullPath);
+        $image->encode(new JpegEncoder(quality: 85))->save($fullPath);
 
         return $path;
     }

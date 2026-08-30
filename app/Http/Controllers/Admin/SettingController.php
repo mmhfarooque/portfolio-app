@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Redirect;
 use App\Services\GoogleSearchConsoleService;
 use Inertia\Inertia;
 use Inertia\Response;
+use Intervention\Image\Encoders\PngEncoder;
 
 class SettingController extends Controller
 {
@@ -239,7 +240,7 @@ class SettingController extends Controller
                         $value = $path;
                     } else {
                         // Handle image files
-                        $image = Image::read($file->getRealPath());
+                        $image = Image::decode($file->getRealPath());
 
                         // Resize logo/images to reasonable size
                         if ($image->width() > 500) {
@@ -254,7 +255,7 @@ class SettingController extends Controller
                             mkdir($storagePath, 0755, true);
                         }
 
-                        $image->toPng()->save(storage_path('app/public/' . $path));
+                        $image->encode(new PngEncoder())->save(storage_path('app/public/' . $path));
                         $value = $path;
                     }
                 }

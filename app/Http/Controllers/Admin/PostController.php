@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Laravel\Facades\Image;
 use Inertia\Inertia;
 use Inertia\Response;
+use Intervention\Image\Encoders\WebpEncoder;
 
 class PostController extends Controller
 {
@@ -248,7 +249,7 @@ class PostController extends Controller
      */
     protected function processFeaturedImage($file): string
     {
-        $image = Image::read($file->getRealPath());
+        $image = Image::decode($file->getRealPath());
 
         // Resize if too large
         if ($image->width() > 1920) {
@@ -266,7 +267,7 @@ class PostController extends Controller
         }
 
         // Save as WebP
-        $image->toWebp(85)->save(storage_path('app/public/' . $path));
+        $image->encode(new WebpEncoder(quality: 85))->save(storage_path('app/public/' . $path));
 
         return $path;
     }
