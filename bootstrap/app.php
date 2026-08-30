@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,6 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        // Image delivery gets route model binding and nothing else — no
+        // session, no cookies, no CSRF, no Inertia — so responses stay
+        // cacheable at the CDN and the stack cannot drift when the framework
+        // renames a middleware.
+        then: function (): void {
+            Route::middleware([\Illuminate\Routing\Middleware\SubstituteBindings::class])
+                ->group(base_path('routes/images.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Trust Cloudflare proxy for HTTPS detection
