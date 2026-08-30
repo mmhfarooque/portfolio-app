@@ -1557,26 +1557,39 @@ class PhotoProcessingService
     /**
      * Measure the master's dimensions without touching a single file.
      *
-     * Reuses findSourceFile(), so it resolves the R2 original the same way the
-     * rest of the pipeline does. That method can fall back to an already
-     * compressed derivative when the master is unreachable (gotcha 39), so the
-     * caller must treat a result no larger than the current derivative as
-     * untrustworthy rather than as the original.
+     * Reads original_path directly and does NOT use findSourceFile(), because
+     * that falls back to an already-compressed derivative when the master is
+     * unreachable (gotcha 39). For a backfill the answer must be the original
+     * or nothing — a fallback would record the derivative's size as the
+     * original and bake in the very loss this exists to undo.
      *
      * @return array{0: int, 1: int}|null  [width, height]
      */
     public function measureOriginal(Photo $photo): ?array
     {
-        $source = $this->findSourceFile($photo);
-
-        if (! $source) {
+        if (empty($photo->original_path)) {
             return null;
         }
 
+        $temp = null;
+
         try {
-            $size = getimagesize($source);
+            if (str_starts_with($photo->original_path, 'r2:')) {
+                $temp = $this->downloadFromR2(substr($photo->original_path, 3));
+                $path = $temp;
+            } else {
+                $path = storage_path('app/private/' . $photo->original_path);
+            }
+
+            if (! $path || ! is_file($path)) {
+                return null;
+            }
+
+            $size = @getimagesize($path);
         } finally {
-            $this->cleanupTempFiles();
+            if ($temp && is_file($temp)) {
+                @unlink($temp);
+            }
         }
 
         return ($size && $size[0] > 0 && $size[1] > 0) ? [$size[0], $size[1]] : null;

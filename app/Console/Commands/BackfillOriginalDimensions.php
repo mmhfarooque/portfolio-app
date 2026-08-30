@@ -58,11 +58,12 @@ class BackfillOriginalDimensions extends Command
 
             [$width, $height] = $measured;
 
-            // A result no bigger than the derivative means findSourceFile fell
-            // back to a compressed copy. Recording that as the original would
-            // bake in the very loss this command exists to undo.
-            if ($width <= (int) $photo->width) {
-                $this->line("  <fg=yellow>derivative fallback</> {$photo->slug} ({$width}x{$height})");
+            // measureOriginal() reads the master only and returns null rather
+            // than falling back, so any result here IS the original. A value
+            // smaller than the stored derivative would mean the data is wrong
+            // in a way this command must not paper over.
+            if ($width < (int) $photo->width) {
+                $this->line("  <fg=yellow>suspect</> {$photo->slug}: master {$width}x{$height} smaller than stored {$photo->width}x{$photo->height}");
                 $skipped++;
 
                 continue;
