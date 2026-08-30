@@ -98,6 +98,19 @@ git fetch origin
 git reset --hard "origin/$BRANCH"
 git log --oneline -1
 
+# CRITICAL, and measured: Laravel 13 reuses the SAME cache filename
+# bootstrap/cache/routes-v7.php as Laravel 12, and bootstrap/cache is gitignored
+# so the reset above does NOT touch it. Verified locally: booting L13 with a
+# stale/incompatible routes-v7.php present leaves `artisan --version` working but
+# breaks `route:list`. Every artisan command below (migrate included) would run
+# against an L12 route cache. Remove the files with rm - NOT `artisan
+# optimize:clear`, because that command has to boot the app through the very
+# cache it is trying to clear.
+echo "==> drop stale L12 bootstrap caches BEFORE any artisan command"
+rm -f bootstrap/cache/routes-v*.php bootstrap/cache/config.php \
+      bootstrap/cache/packages.php bootstrap/cache/services.php
+ls bootstrap/cache/ || true
+
 echo "==> composer install"
 composer install --no-dev --optimize-autoloader --no-interaction
 
@@ -108,7 +121,7 @@ echo "==> frontend build"
 npm ci --no-audit --no-fund
 npm run build
 
-echo "==> caches"
+echo "==> caches (optimize:clear here is belt-and-braces; the real clear was the rm above)"
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
