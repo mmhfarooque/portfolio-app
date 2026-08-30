@@ -42,9 +42,12 @@ class ServePhotoImage extends Controller
             abort(404);
         }
 
-        // Only widths this variant actually advertises are servable. Without
-        // the allowlist the route would be an open image-resizing endpoint.
-        if (! in_array($width, $role->widths(), true)) {
+        // Only the widths THIS photo advertises are servable. The per-photo
+        // ladder is the enum's ladder capped at the master width, so a 1280
+        // master offers 1280 and never 1920 — validating against the raw enum
+        // would reject the very URLs the pages and the sitemap emit. Still an
+        // allowlist, so the route is not an open image-resizing endpoint.
+        if (! in_array($width, $photo->image->for($role)->widths(), true)) {
             abort(404);
         }
 
