@@ -299,6 +299,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Media Library API
     Route::get('media/photos', [AdminMediaController::class, 'photos'])->name('media.photos');
+    Route::post('media/upload', [AdminMediaController::class, 'upload'])->name('media.upload');
 
     // Analytics
     Route::get('analytics/referrals', [AdminAnalyticsController::class, 'referrals'])->name('analytics.referrals');
