@@ -1527,11 +1527,22 @@ class PhotoProcessingService
             }
         }
 
+        // The responsive delivery variants are derived from the files above, so
+        // they belong to the same replace step. Resolved lazily: this service is
+        // a constructor default of ImageVariantService, and injecting it here
+        // would close the loop.
+        $variantsDeleted = app(ImageVariantService::class)->forget($photo);
+        $deletedCount += $variantsDeleted;
+
         LoggingService::activity(
             'photo.files_deleted',
             "Deleted {$deletedCount} file(s) for photo: {$photo->title}" . ($preserveOriginal ? ' (original preserved)' : ''),
             $photo,
-            ['paths' => array_filter($publicPaths), 'preserved_original' => $preserveOriginal]
+            [
+                'paths' => array_filter($publicPaths),
+                'preserved_original' => $preserveOriginal,
+                'variants_deleted' => $variantsDeleted,
+            ]
         );
     }
 

@@ -13,4 +13,4 @@ Schedule::command('stats:weekly')->weeklyOn(1, '09:00');
 
 // Catch any derivative that was never warmed — a failed job, a photo
 // published straight from the admin, a newly added width or format.
-Schedule::command('photos:variants')->dailyAt('03:30')->withoutOverlapping();
+Schedule::command('photos:variants --prune')->dailyAt('03:30')->withoutOverlapping();

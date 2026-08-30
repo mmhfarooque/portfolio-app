@@ -22,6 +22,8 @@ class GeneratePhotoVariantsCommand extends Command
                             {--variant= : Limit to one variant (thumb, display, watermarked)}
                             {--format= : Limit to one format (avif, webp, jpg)}
                             {--force : Rebuild variants that already exist}
+                            {--prune : Delete variants stranded by an earlier re-optimisation}
+                            {--prune-only : Prune without building anything}
                             {--queue : Dispatch to the queue instead of building inline}';
 
     protected $description = 'Build the responsive image variants every photo serves';
@@ -41,6 +43,20 @@ class GeneratePhotoVariantsCommand extends Command
             $this->warn('No photos matched.');
 
             return self::SUCCESS;
+        }
+
+        if ($this->option('prune') || $this->option('prune-only')) {
+            $pruned = 0;
+
+            foreach ($photos as $photo) {
+                $pruned += $variants->prune($photo);
+            }
+
+            $this->info("Pruned {$pruned} stranded variant file(s).");
+
+            if ($this->option('prune-only')) {
+                return self::SUCCESS;
+            }
         }
 
         if ($this->option('queue')) {

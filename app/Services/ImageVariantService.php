@@ -57,6 +57,69 @@ class ImageVariantService
         }
     }
 
+    /**
+     * Remove every generated variant for a photo.
+     *
+     * Called from PhotoProcessingService::deletePhotoFiles(), so the delivery
+     * layer takes part in the same replace step the rest of the pipeline
+     * already performs: pull the master from R2, wipe the server copies,
+     * rebuild. Without this the variants of every superseded generation stay
+     * on disk forever and the space guarantee the R2 design exists to protect
+     * quietly stops holding.
+     *
+     * @return int files removed
+     */
+    public function forget(Photo $photo): int
+    {
+        return $this->deleteMatching($photo, keep: []);
+    }
+
+    /**
+     * Remove only the variants that are NOT part of the photo's current
+     * generation — the stranded output of earlier re-optimisations.
+     *
+     * @return int files removed
+     */
+    public function prune(Photo $photo): int
+    {
+        $keep = [];
+
+        foreach (ImageVariant::cases() as $variant) {
+            foreach ($photo->image->for($variant)->widths() as $width) {
+                foreach (ImageFormat::cases() as $format) {
+                    $keep[] = $this->absolutePath($photo, $variant, $width, $format);
+                }
+            }
+        }
+
+        return $this->deleteMatching($photo, keep: $keep);
+    }
+
+    /**
+     * @param  list<string>  $keep  absolute paths to spare
+     */
+    private function deleteMatching(Photo $photo, array $keep): int
+    {
+        $keep = array_flip($keep);
+        $removed = 0;
+
+        // Variant filenames are {photo id}-{master fingerprint}.{ext}; the dash
+        // delimits, so photo 4 never matches photo 44.
+        $pattern = storage_path('app/public/photos/variants/*/*/' . $photo->id . '-*.*');
+
+        foreach (glob($pattern) ?: [] as $file) {
+            if (isset($keep[$file])) {
+                continue;
+            }
+
+            if (@unlink($file)) {
+                $removed++;
+            }
+        }
+
+        return $removed;
+    }
+
     /** Storage-relative path (on the public disk) for a generated variant. */
     public function relativePath(Photo $photo, ImageVariant $variant, int $width, ImageFormat $format): string
     {
