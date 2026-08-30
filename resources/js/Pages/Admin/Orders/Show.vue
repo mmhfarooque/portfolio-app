@@ -26,7 +26,7 @@ const noteForm = useForm({
 });
 
 const updateStatus = () => {
-    statusForm.patch(route('admin.orders.update-status', props.order.id), {
+    statusForm.patch(route('admin.orders.status', props.order.id), {
         preserveScroll: true
     });
 };
@@ -41,7 +41,7 @@ const shipOrder = () => {
 };
 
 const addNote = () => {
-    noteForm.post(route('admin.orders.add-note', props.order.id), {
+    noteForm.post(route('admin.orders.note', props.order.id), {
         onSuccess: () => {
             showNoteForm.value = false;
             noteForm.reset();

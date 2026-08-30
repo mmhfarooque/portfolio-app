@@ -58,6 +58,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 error_log('Failed to log exception to database: ' . $e->getMessage() . ' | Logging error: ' . $loggingException->getMessage());
             }
 
-            return false; // Continue with default exception handling
+            return true; // Continue with default exception handling (false STOPS the default log stack)
         });
     })->create();

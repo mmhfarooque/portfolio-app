@@ -66,11 +66,11 @@ check_requirements() {
         exit 1
     fi
 
-    # Check PHP version >= 8.1
+    # Check PHP version >= 8.3 (Laravel 13 minimum)
     PHP_MAJOR=$(php -r "echo PHP_MAJOR_VERSION;")
     PHP_MINOR=$(php -r "echo PHP_MINOR_VERSION;")
-    if [ "$PHP_MAJOR" -lt 8 ] || ([ "$PHP_MAJOR" -eq 8 ] && [ "$PHP_MINOR" -lt 1 ]); then
-        print_error "PHP 8.1 or higher required (found $PHP_VERSION)"
+    if [ "$PHP_MAJOR" -lt 8 ] || ([ "$PHP_MAJOR" -eq 8 ] && [ "$PHP_MINOR" -lt 3 ]); then
+        print_error "PHP 8.3 or higher required (found $PHP_VERSION)"
         exit 1
     fi
 

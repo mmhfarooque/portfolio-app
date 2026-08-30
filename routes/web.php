@@ -332,6 +332,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('social/{socialPost}/publish', [AdminSocialController::class, 'publish'])->name('social.publish');
     Route::delete('social/{socialPost}', [AdminSocialController::class, 'destroy'])->name('social.destroy');
     Route::get('social/accounts', [AdminSocialController::class, 'accounts'])->name('social.accounts');
+    Route::post('social/accounts/{account}/disconnect', [AdminSocialController::class, 'disconnect'])->name('social.disconnect');
 
     // A/B Testing
     Route::get('abtests', [AdminABTestController::class, 'index'])->name('abtests.index');
