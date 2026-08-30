@@ -125,6 +125,16 @@ infinite scroll**.
 
 **The three traps, all already handled**
 
+⚠️ **`<main>` in `PublicLayout.vue` is capped at `max-w-7xl` (1280px) and centred, since
+2026-08-30.** It previously had no max-width, so anything that did not wrap itself — the photo
+hero in particular — stretched to the full viewport and rendered at ~1661px from a 1280px
+master, upscaled by the browser. Every other wrapper on the site is already `max-w-7xl` and the
+pipeline caps derivatives at 1280, so capping `<main>` made the layout and the images agree
+without touching a single file. Deliberate side effect: full-bleed coloured bands (the hero's
+black field, the Home featured section, the blog related strip, `PhotoOutro`) now stop at 1280
+too. **Any `sizes` attribute must therefore end in a fixed pixel width past 1280**, never a bare
+viewport fraction, or wide screens compute a slot larger than the element and over-fetch.
+
 1. ~~**Lazy-loaded images on appended cards.**~~ **REMOVED 2026-08-30.** The grid used to
    lazy-load via an `IntersectionObserver` over `.photo-card`, with cards carrying `data-src`
    rather than `src`, and an `observeCards()` + `watch(() => props.photos.data.length, …)` pair

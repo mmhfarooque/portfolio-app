@@ -111,6 +111,11 @@ Things worth knowing:
   exists precisely because they can drift.
 - `custom_max_resolution`, `custom_quality`, `watermark_disabled` are **per-photo overrides** of
   global settings — see [`06-photo-pipeline.md`](06-photo-pipeline.md).
+- `original_width` / `original_height` hold the **master's** size, `width` / `height` the
+  **derivative's**. Until 2026-08-30 `reoptimizePhoto()` overwrote width/height without
+  preserving the master first, so the original columns were null on all 27 photos and the app
+  had no record of how large its own originals were. Both are fixed and back-filled — 27/27,
+  ranging 1186px to 7825px on the long edge.
 
 ### Photo model API
 

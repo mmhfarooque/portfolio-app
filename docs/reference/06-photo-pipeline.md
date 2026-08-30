@@ -209,6 +209,14 @@ Routes: `POST admin/photos/{photo}/reoptimize` (single),
 Per-photo overrides are read through `getEffectiveMaxResolution()` and `getEffectiveQuality()`,
 which fall back to the global settings when the per-photo columns are null.
 
+⚠️ **`reoptimizePhoto()` used to destroy the master's dimensions.** It overwrote `width` /
+`height` with the derivative's size while `original_width` / `original_height` stayed null, so
+every re-optimise erased the only record of how large the original was — 21 of 26 photos read
+exactly the cap value while their R2 masters were 4160×2600 and larger. Fixed 2026-08-30: the
+source dimensions are recorded first, and the stored value only ever grows so a derivative
+fallback (gotcha 39) cannot shrink it. `php artisan photos:backfill-dimensions` restored the
+record for all 27. The masters themselves were never at risk.
+
 ⚠️ A historical bug: **bulk optimisation was made to always override individual photo custom
 settings.** If a bulk run appears to wipe someone's per-photo tuning, that is intended
 behaviour, not a regression.
@@ -278,6 +286,13 @@ format adds URLs instead of invalidating ones Google already holds.
 
 Two things to know:
 
+- **The variants take part in the replace step.** `deletePhotoFiles()` calls
+  `ImageVariantService::forget()`, so a re-optimise clears them along with everything else and
+  they rebuild on demand. This was **missing on first release** and had to be added: variant
+  filenames fingerprint the master path, `reoptimizePhoto()` assigns fresh UUIDs, so every
+  re-optimise stranded a whole generation. Photo 44 reached 41 files where 27 was correct and
+  the store hit 651 files / 97 MB before it was caught. `photos:variants --prune` clears
+  stragglers and the nightly run prunes.
 - **Variants downscale from the existing 1280 master, not from the R2 original.** That is
   deliberate — it preserves the baked-in watermark and avoids re-running the watermark pipeline
   — but it means variant quality is inherited from that master, and it means the §6.5 fallback

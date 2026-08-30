@@ -64,6 +64,7 @@ grouped by where they will bite you.
 
 | # | Gotcha |
 |---|--------|
+| 26b | **The `R2_*` keys in `.env` are now deliberately EMPTY**, with a comment saying why (2026-08-30). They previously held stale values that failed signature validation, so anyone probing `Storage::disk('r2')` without going through `configureR2Disk()` got `SignatureDoesNotMatch` and concluded R2 was broken when it was fine. Backup at `.env.bak-20260831-imagework` |
 | 26 | **Most configuration is in the `settings` DB table, not `.env`.** R2 credentials, Turnstile keys, watermark, quality, AI provider, theme, SEO flags. Editing `.env` alone will appear to do nothing |
 | 27 | **A setting saved into the wrong group silently reverts.** This caused a real bug where the quality slider kept returning to 82% |
 | 28 | **`Setting::get()` is cached.** Call `Setting::clearCache()` after writing outside the normal path |
@@ -91,6 +92,9 @@ grouped by where they will bite you.
 | 43 | **`captured_at` is the public gallery's default sort.** A photo with no capture date sorts oddly |
 | 44 | **Not every photo has GPS.** At least one has hand-entered coordinates. Guard with `hasLocation()` |
 | 44b | **Image width allowlists must use the PER-PHOTO ladder**, `$photo->image->for($variant)->widths()`, never `ImageVariant::widths()`. `PhotoImage` caps the enum ladder at the master width, so a 1280 master offers 1280 and a portrait offers 853 — neither is in the raw enum. Validating against the enum 404'd all 26 image-sitemap URLs and every photo page's JPEG LCP element |
+| 44b2 | **The variant layer must be cleaned by `deletePhotoFiles()`**, which calls `ImageVariantService::forget()`. Variant filenames fingerprint the master path and `reoptimizePhoto()` assigns fresh UUIDs, so without this every re-optimise strands a whole generation on disk — 651 files / 97 MB before it was caught. `photos:variants --prune` clears stragglers; the nightly run prunes |
+| 44d | **`reoptimizePhoto()` destroys the master's dimensions unless they are captured first.** It overwrites `width`/`height` with the derivative's size. Record `original_width`/`original_height` from the source BEFORE that, and only ever grow the stored value — `findSourceFile()` can hand you a compressed derivative (gotcha 39) and that must not shrink the record |
+| 44e | **For a measurement, read `original_path` directly — never `findSourceFile()`.** Its derivative fallback would record the derivative's size as the original. `PhotoProcessingService::measureOriginal()` returns null rather than substituting anything |
 | 44c | **`image_max_resolution` is 1280 in production, not the 1920 the code default and these docs long implied.** It was set on 2026-01-04 and never documented. It is the only reason indexed images are 1280 wide (853 for portraits) — not storage, not the pipeline. Raising it costs nothing in R2 and needs no re-upload |
 
 ---
@@ -143,6 +147,7 @@ grouped by where they will bite you.
 | 61 | **Never post, reply, or send as Mahmud** without an explicit ask and a double-confirm |
 | 62 | **Never auto-publish content.** An agent prepares; **Mahmud publishes** |
 | 63 | **No auto-delete of data, files, DB, or backups.** Verified backup plus explicit go before any destructive operation |
+| 63b | **`storage/app/private/photos/originals` holds two 16 MB files that are the ONLY copy of a 6162×3488 image.** Both are byte-identical (md5 `8297bb4e…`), referenced by **no** photo, matching **no** `file_hash`, and absent from R2 (27 objects for 27 photos). They look like reclaimable orphans on an 81%-full disk and they are not — deleting them destroys an image. Left in place 2026-08-30 pending Mahmud's decision |
 
 ---
 

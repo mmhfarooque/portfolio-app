@@ -125,6 +125,38 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 
 ## 16. Current state / where we left off (2026-08-30)
 
+**Session 2026-08-30 late (PC) — layout cap, variant cleanup, dimension recovery (`c4c4bf9`):**
+- **The 1280 question was settled by LAYOUT, not by re-optimising anything.** `<main>` had no
+  max-width, so the photo hero escaped the wrapper and rendered ~1661px from a 1280px master.
+  Capped it at `max-w-7xl` + centred (`395d018`). Every other wrapper was already 1280 and the
+  pipeline caps derivatives at 1280, so the two now agree — **zero images touched**, no extra
+  storage, no sitemap churn. Side effect accepted: full-bleed colour bands stop at 1280.
+- All 11 `sizes` attributes + the enum default now end in a fixed pixel width past 1280
+  (`3bf0512`). A bare viewport fraction makes wide screens over-fetch once the container is
+  capped.
+- **Variant leak fixed** (`52a8e2a`). Variants fingerprint the master path, `reoptimizePhoto()`
+  assigns fresh UUIDs, so every re-optimise stranded a generation — 651 files / 97 MB.
+  `deletePhotoFiles()` now calls `ImageVariantService::forget()`, so the delivery layer obeys
+  the same replace contract as everything else. `--prune` cleared 29 files.
+- **Master dimensions recovered** (`227a4de`, `c4c4bf9`). `reoptimizePhoto()` had been
+  overwriting `width`/`height` with derivative sizes while `original_width`/`original_height`
+  stayed null — every re-optimise erased the record. Now preserved (grow-only, so a gotcha-39
+  derivative fallback cannot shrink it) and `photos:backfill-dimensions` restored **27/27** from
+  R2, 1186px–7825px. Also fixed `ProcessPhotoUpload::failed()` passing a model where
+  `LoggingService::error()` wants a `Throwable` — a failed upload had been logging nothing.
+- **`.env` `R2_*` emptied** with a comment (backup `.env.bak-20260831-imagework`). They were
+  stale and failed signature validation, sending anyone probing `Storage::disk('r2')` down a
+  false trail; the pipeline reads the **settings DB table**. R2 verified after: 27 originals,
+  409 MB.
+- 🚨 **DID NOT DELETE** `storage/app/private/photos/originals` (2 files, 31 MB). They look like
+  reclaimable pre-R2 orphans on an 81% disk. They are byte-identical copies of a 6162×3488 image
+  referenced by **no** photo, matching **no** `file_hash`, and **absent from R2** — the only
+  copy in existence. Awaiting Mahmud's decision.
+- **The engine works exactly as designed** and this was verified in code and on disk: upload
+  once to R2 → any per-photo change pulls the master back → rebuild → replace. 27 files each in
+  display / watermarked / thumbnails for 27 photos. Do NOT propose a global
+  `image_max_resolution` change; Mahmud tunes per photo and bulk deliberately overrides that.
+
 **Session 2026-08-30 (PC) — routed image delivery, responsive variants (deployed, `660d683`):**
 - **Root cause found for the remaining image gap:** `/photos` — the gallery index, linked from
   the nav and the sitemap — server-rendered **24 `<img>` tags carrying only `data-src`**, filled

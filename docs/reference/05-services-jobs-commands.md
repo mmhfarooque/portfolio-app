@@ -168,7 +168,7 @@ That is what makes the admin **Retry** button safe.
 
 ## 5.5 Artisan commands
 
-Only five. Everything else is done through the admin UI or tinker.
+Seven. Everything else is done through the admin UI or tinker.
 
 | Command | Purpose |
 |---------|---------|
@@ -177,10 +177,17 @@ Only five. Everything else is done through the admin UI or tinker.
 | `photos:generate-placeholders` | Backfill blur placeholders (LQIP) for existing photos |
 | `posts:update-avro {--dry-run}` | One-off content migration for a specific blog post (iBus Avro / KDE Plasma). Historical |
 | `storage:link-cpanel {public_path?}` | Storage symlink for a cPanel split install. **Legacy** — the server is HestiaCP, not cPanel |
+| `photos:variants` | Build the responsive delivery variants (part 6 §6.9b). **Idempotent**; `--prune` clears generations stranded by an earlier re-optimise, `--prune-only` skips building. Scheduled daily 03:30 with `--prune` |
+| `photos:backfill-dimensions` | Record each master's true size into `original_width` / `original_height`, read from R2. Has `--dry-run` and `--all`. Read-only against storage |
 
 Two of these are effectively archaeology: `posts:update-avro` is a single-post content fix, and
 `storage:link-cpanel` belongs to an older hosting arrangement (as does
 `deploy/cpanel-deploy.sh`).
+
+Also added on `PhotoProcessingService`: **`measureOriginal(Photo)`** — returns the master's
+dimensions without re-encoding or deleting anything. It reads `original_path` **directly** and
+deliberately does **not** use `findSourceFile()`, because that falls back to a compressed
+derivative (gotcha 39); for a measurement the answer must be the original or nothing.
 
 **Known intended addition:** `php artisan photo:content` — promoting the `/content` photo-SEO
 flow from an ad-hoc tinker workflow into a proper command, per the everything-the-Laravel-way

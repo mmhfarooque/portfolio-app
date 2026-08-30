@@ -8,6 +8,28 @@ Where the project actually stands as of **2026-08-03**, and what is genuinely ne
 
 ## 11.1 Recent work, newest first
 
+### 2026-08-30 (late) — layout cap, variant cleanup, dimension recovery (`c4c4bf9`)
+
+Follow-on session the same night, after reading this reference set properly.
+
+- **`<main>` capped at `max-w-7xl` and centred** (`395d018`). The photo hero was the one element
+  escaping the wrapper, rendering ~1661px from a 1280px master. Capping it made layout and
+  images agree **without touching a single image** — no re-optimise, no extra storage, no
+  sitemap churn. All 11 `sizes` attributes plus the enum default were corrected to end in a
+  fixed pixel width past 1280 (`3bf0512`).
+- **Delivery variants joined the replace step** (`52a8e2a`). They had been leaking a whole
+  generation per re-optimise — 651 files / 97 MB. `deletePhotoFiles()` now calls
+  `forget()`; `--prune` cleared 29 stranded files.
+- **Master dimensions recovered** (`227a4de`, `c4c4bf9`). `reoptimizePhoto()` had been erasing
+  them on every run; now preserved, and `photos:backfill-dimensions` restored 27/27 from R2
+  (1186px–7825px on the long edge). Also fixed `ProcessPhotoUpload::failed()` passing a model
+  where `LoggingService::error()` wants a `Throwable`, which meant a failed upload logged
+  nothing.
+- **`.env` `R2_*` keys emptied** with an explanatory comment; they were stale and misleading.
+  Backup at `.env.bak-20260831-imagework`. R2 verified working after: 27 originals, 409 MB.
+- ⚠️ **Two 16 MB files were NOT deleted** — see gotcha 63b. They look like reclaimable orphans
+  and are the only copy of an image that is in neither the library nor R2.
+
 ### 2026-08-30 — routed image delivery and responsive variants (`660d683`)
 
 Public photo URLs became a **route** rather than a storage path —
@@ -112,7 +134,7 @@ do not remove it without asking — it is deliberate optionality.
 1. **No offsite copy of the database.** RAID is not backup. The DB→R2 leg is designed and not
    built. Photo masters are already independently safe in R2, so the DB is the exposure. With
    restore now proven, this is the largest remaining gap.
-2. **Server disk at 81%** — 5.4 GB free of 30 GB (2026-08-30). Includes ~96 MB of responsive variants and 31 MB of orphaned pre-R2 local originals in `storage/app/private/photos/originals` that nothing references.
+2. **Server disk at 81%** — 5.4 GB free of 30 GB (2026-08-30). Includes ~94 MB of responsive variants (self-pruning since `52a8e2a`) and 31 MB in `storage/app/private/photos/originals` which is **not** reclaimable — see gotcha 63b.
 3. **n8n image unpinned (`:latest`)** — a restart can jump versions underneath the backup
    workflows.
 4. **NAS powered off overnight**, and n8n never back-fills a missed schedule. A DSM power
