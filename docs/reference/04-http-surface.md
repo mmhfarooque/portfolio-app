@@ -2,16 +2,20 @@
 
 > Part 4 of 11. Previous: [`03-data-model.md`](03-data-model.md) · Next: [`05-services-jobs-commands.md`](05-services-jobs-commands.md)
 
-51 controllers across four route files. Every route below is transcribed from source.
+52 controllers across **five** route files. Every route below is transcribed from source.
 
-| File | Lines | Contents |
-|------|-------|----------|
-| `routes/web.php` | 382 | Everything public + the whole admin panel |
-| `routes/auth.php` | 59 | Laravel Breeze scaffolding |
-| `routes/api.php` | 9 | **One** endpoint — the NAS analytics push |
-| `routes/console.php` | 12 | `inspire` + the weekly stats schedule |
+| File | Contents | Middleware |
+|------|----------|------------|
+| `routes/web.php` | Everything public + the whole admin panel | full `web` group |
+| `routes/auth.php` | Laravel Breeze scaffolding | full `web` group |
+| `routes/api.php` | **One** endpoint — the NAS analytics push | `api` |
+| `routes/images.php` | **One** endpoint — responsive image delivery | ⚠️ `SubstituteBindings` **only** |
+| `routes/console.php` | `inspire`, the weekly stats schedule, nightly `photos:variants` | — |
 
 Health endpoint: **`/up`** (registered in `bootstrap/app.php`).
+
+⚠️ **`routes/images.php` is registered from `bootstrap/app.php` via `withRouting(then: …)`, not
+through the `web` group, and that is load-bearing.** See §4.1b and gotchas 48b / 48c.
 
 ---
 
@@ -31,6 +35,20 @@ Health endpoint: **`/up`** (registered in `bootstrap/app.php`).
 | GET | `/tag/{tag:slug}` | `GalleryController@tag` | `tag.show` |
 
 All route-model binding is **by slug**, not id.
+
+### Image delivery (§4.1b)
+
+| Method | URI | Controller | Name |
+|--------|-----|------------|------|
+| GET | `/img/{photo:slug}/{variant}-{width}.{format}` | `ServePhotoImage` (invokable) | `photo.image` |
+
+Constraints come from the enums: `variant` ∈ `thumb|display|watermarked`, `width` numeric,
+`format` ∈ `avif|webp|jpg`. Published photos only — there is no session on this route, so there
+is no user to authorise against; admin previews read from `/storage` instead.
+
+Width is allowlisted against the **per-photo** ladder, never the raw enum (gotcha 44b). Old
+`/storage/photos/...` URLs still resolve and were deliberately not redirected, so anything
+Google already indexed keeps working.
 
 ⚠️ The route name is **`photos.show`** (plural). A nonexistent `photo.show` was once used and
 **crashed SSR** on every category, gallery, and tag page — crawlers got empty fallback HTML for

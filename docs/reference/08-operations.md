@@ -235,11 +235,11 @@ EOF'
 
 ## 8.7 Capacity
 
-| Resource | State 2026-08-03 | Headroom |
+| Resource | State 2026-08-30 | Headroom |
 |----------|------------------|----------|
-| Server disk | 30 GB, **22 GB used, 6.2 GB free (79%)** | ⚠️ watch this |
-| App directory | 602 MB | — |
-| Cloudflare R2 | ~313 MB of 10 GB free tier | ~500 masters, years |
+| Server disk | 30 GB, **23 GB used, 5.4 GB free (81%)** | ⚠️ watch this |
+| App directory | 1.1 GB | grew with the responsive variant store |
+| Cloudflare R2 | **409 MB** of 10 GB free tier (27 masters) | ~500 masters, years |
 | NAS | ~4 TB RAID, 2.1 TB free | ample |
 
 **The disk is the constraint.** It is the reason masters live in R2 and the reason backups are

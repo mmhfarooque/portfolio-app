@@ -4,7 +4,8 @@
 > This set is written so that reading it end to end gives you a complete working grip on
 > mfaruk.com: what it is, how it is built, what every part does, how it runs, and where the
 > bodies are buried. Every claim in this set was verified against the actual code, the live
-> production server, or the live NAS on **2026-08-03** — not copied from older docs.
+> production server, or the live NAS on **2026-08-03**, and re-verified where
+> marked on **2026-08-30** — not copied from older docs.
 
 ---
 
@@ -67,13 +68,13 @@ social, A/B testing, translations) is **built but dormant**.
 | Repo | `git@github.com:mmhfarooque/portfolio-app` (**private**, branch `main`) |
 | Local path on every machine | `~/portfolio-app` |
 | Server | VPSDime VPS, `user@SERVER_IP`, HestiaCP |
-| Framework | Laravel Framework **12.54.1** on PHP **8.4.10** |
+| Framework | Laravel Framework **13.29.0** on PHP **8.4.10** (upgraded 2026-08-30) |
 | Database | MySQL, `mfaruk_portfolio` |
 | Photos | 27 total (26 published, 1 draft), **27/27 masters in R2** |
 | Blog posts | 16 total, 13 published |
 | Categories / Galleries / Tags | 12 / 8 / 377 |
 | Admin users | 1 |
-| Disk | 30 GB, **79% used, 6.2 GB free** |
+| Disk | 30 GB, **81% used, 5.4 GB free** (2026-08-30) |
 | Backups | ✅ Live — NAS n8n, weekly×4 + monthly×12 |
 
 ---

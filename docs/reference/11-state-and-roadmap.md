@@ -8,6 +8,38 @@ Where the project actually stands as of **2026-08-03**, and what is genuinely ne
 
 ## 11.1 Recent work, newest first
 
+### 2026-08-30 — routed image delivery and responsive variants (`660d683`)
+
+Public photo URLs became a **route** rather than a storage path —
+`/img/{photo:slug}/{variant}-{width}.{format}`. Full detail in
+[`06-photo-pipeline.md`](06-photo-pipeline.md) §6.9b.
+
+The finding that prompted it: `/photos` was server-rendering **24 `<img>` tags carrying only
+`data-src`**, so crawlers that do not run JavaScript saw an imageless gallery. That is now
+native lazy loading with real `src`/`srcset`. Verified live: 234 image URLs across 10 pages all
+200, 26/26 sitemap entries 200, Cloudflare `HIT` on jpg and avif.
+
+Two defects shipped and were fixed the same session — the per-photo width ladder (gotcha 44b)
+and middleware name-matching (gotcha 48c). **Neither was caught by a test, because there is no
+runnable test path**: phpunit is absent on the server under `composer install --no-dev`, and
+there is no local runtime. Verification was HTTP-level.
+
+⚠️ This is **infrastructure**, and §11.6 says plainly that the photo-reach fix is content, not
+infrastructure. That judgement still stands. What was fixed here was a genuine defect blocking
+discovery — no amount of content would have helped a listing page that served no image sources —
+but it buys eligibility, not traffic. Items 2 and 4 below remain the actual levers.
+
+### 2026-08-30 — Laravel 12 → 13 upgrade (done)
+
+Completed. Production is **13.29.0** on PHP 8.4.10. See `docs/UPGRADE-2026-08-30.md`.
+
+### 2026-08-16 — Google Images investigation and sitemap fixes (`fe77cb9`)
+
+Diagnosed why photos were not reaching Google Images and corrected the split signal where the
+sitemap advertised `display/*.avif` while pages exposed `watermarked/*.avif`. Also stopped
+`incrementViews()` churning `lastmod`. Full detail in `MFARUK_WORKFLOW.md` §16a. **AVIF was
+ruled out as a cause here and again on 2026-08-30** — Google has supported it since 2024-08-30.
+
 ### 2026-08-02 — gallery load-more (commits `c5923af`, `87d6ccf`)
 
 Gallery index moved from conventional pagination to an Inertia v2 AJAX load-more:
@@ -80,7 +112,7 @@ do not remove it without asking — it is deliberate optionality.
 1. **No offsite copy of the database.** RAID is not backup. The DB→R2 leg is designed and not
    built. Photo masters are already independently safe in R2, so the DB is the exposure. With
    restore now proven, this is the largest remaining gap.
-2. **Server disk at 79%** — 6.2 GB free of 30 GB.
+2. **Server disk at 81%** — 5.4 GB free of 30 GB (2026-08-30). Includes ~96 MB of responsive variants and 31 MB of orphaned pre-R2 local originals in `storage/app/private/photos/originals` that nothing references.
 3. **n8n image unpinned (`:latest`)** — a restart can jump versions underneath the backup
    workflows.
 4. **NAS powered off overnight**, and n8n never back-fills a missed schedule. A DSM power
@@ -108,7 +140,13 @@ fix is content and search-intent SEO plus internal linking, **not** infrastructu
    recent
 3. **`php artisan photo:content`** — promote the `/content` flow from ad-hoc tinker to a proper
    artisan command
-4. **Reconnect Search Console** for the site and establish a Google Images baseline
+4. **Reconnect Search Console** for the site and establish a Google Images baseline —
+   ⚠️ *partially actioned manually.* On 2026-08-16 both sitemaps were submitted by hand under
+   `farooque7@gmail.com`, and on 2026-08-30 `sitemap-images.xml` was resubmitted after every
+   image URL changed (read by Google the same day, Success, 26 pages). The site's **own** GSC
+   OAuth is still dead (§11.4), so this remains a manual step. A baseline has not been recorded.
+   Open sub-item: the image sitemap carries **no `<lastmod>`** while `sitemap.xml` carries 437,
+   so future photo edits signal no change
 5. Blog: Kashmir in April — Srinagar gardens photo guide, bundling several existing photos
 6. Blog: XF23mm f/1.4 field review with samples
 7. Blog: choosing your first real camera beyond a phone (photography category → gets the camera
@@ -118,7 +156,7 @@ fix is content and search-intent SEO plus internal linking, **not** infrastructu
 9. Evaluate Pinterest (better than Instagram for referral traffic); Instagram optional,
    brand-only
 
-### Laravel 12 → 13 upgrade
+### ~~Laravel 12 → 13 upgrade~~ ✅ DONE 2026-08-30 (production is 13.29.0)
 
 Researched 2026-07-26. **Low risk, not urgent.** Laravel 12 bug fixes ended 2026-08-13; security
 support runs to 2027-02-24. PHP 8.4 is fine; Inertia, Ziggy and Vite are all 13-ready; the

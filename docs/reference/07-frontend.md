@@ -125,12 +125,15 @@ infinite scroll**.
 
 **The three traps, all already handled**
 
-1. **Lazy-loaded images on appended cards.** The grid lazy-loads via an `IntersectionObserver`
-   over `.photo-card`, and cards carry `data-src` rather than `src`. Appended cards are new DOM
-   nodes the observer never saw, so their images would stay blank **permanently**. Fixed by
-   `observeCards()` selecting `.photo-card:not([data-observed])` and stamping `data-observed`,
-   plus `watch(() => props.photos.data.length, () => nextTick(observeCards))` so it re-runs after
-   every append and after filter changes (which replace the list).
+1. ~~**Lazy-loaded images on appended cards.**~~ **REMOVED 2026-08-30.** The grid used to
+   lazy-load via an `IntersectionObserver` over `.photo-card`, with cards carrying `data-src`
+   rather than `src`, and an `observeCards()` + `watch(() => props.photos.data.length, …)` pair
+   to re-observe appended nodes. That whole subsystem is gone. It solved the append problem but
+   created a worse one: **the server-rendered `/photos` shipped 24 `<img>` tags with no `src` at
+   all**, so any crawler that does not execute JavaScript saw an imageless gallery — measured on
+   the live site, 0 real `src` against 24 `data-src`. Native `loading="lazy"` on
+   `ResponsiveImage` has no appended-node problem and keeps a real `src` and `srcset` in the SSR
+   HTML. Do not reintroduce a JS lazy-loader that withholds `src`.
 2. **The SSR flash.** `hasMore` is only known once `InfiniteScroll` mounts, so server-side it is
    false and the end-of-list message rendered on a gallery that *does* have a page 2, then
    flipped to the button on hydration — a visible flash of a false statement. Fixed with a

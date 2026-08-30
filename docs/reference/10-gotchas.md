@@ -19,7 +19,7 @@ grouped by where they will bite you.
 | 6 | **The `mfaruk` SSH alias on this laptop is the MCP log-reader key**, not a deploy key. `./deploy.sh` will not deploy from the laptop. Use `user@SERVER_IP` |
 | 7 | **Migrations run automatically** with `--force` on every deploy. Anything you commit will execute |
 | 8 | **`scp` lands files as `root:root`** → always `chown mfaruk:www-data && chmod 644` afterwards, especially under `storage/app/public/` |
-| 9 | **Disk is 79% full** (6.2 GB free of 30 GB). Check `df -h /` before adding anything that writes to the server |
+| 9 | **Disk is 81% full** (5.4 GB free of 30 GB, 2026-08-30). Check `df -h /` before adding anything that writes to the server |
 
 ---
 
@@ -42,7 +42,7 @@ grouped by where they will bite you.
 | 15 | **JSON-LD must be a text child `{{ jsonLdString }}`, never `v-html`.** Under SSR, `v-html` serialises into an escaped `innerHTML` attribute and destroys the structured data |
 | 16 | **A nonexistent route name crashes SSR** and drops the page to fallback HTML. This happened with `photo.show` — the correct name is **`photos.show`** — and cost two weeks of crawler visibility on category, gallery, and tag pages |
 | 17 | **Anything only known after mount must be gated behind a `mounted` ref.** Otherwise SSR renders a statement that hydration contradicts — the gallery end-of-list message is the worked example |
-| 18 | **Appended DOM nodes are invisible to an existing IntersectionObserver.** Lazy-loaded images on load-more cards stay blank forever unless the observer is re-run. `observeCards()` + a watcher on `photos.data.length` is the pattern |
+| 18 | ~~Appended DOM nodes are invisible to an existing IntersectionObserver~~ — **OBSOLETE 2026-08-30.** The hand-rolled observer is gone. It was also the cause of a real SEO defect: because cards carried `data-src` and no `src`, the SSR HTML of `/photos` shipped **24 `<img>` tags with no image at all**, so a crawler that does not execute JS saw nothing to index on the site's main gallery listing. Replaced by native `loading="lazy"` on `ResponsiveImage`, which has no appended-node problem. **Do not reintroduce a JS lazy-loader that withholds `src`** |
 | 19 | **Edit `.vue` files with Python** (`read_text` / `replace` / `write_text`), **never `sed`** — CSS braces and percent signs break sed expressions |
 | 20 | **`manualChunks` is client-build only.** It conflicts with the SSR bundle's inlined dynamic imports. The `isSsrBuild` condition in `vite.config.js` is deliberate |
 | 21 | **`npm run build` runs both builds** (client and `--ssr`). Never run just one |
@@ -90,6 +90,8 @@ grouped by where they will bite you.
 | 42 | **The queue worker is load-bearing.** One supervisor process. If it stops, uploads sit in `processing` with no visible error |
 | 43 | **`captured_at` is the public gallery's default sort.** A photo with no capture date sorts oddly |
 | 44 | **Not every photo has GPS.** At least one has hand-entered coordinates. Guard with `hasLocation()` |
+| 44b | **Image width allowlists must use the PER-PHOTO ladder**, `$photo->image->for($variant)->widths()`, never `ImageVariant::widths()`. `PhotoImage` caps the enum ladder at the master width, so a 1280 master offers 1280 and a portrait offers 853 — neither is in the raw enum. Validating against the enum 404'd all 26 image-sitemap URLs and every photo page's JPEG LCP element |
+| 44c | **`image_max_resolution` is 1280 in production, not the 1920 the code default and these docs long implied.** It was set on 2026-01-04 and never documented. It is the only reason indexed images are 1280 wide (853 for portraits) — not storage, not the pipeline. Raising it costs nothing in R2 and needs no re-upload |
 
 ---
 
@@ -101,6 +103,8 @@ grouped by where they will bite you.
 | 46 | **Route-model binding is by slug** for public routes, not id |
 | 47 | **`stripe/webhook` is the only CSRF-exempt route** |
 | 48 | **Adding a third-party script or XHR host requires editing the CSP** in `SecurityHeaders.php`, or the browser blocks it silently |
+| 48b | **`routes/images.php` must stay OUTSIDE the web group.** It is registered from `bootstrap/app.php` via `withRouting(then: …)` with `SubstituteBindings` and nothing else. Inside the web group, image responses carry `Set-Cookie` (XSRF + session) and `Vary: X-Inertia`, and Cloudflare answers **`cf-cache-status: BYPASS` on every image** — every byte then comes off the origin through a full session boot, which is worse than the static `/storage` paths it replaced |
+| 48c | **Excluding middleware by class name is a trap in L13.** The web group registers `Illuminate\Foundation\Http\Middleware\PreventRequestForgery`; `ValidateCsrfToken` is only a **deprecated alias**, so `withoutMiddleware([ValidateCsrfToken::class])` removes nothing and the real middleware then asks a session-less request for its session — *Session store not set on request*, 500 on every image. Give a route its own file rather than name-matching middleware |
 
 ---
 

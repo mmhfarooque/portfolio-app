@@ -12,9 +12,9 @@ Verified from `composer.json`, `package.json`, and the production server.
 
 | Component | Version | Note |
 |-----------|---------|------|
-| Laravel Framework | **12.54.1** (prod) | `^12.0` in composer |
+| Laravel Framework | **13.29.0** (prod) | `^13.0` in composer — upgraded 2026-08-30 |
 | PHP | **8.4.10** (prod) | `^8.2` declared, so 8.2+ works |
-| Inertia Laravel | `^2.0` (v2.0.22 installed) | SSR enabled |
+| Inertia Laravel | `^2.0` (v2.0.25 installed) | SSR enabled |
 | Ziggy | `^2.6` | Route names available in JS **and** SSR |
 | Intervention Image (Laravel) | `^1.5` | Image manipulation |
 | Flysystem AWS S3 v3 | `^3.0` | Drives the Cloudflare R2 disk |
@@ -54,7 +54,7 @@ npm run build   → vite build && vite build --ssr      ← BOTH builds, always
                          └─────────────┬──────────────┘
                                        │ proxied
                          ┌─────────────▼──────────────┐
-                         │  VPSDime VPS SERVER_IP │  HestiaCP, 30 GB disk (79% used)
+                         │  VPSDime VPS SERVER_IP │  HestiaCP, 30 GB disk (81% used)
                          │  Apache → PHP 8.4          │
                          │  MySQL  mfaruk_portfolio   │
                          │  systemd  mfaruk-ssr       │  Inertia SSR :13714

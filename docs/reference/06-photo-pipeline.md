@@ -32,8 +32,16 @@ Why it is built this way: the server has a 30 GB disk that is already **79% full
 range 1.2–36.2 MB and average roughly 14 MB. Keeping them off the box is what makes the setup
 viable.
 
-**Current state:** 27 of 27 photos have their R2 master. Zero missing. R2 free tier is 10 GB,
-usage was ~313 MB, so there is room for roughly 500 masters at current sizes — years away.
+**Current state (2026-08-30):** 27 of 27 photos have their R2 master. Zero missing. R2 free
+tier is 10 GB, usage is **409 MB**, so there is room for roughly 500 masters at current sizes —
+years away.
+
+⚠️ **The diagram above says max 1920px, and the code default is 1920, but production is set to
+1280.** `image_max_resolution` was changed to `1280` on 2026-01-04 and the reason was never
+recorded. That single setting — not storage, not R2, not the pipeline — is why the largest
+derivative the site publishes is 1280px wide, and why portraits come out at 853px (their
+*height* hits the cap). Raising it consumes no R2 and requires no re-upload; that is exactly
+what upload-once-regenerate-forever is for.
 
 ⚠️ **RAW `.RAF` files (~81 MB each) are never uploaded.** They stay on the laptop and NAS. R2
 holds the processed JPEG master only.
@@ -245,9 +253,48 @@ master. Given the golden rule that backups are sacred and nothing self-destructs
 
 ---
 
+## 6.9b Responsive delivery variants (added 2026-08-30)
+
+Sitting on top of the three derivatives above is a **delivery layer** that turns a public image
+URL into a route rather than a file path:
+
+```
+/img/{photo:slug}/{variant}-{width}.{format}
+/img/begnas-lake-pokhara-nepal/watermarked-1280.avif
+```
+
+The slug is the identity; role, width and format are delivery details, so a re-encode or a new
+format adds URLs instead of invalidating ones Google already holds.
+
+| Piece | Role |
+|-------|------|
+| `App\Enums\ImageVariant` | thumb / display / watermarked, each with a width ladder |
+| `App\Enums\ImageFormat` | avif → webp → jpg, with the AVIF quality mapping from §6.2 |
+| `App\Support\Images\PhotoImage` + `VariantSet` | build **every** public image URL |
+| `App\Http\Controllers\ServePhotoImage` | generates on demand behind a `Cache::lock` |
+| `App\Services\ImageVariantService` | downscales from the variant's own master |
+| `resources/js/Components/ResponsiveImage.vue` | one `<picture>`, avif + webp + jpg fallback |
+| `php artisan photos:variants` | idempotent warmer; runs on upload and nightly at 03:30 |
+
+Two things to know:
+
+- **Variants downscale from the existing 1280 master, not from the R2 original.** That is
+  deliberate — it preserves the baked-in watermark and avoids re-running the watermark pipeline
+  — but it means variant quality is inherited from that master, and it means the §6.5 fallback
+  order applies transitively if a master goes missing (see gotcha 39).
+- Because `PhotoImage` and `VariantSet` are the only place URLs are built, the image sitemap,
+  the JSON-LD `contentUrl` and the page markup **cannot drift apart** any more. That split was a
+  real, diagnosed problem on 2026-08-16.
+
+---
+
 ## 6.10 Related commands
 
 - `photos:convert-to-avif` — migrate legacy WebP derivatives to AVIF.
 - `photos:generate-placeholders` — backfill blurhash/LQIP for older photos.
+- `photos:variants` — build the responsive delivery variants (§6.9b). **Idempotent and
+  re-runnable**, unlike the two above; a new width or format is a new enum case plus one more
+  run. Scheduled daily at 03:30.
 
-Both are backfills for photos that predate a pipeline change. Neither is scheduled.
+The first two are one-off backfills for photos that predate a pipeline change; neither is
+scheduled.
