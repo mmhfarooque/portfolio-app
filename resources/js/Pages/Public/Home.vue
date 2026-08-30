@@ -275,7 +275,7 @@ const whatsappNumber = (num) => num ? num.replace(/[^0-9]/g, '') : '';
                         <ResponsiveImage
                             :image="photo.image"
                             :alt="photo.title"
-                            sizes="(max-width: 768px) 50vw, 33vw"
+                            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 430px"
                             picture-class="block w-full h-full"
                             img-class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                         />

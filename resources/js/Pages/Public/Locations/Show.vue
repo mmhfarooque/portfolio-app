@@ -45,7 +45,7 @@ const props = defineProps({
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <Link v-for="photo in photos" :key="photo.id" :href="route('photos.show', photo.slug)" class="group">
                         <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
-                            <ResponsiveImage :image="photo.image" :alt="photo.title" sizes="(max-width: 768px) 50vw, 25vw" picture-class="block w-full h-full" img-class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <ResponsiveImage :image="photo.image" :alt="photo.title" sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 320px" picture-class="block w-full h-full" img-class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         </div>
                         <p class="mt-2 text-sm text-gray-700 truncate">{{ photo.title }}</p>
                     </Link>

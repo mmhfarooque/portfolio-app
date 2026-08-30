@@ -197,7 +197,7 @@ const closeShareMenu = () => { showShareMenu.value = false; };
                 <ResponsiveImage
                     :image="photo.image"
                     :alt="photo.title"
-                    sizes="100vw"
+                    sizes="(max-width: 1280px) 100vw, 1280px"
                     loading="eager"
                     fetchpriority="high"
                     decoding="sync"
@@ -610,7 +610,7 @@ const closeShareMenu = () => { showShareMenu.value = false; };
                                 <ResponsiveImage
                                     :image="nearby.image"
                                     :alt="nearby.title"
-                                    sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 16vw"
+                                    sizes="(max-width: 768px) 50vw, (max-width: 1280px) 16vw, 210px"
                                     picture-class="block w-full h-full"
                                     img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 />

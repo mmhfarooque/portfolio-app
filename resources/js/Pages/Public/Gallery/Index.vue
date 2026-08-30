@@ -137,7 +137,7 @@ onMounted(() => {
                             <ResponsiveImage
                                 :image="photo.image"
                                 :alt="photo.title"
-                                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 320px"
                                 picture-class="block w-full h-full"
                                 img-class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />

@@ -85,7 +85,7 @@ const typeLabels = {
                 <!-- Photo Preview -->
                 <div>
                     <div class="aspect-square bg-gray-200 rounded-xl overflow-hidden sticky top-24">
-                        <ResponsiveImage :image="photo.image" :alt="photo.title" sizes="(max-width: 1024px) 100vw, 50vw" picture-class="block w-full h-full" img-class="w-full h-full object-contain" />
+                        <ResponsiveImage :image="photo.image" :alt="photo.title" sizes="(max-width: 1024px) 100vw, (max-width: 1280px) 50vw, 640px" picture-class="block w-full h-full" img-class="w-full h-full object-contain" />
                     </div>
                     <h1 class="text-2xl font-bold text-gray-900 mt-4">{{ photo.title }}</h1>
                 </div>

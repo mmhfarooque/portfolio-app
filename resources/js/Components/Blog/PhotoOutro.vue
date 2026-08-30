@@ -42,7 +42,7 @@ const intro = computed(() =>
                         <ResponsiveImage
                             :image="photo.image"
                             :alt="photo.title"
-                            sizes="(max-width: 768px) 100vw, 33vw"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 430px"
                             picture-class="block w-full h-full"
                             img-class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

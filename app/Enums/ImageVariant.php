@@ -55,7 +55,10 @@ enum ImageVariant: string
     {
         return match ($this) {
             self::Thumb => '(max-width: 640px) 50vw, 400px',
-            self::Display, self::Watermarked => '100vw',
+            // The page container is capped at max-w-7xl (1280px), so above
+            // that breakpoint the slot is a fixed width, not a viewport
+            // fraction. Claiming 100vw would make wide screens over-fetch.
+            self::Display, self::Watermarked => '(max-width: 1280px) 100vw, 1280px',
         };
     }
 
