@@ -74,7 +74,14 @@ const jsonLd = computed(() => {
             "name": props.photo.title,
             "description": props.photo.description || props.photo.meta_description,
             "contentUrl": pageImage.value,
-            "thumbnailUrl": props.photo.thumbnail_path ? `${baseUrl}/storage/${props.photo.thumbnail_path}` : pageImage.value,
+            // A real thumbnail, not the full frame again. Falls back to the
+            // legacy storage path for any page not yet on the image route.
+            "thumbnailUrl": props.photo.thumb?.url
+                || (props.photo.thumbnail_path ? `${baseUrl}/storage/${props.photo.thumbnail_path}` : pageImage.value),
+            ...(props.photo.image?.width && {
+                "width": props.photo.image.width,
+                "height": props.photo.image.height
+            }),
             "author": {
                 "@type": "Person",
                 "name": appName.value

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import ResponsiveImage from '@/Components/ResponsiveImage.vue';
 
 const props = defineProps({
     photos: Array
@@ -108,7 +109,7 @@ const centerOnPhoto = (photo) => {
                     </div>
                     <div class="overflow-y-auto max-h-80">
                         <button v-for="photo in photos" :key="photo.id" @click="centerOnPhoto(photo)" :class="['w-full flex items-center gap-3 p-3 hover:bg-gray-50 transition text-left', selectedPhoto?.id === photo.id ? 'bg-indigo-50' : '']">
-                            <img :src="`/storage/${photo.thumbnail_path}`" :alt="photo.title" class="w-12 h-12 object-cover rounded" />
+                            <ResponsiveImage :image="photo.image" :alt="photo.title" sizes="48px" picture-class="block w-12 h-12 shrink-0" img-class="w-12 h-12 object-cover rounded" />
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium text-gray-900 truncate">{{ photo.title }}</p>
                                 <p v-if="photo.location_name" class="text-xs text-gray-500 truncate">{{ photo.location_name }}</p>

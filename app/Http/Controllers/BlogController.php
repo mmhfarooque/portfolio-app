@@ -171,6 +171,7 @@ class BlogController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_url' => $photo->thumbnail_url,
+                'image' => $photo->thumbPayload(),
                 'location_name' => $photo->location_name,
             ]);
 

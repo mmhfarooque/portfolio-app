@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
+import ResponsiveImage from '@/Components/ResponsiveImage.vue';
 
 const props = defineProps({
     photo: Object,
@@ -84,7 +85,7 @@ const typeLabels = {
                 <!-- Photo Preview -->
                 <div>
                     <div class="aspect-square bg-gray-200 rounded-xl overflow-hidden sticky top-24">
-                        <img :src="`/storage/${photo.display_path || photo.thumbnail_path}`" :alt="photo.title" class="w-full h-full object-contain" />
+                        <ResponsiveImage :image="photo.image" :alt="photo.title" sizes="(max-width: 1024px) 100vw, 50vw" picture-class="block w-full h-full" img-class="w-full h-full object-contain" />
                     </div>
                     <h1 class="text-2xl font-bold text-gray-900 mt-4">{{ photo.title }}</h1>
                 </div>

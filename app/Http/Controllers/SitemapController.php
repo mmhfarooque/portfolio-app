@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Gallery;
 use App\Models\Photo;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Http\Response;
@@ -46,13 +47,24 @@ class SitemapController extends Controller
      */
     public function images(): Response
     {
-        $photos = Photo::published()
-            ->with('category')
-            ->select(['id', 'slug', 'title', 'description', 'display_path', 'watermarked_path', 'category_id', 'location_name', 'updated_at'])
-            ->orderBy('updated_at', 'desc')
-            ->get();
+        // The whole file only changes when a photo does, so key the cache on
+        // the newest photo rather than rebuilding 26+ entries on every crawl.
+        $content = Cache::remember(
+            'sitemap.images.' . (Photo::published()->max('updated_at') ?? 'empty'),
+            now()->addDay(),
+            function (): string {
+                $photos = Photo::published()
+                    ->with('category')
+                    ->select(array_merge(
+                        Photo::TILE_COLUMNS,
+                        ['description', 'category_id', 'location_name', 'updated_at'],
+                    ))
+                    ->orderBy('updated_at', 'desc')
+                    ->get();
 
-        $content = view('sitemap-images', compact('photos'));
+                return view('sitemap-images', compact('photos'))->render();
+            },
+        );
 
         return response($content)
             ->header('Content-Type', 'application/xml');

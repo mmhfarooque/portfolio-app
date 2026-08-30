@@ -23,6 +23,9 @@ use App\Http\Controllers\Admin\SeoAuditController as AdminSeoController;
 use App\Http\Controllers\Admin\TranslationController as AdminTranslationController;
 use App\Http\Controllers\Admin\CommentController as AdminCommentController;
 use App\Http\Controllers\Admin\EmailTemplateController as AdminEmailTemplateController;
+use App\Enums\ImageFormat;
+use App\Enums\ImageVariant;
+use App\Http\Controllers\ServePhotoImage;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\PhotoInteractionController;
 use App\Http\Controllers\ClientProofingController;
@@ -51,6 +54,15 @@ Route::get('/photo/{photo:slug}', [GalleryController::class, 'show'])->name('pho
 Route::get('/category/{category:slug}', [GalleryController::class, 'category'])->name('category.show');
 Route::get('/gallery/{gallery:slug}', [GalleryController::class, 'gallery'])->name('gallery.show');
 Route::get('/tag/{tag:slug}', [GalleryController::class, 'tag'])->name('tag.show');
+
+// Responsive image delivery.
+// The slug is the identity; role, width and format are delivery details, so a
+// future format or a new width ladder adds URLs instead of breaking indexed ones.
+Route::get('/img/{photo:slug}/{variant}-{width}.{format}', ServePhotoImage::class)
+    ->where('variant', implode('|', ImageVariant::values()))
+    ->where('width', '[0-9]+')
+    ->where('format', implode('|', ImageFormat::values()))
+    ->name('photo.image');
 
 // Photo interactions (likes & comments)
 Route::prefix('photo/{photo:slug}')->group(function () {

@@ -39,6 +39,7 @@ class PrintController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->heroPayload(),
                 'display_path' => $photo->display_path,
             ],
             'products' => $products,

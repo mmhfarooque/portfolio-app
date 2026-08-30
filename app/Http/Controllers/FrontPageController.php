@@ -117,6 +117,7 @@ class FrontPageController extends Controller
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
                 'display_path' => $photo->display_path,
+                'image' => $photo->thumbPayload(),
                 'category' => $photo->category?->name,
             ]),
             'latestPosts' => $latestPosts->values()->map(fn($post) => [

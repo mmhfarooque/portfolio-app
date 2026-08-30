@@ -30,3 +30,7 @@ Thumbs.db
 *.sqlite-journal
 database/*.sqlite
 database/*.sqlite-journal
+
+# Local time tracking (tt) — operational, not app code
+.brain/
+TIME-LOG.md

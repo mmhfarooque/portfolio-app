@@ -1,8 +1,9 @@
 <script setup>
-import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { router, InfiniteScroll } from '@inertiajs/vue3';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
+import ResponsiveImage from '@/Components/ResponsiveImage.vue';
 
 const props = defineProps({
     photos: Object,
@@ -35,38 +36,10 @@ const clearFilters = () => {
     router.get(route('photos.index'));
 };
 
-// Intersection Observer for lazy loading images with fade-in
-const galleryGrid = ref(null);
-let observer = null;
-
-// Hand any not-yet-watched cards to the observer. Load-more appends new .photo-card
-// nodes whose images are still data-src only, so without re-observing them after each
-// page they would sit blank forever.
-const observeCards = () => {
-    if (!observer || !galleryGrid.value) return;
-    galleryGrid.value.querySelectorAll('.photo-card:not([data-observed])').forEach(el => {
-        el.setAttribute('data-observed', '');
-        observer.observe(el);
-    });
-};
-
-const setupObserver = () => {
-    observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target.querySelector('img[data-src]');
-                if (img) {
-                    img.src = img.dataset.src;
-                    img.removeAttribute('data-src');
-                    img.onload = () => entry.target.classList.add('loaded');
-                }
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { rootMargin: '200px' });
-
-    observeCards();
-};
+// Lazy loading is native now (loading="lazy" on ResponsiveImage). The old
+// IntersectionObserver swapped a data-src in on the client, which meant the
+// server-rendered grid shipped <img> tags with no src at all — invisible to
+// any crawler that does not execute JavaScript.
 
 // hasMore is only known once InfiniteScroll has mounted and read the page metadata.
 // Server-side it is false, so without this guard SSR renders the end-of-list message
@@ -75,12 +48,7 @@ const mounted = ref(false);
 
 onMounted(() => {
     mounted.value = true;
-    setupObserver();
 });
-onUnmounted(() => observer?.disconnect());
-
-// Appended pages (and filter changes, which replace the list) both need observing.
-watch(() => props.photos.data.length, () => nextTick(observeCards));
 </script>
 
 <template>
@@ -153,7 +121,7 @@ watch(() => props.photos.data.length, () => nextTick(observeCards));
             </div>
 
             <!-- Photos Grid -->
-            <div v-if="photos.data.length > 0" ref="galleryGrid">
+            <div v-if="photos.data.length > 0">
                 <InfiniteScroll
                     data="photos"
                     manual
@@ -166,10 +134,12 @@ watch(() => props.photos.data.length, () => nextTick(observeCards));
                         class="group photo-card"
                     >
                         <div class="aspect-square rounded-lg overflow-hidden relative" :style="{ backgroundColor: photo.dominant_color || '#f3f4f6' }">
-                            <img
-                                :data-src="`/storage/${photo.thumbnail_path}`"
+                            <ResponsiveImage
+                                :image="photo.image"
                                 :alt="photo.title"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 opacity-0"
+                                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                picture-class="block w-full h-full"
+                                img-class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                             <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                                 <div class="absolute bottom-0 left-0 right-0 p-3">
@@ -214,9 +184,3 @@ watch(() => props.photos.data.length, () => nextTick(observeCards));
         </div>
     </PublicLayout>
 </template>
-
-<style scoped>
-.photo-card.loaded img {
-    opacity: 1;
-}
-</style>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Photo;
 use App\Services\SearchService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,7 +29,10 @@ class SearchController extends Controller
             'sort', 'order', 'per_page'
         ]);
 
-        $photos = $this->searchService->search($filters);
+        // Keep every attribute the results grid already reads, and add the
+        // responsive payload alongside it.
+        $photos = $this->searchService->search($filters)
+            ->through(fn (Photo $photo): array => $photo->toArray() + ['image' => $photo->thumbPayload()]);
         $filterOptions = $this->searchService->getFilterOptions();
 
         return Inertia::render('Public/Search', [

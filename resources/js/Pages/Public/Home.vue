@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import SeoHead from '@/Components/SeoHead.vue';
 import { sanitizeHtml } from '@/composables/useSanitize.js';
+import ResponsiveImage from '@/Components/ResponsiveImage.vue';
 
 const props = defineProps({
     profile: Object,
@@ -271,11 +272,12 @@ const whatsappNumber = (num) => num ? num.replace(/[^0-9]/g, '') : '';
                         :href="route('photos.show', photo.slug)"
                         class="group relative aspect-[4/3] overflow-hidden rounded-lg bg-theme-bg-tertiary"
                     >
-                        <img
-                            :src="`/storage/${photo.thumbnail_path}`"
+                        <ResponsiveImage
+                            :image="photo.image"
                             :alt="photo.title"
-                            class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                            loading="lazy"
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                            picture-class="block w-full h-full"
+                            img-class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                         />
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition"></div>
                         <div class="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition">

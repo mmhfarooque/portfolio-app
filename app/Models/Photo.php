@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\ImageVariant;
 use App\Services\LoggingService;
+use App\Support\Images\PhotoImage;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +13,32 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Photo extends Model
 {
+    /**
+     * The columns a grid tile needs before it can build its responsive URLs.
+     *
+     * Selecting fewer than these silently degrades PhotoImage: the width
+     * ladder and the height attribute both depend on the stored dimensions.
+     *
+     * @var list<string>
+     */
+    public const TILE_COLUMNS = [
+        'id',
+        'title',
+        'slug',
+        'display_path',
+        'thumbnail_path',
+        'watermarked_path',
+        'dominant_color',
+        'blurhash',
+        'width',
+        'height',
+        'original_width',
+        'original_height',
+        'custom_max_resolution',
+        'custom_quality',
+        'status',
+    ];
+
     protected $fillable = [
         'title',
         'seo_title',
@@ -233,6 +262,37 @@ class Photo extends Model
         $this->timestamps = true;
 
         LoggingService::activity('photo.viewed', null, $this);
+    }
+
+    /**
+     * How this photo becomes a URL.
+     *
+     * The one place public image URLs are built. Templates, the sitemap and
+     * the structured data all read from here, so none of them can drift.
+     */
+    protected function image(): Attribute
+    {
+        return Attribute::get(fn (): PhotoImage => new PhotoImage($this))->shouldCache();
+    }
+
+    /**
+     * The responsive payload handed to Inertia for a grid tile.
+     *
+     * @return array<string, mixed>
+     */
+    public function thumbPayload(): array
+    {
+        return $this->image->for(ImageVariant::Thumb)->toArray();
+    }
+
+    /**
+     * The responsive payload for the public hero — watermarked when one exists.
+     *
+     * @return array<string, mixed>
+     */
+    public function heroPayload(): array
+    {
+        return $this->image->primary()->toArray();
     }
 
     /**

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import ResponsiveImage from '@/Components/ResponsiveImage.vue';
 
 const props = defineProps({
     photos: {
@@ -38,11 +39,12 @@ const intro = computed(() =>
                     class="bg-theme-bg-card rounded-lg shadow-sm overflow-hidden group border border-theme-border"
                 >
                     <div class="aspect-video bg-theme-bg-tertiary overflow-hidden">
-                        <img
-                            :src="photo.thumbnail_url"
+                        <ResponsiveImage
+                            :image="photo.image"
                             :alt="photo.title"
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            picture-class="block w-full h-full"
+                            img-class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                     </div>
                     <div class="p-4">

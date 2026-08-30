@@ -150,6 +150,10 @@ class ProcessPhotoUpload implements ShouldQueue
                 'processing_stage' => null,
             ]);
 
+            // Warm the responsive derivatives now that the masters exist, so
+            // the first visitor is not the one paying for the encode.
+            GeneratePhotoVariants::dispatch($this->photo->fresh());
+
             // Log successful processing
             $duration = round((microtime(true) - $startTime) * 1000);
             LoggingService::photoUploaded(

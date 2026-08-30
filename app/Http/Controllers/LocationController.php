@@ -106,6 +106,7 @@ class LocationController extends Controller
                 'title' => $p->title,
                 'slug' => $p->slug,
                 'thumbnail_path' => $p->thumbnail_path,
+                'image' => $p->thumbPayload(),
             ]),
             'nearbyLocations' => $nearbyLocations,
         ]);

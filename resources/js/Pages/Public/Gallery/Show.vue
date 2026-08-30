@@ -6,6 +6,7 @@ import SeoHead from '@/Components/SeoHead.vue';
 import { sanitizeHtml } from '@/composables/useSanitize.js';
 import LikeButton from '@/Components/Photo/LikeButton.vue';
 import CommentSection from '@/Components/Photo/CommentSection.vue';
+import ResponsiveImage from '@/Components/ResponsiveImage.vue';
 
 const props = defineProps({
     photo: Object,
@@ -175,7 +176,7 @@ const closeShareMenu = () => { showShareMenu.value = false; };
     <SeoHead
         :title="photo.seo_title || photo.title"
         :description="photo.meta_description || photo.description"
-        :image="photo.watermarked_path || photo.display_path"
+        :image="photo.image?.url"
         :image-alt="photo.title"
         type="photo"
         :url="`https://mfaruk.com/photo/${photo.slug}`"
@@ -193,10 +194,15 @@ const closeShareMenu = () => { showShareMenu.value = false; };
         <div class="relative bg-black min-h-[50vh] lg:min-h-[70vh] flex items-center justify-center">
             <!-- Main Image -->
             <div class="relative w-full h-full flex items-center justify-center py-4 lg:py-8">
-                <img
-                    :src="`/storage/${photo.watermarked_path || photo.display_path}`"
+                <ResponsiveImage
+                    :image="photo.image"
                     :alt="photo.title"
-                    class="max-w-full max-h-[85vh] object-contain"
+                    sizes="100vw"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="sync"
+                    picture-class="block"
+                    img-class="max-w-full max-h-[85vh] w-auto h-auto object-contain"
                 />
             </div>
 
@@ -601,11 +607,12 @@ const closeShareMenu = () => { showShareMenu.value = false; };
                                 class="aspect-square rounded-2xl overflow-hidden ring-1 transition-all duration-300 group-hover:ring-2 ring-theme-border group-hover:ring-theme-accent"
                                 :style="{ backgroundColor: nearby.dominant_color || 'var(--bg-secondary)' }"
                             >
-                                <img
-                                    :src="`/storage/${nearby.thumbnail_path}`"
+                                <ResponsiveImage
+                                    :image="nearby.image"
                                     :alt="nearby.title"
-                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                    loading="lazy"
+                                    sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 16vw"
+                                    picture-class="block w-full h-full"
+                                    img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
                             </div>
                             <p class="text-sm font-medium mt-3 truncate transition-colors text-theme-text-secondary group-hover:text-theme-text-primary">
@@ -642,11 +649,12 @@ const closeShareMenu = () => { showShareMenu.value = false; };
                                 class="aspect-square rounded-2xl overflow-hidden ring-1 transition-all duration-300 group-hover:ring-2 ring-theme-border group-hover:ring-theme-accent"
                                 :style="{ backgroundColor: related.dominant_color || 'var(--bg-secondary)' }"
                             >
-                                <img
-                                    :src="`/storage/${related.thumbnail_path}`"
+                                <ResponsiveImage
+                                    :image="related.image"
                                     :alt="related.title"
-                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                    loading="lazy"
+                                    sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 16vw"
+                                    picture-class="block w-full h-full"
+                                    img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
                             </div>
                             <p class="text-sm font-medium mt-3 truncate transition-colors text-theme-text-secondary group-hover:text-theme-text-primary">

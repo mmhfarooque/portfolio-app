@@ -28,6 +28,7 @@ class GalleryController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->thumbPayload(),
                 'display_path' => $photo->display_path,
                 'category' => $photo->category ? [
                     'name' => $photo->category->name,
@@ -45,6 +46,7 @@ class GalleryController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->thumbPayload(),
                 'category' => $photo->category ? [
                     'name' => $photo->category->name,
                     'slug' => $photo->category->slug,
@@ -107,6 +109,7 @@ class GalleryController extends Controller
             'title' => $photo->title,
             'slug' => $photo->slug,
             'thumbnail_path' => $photo->thumbnail_path,
+            'image' => $photo->thumbPayload(),
             'category' => $photo->category ? [
                 'id' => $photo->category->id,
                 'name' => $photo->category->name,
@@ -158,13 +161,14 @@ class GalleryController extends Controller
     {
         $photos = Photo::published()
             ->withLocation()
-            ->select(['id', 'title', 'slug', 'thumbnail_path', 'latitude', 'longitude', 'location_name'])
+            ->select(array_merge(Photo::TILE_COLUMNS, ['latitude', 'longitude', 'location_name']))
             ->get()
             ->map(fn($photo) => [
                 'id' => $photo->id,
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->thumbPayload(),
                 'latitude' => $photo->latitude,
                 'longitude' => $photo->longitude,
                 'location_name' => $photo->location_name,
@@ -199,7 +203,7 @@ class GalleryController extends Controller
             })
             ->orderBy('created_at', 'asc')
             ->orderBy('id', 'desc')
-            ->first(['id', 'title', 'slug', 'thumbnail_path']);
+            ->first(Photo::TILE_COLUMNS);
 
         $nextPhoto = Photo::published()
             ->where('id', '!=', $photo->id)
@@ -212,7 +216,7 @@ class GalleryController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'asc')
-            ->first(['id', 'title', 'slug', 'thumbnail_path']);
+            ->first(Photo::TILE_COLUMNS);
 
         // Get nearby photos using Haversine formula (tiered: 100km → 500km)
         $nearbyPhotos = collect();
@@ -226,7 +230,7 @@ class GalleryController extends Controller
                     ->where('id', '!=', $photo->id)
                     ->whereNotNull('latitude')
                     ->whereNotNull('longitude')
-                    ->selectRaw("id, title, slug, thumbnail_path, dominant_color, location_name, latitude, longitude, $haversine", [$lat, $lng, $lat])
+                    ->selectRaw(implode(', ', Photo::TILE_COLUMNS) . ", location_name, latitude, longitude, $haversine", [$lat, $lng, $lat])
                     ->having('distance_km', '<', $radius)
                     ->orderBy('distance_km')
                     ->take(6)
@@ -250,7 +254,7 @@ class GalleryController extends Controller
             })
             ->inRandomOrder()
             ->take(6)
-            ->get(['id', 'title', 'slug', 'thumbnail_path', 'dominant_color']);
+            ->get(Photo::TILE_COLUMNS);
 
         return Inertia::render('Public/Gallery/Show', [
             'photo' => [
@@ -264,6 +268,8 @@ class GalleryController extends Controller
                 'longitude' => $photo->longitude,
                 'display_path' => $photo->display_path,
                 'watermarked_path' => $photo->watermarked_path,
+                'image' => $photo->heroPayload(),
+                'thumb' => $photo->thumbPayload(),
                 'width' => $photo->width,
                 'height' => $photo->height,
                 'views' => $photo->views,
@@ -294,6 +300,7 @@ class GalleryController extends Controller
                 'title' => $p->title,
                 'slug' => $p->slug,
                 'thumbnail_path' => $p->thumbnail_path,
+                'image' => $p->thumbPayload(),
                 'dominant_color' => $p->dominant_color,
                 'location_name' => $p->location_name,
                 'distance_km' => round($p->distance_km, 1),
@@ -303,6 +310,7 @@ class GalleryController extends Controller
                 'title' => $p->title,
                 'slug' => $p->slug,
                 'thumbnail_path' => $p->thumbnail_path,
+                'image' => $p->thumbPayload(),
                 'dominant_color' => $p->dominant_color,
             ]),
             'previousPhoto' => $previousPhoto,
@@ -435,6 +443,7 @@ class GalleryController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->thumbPayload(),
             ]);
 
         return Inertia::render('Public/Gallery/Category', [
@@ -466,6 +475,7 @@ class GalleryController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->thumbPayload(),
             ]);
 
         return Inertia::render('Public/Gallery/GalleryView', [
@@ -493,6 +503,7 @@ class GalleryController extends Controller
                 'title' => $photo->title,
                 'slug' => $photo->slug,
                 'thumbnail_path' => $photo->thumbnail_path,
+                'image' => $photo->thumbPayload(),
             ]);
 
         return Inertia::render('Public/Gallery/Tag', [
