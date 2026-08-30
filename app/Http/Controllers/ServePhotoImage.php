@@ -31,7 +31,10 @@ class ServePhotoImage extends Controller
         int $width,
         string $format,
     ): BinaryFileResponse {
-        if ($photo->status !== 'published' && ! $request->user()) {
+        // No session on this route, so there is no user to check. Only
+        // published photos are servable here; the admin screens read their
+        // previews straight from /storage.
+        if ($photo->status !== 'published') {
             abort(404);
         }
 

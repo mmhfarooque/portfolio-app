@@ -62,6 +62,19 @@ Route::get('/img/{photo:slug}/{variant}-{width}.{format}', ServePhotoImage::clas
     ->where('variant', implode('|', ImageVariant::values()))
     ->where('width', '[0-9]+')
     ->where('format', implode('|', ImageFormat::values()))
+    // Images need no session, no CSRF token and no Inertia negotiation. Left in
+    // the web group they answered with two Set-Cookie headers and Vary:
+    // X-Inertia, which makes Cloudflare bypass its cache and sends every single
+    // image request through to PHP. Route model binding is all we keep.
+    ->withoutMiddleware([
+        \Illuminate\Cookie\Middleware\EncryptCookies::class,
+        \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        \App\Http\Middleware\TrackReferrals::class,
+        \App\Http\Middleware\HandleInertiaRequests::class,
+    ])
     ->name('photo.image');
 
 // Photo interactions (likes & comments)

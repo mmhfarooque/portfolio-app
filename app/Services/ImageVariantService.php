@@ -90,9 +90,13 @@ class ImageVariantService
 
         $directory = dirname($target);
 
-        if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
+        if (! is_dir($directory) && ! mkdir($directory, 0775, true) && ! is_dir($directory)) {
             return null;
         }
+
+        // Group-writable so a tree created by a root-run of photos:variants
+        // does not lock the web user out of generating the rest.
+        @chmod($directory, 0775);
 
         $image = Image::decode($source);
 
