@@ -1555,6 +1555,34 @@ class PhotoProcessingService
     }
 
     /**
+     * Measure the master's dimensions without touching a single file.
+     *
+     * Reuses findSourceFile(), so it resolves the R2 original the same way the
+     * rest of the pipeline does. That method can fall back to an already
+     * compressed derivative when the master is unreachable (gotcha 39), so the
+     * caller must treat a result no larger than the current derivative as
+     * untrustworthy rather than as the original.
+     *
+     * @return array{0: int, 1: int}|null  [width, height]
+     */
+    public function measureOriginal(Photo $photo): ?array
+    {
+        $source = $this->findSourceFile($photo);
+
+        if (! $source) {
+            return null;
+        }
+
+        try {
+            $size = getimagesize($source);
+        } finally {
+            $this->cleanupTempFiles();
+        }
+
+        return ($size && $size[0] > 0 && $size[1] > 0) ? [$size[0], $size[1]] : null;
+    }
+
+    /**
      * Regenerate watermarked version with new settings.
      * Uses the display version since we don't store originals.
      */
@@ -1674,6 +1702,21 @@ class PhotoProcessingService
                 $photo
             );
             $photo->watermarked_path = $newWatermarkedPath;
+
+            // Preserve the master's true dimensions BEFORE width/height are
+            // overwritten with the derivative's. Without this the only record
+            // of how large the original is gets destroyed on every re-optimise,
+            // and original_width/original_height — the columns that exist for
+            // exactly this — stay null forever.
+            //
+            // Only ever grow the recorded value: findSourceFile() can fall back
+            // to an already-compressed derivative when the master is
+            // unreachable (see reference gotcha 39), and that must not be
+            // allowed to shrink the record.
+            if ($image->width() > (int) $photo->original_width) {
+                $photo->original_width = $image->width();
+                $photo->original_height = $image->height();
+            }
 
             // Update width/height to match the new display dimensions
             $newImage = Image::decode(storage_path('app/public/' . $newDisplayPath));

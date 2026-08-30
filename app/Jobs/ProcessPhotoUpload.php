@@ -390,9 +390,13 @@ class ProcessPhotoUpload implements ShouldQueue
             @unlink($this->tempFilePath);
         }
 
+        // Signature is error(string $action, ?string $message, ?Throwable $e,
+        // ?Model $model) — passing the photo third would TypeError inside the
+        // failure handler, so a failed upload logged nothing at all.
         LoggingService::error(
             'photo.queue_failed',
             "Photo processing job failed: {$exception->getMessage()}",
+            $exception,
             $this->photo
         );
     }
