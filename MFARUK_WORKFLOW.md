@@ -123,7 +123,54 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Never post / reply / send as Mahmud** on any channel without an explicit ask + double-confirm.
 - **No auto-delete** of data/files/DB/backups; verified backup + explicit go before any destructive op; **backups are sacred**.
 
-## 16. Current state / where we left off (2026-08-16)
+## 16. Current state / where we left off (2026-08-30)
+
+**Session 2026-08-30 (PC) — routed image delivery, responsive variants (deployed, `660d683`):**
+- **Root cause found for the remaining image gap:** `/photos` — the gallery index, linked from
+  the nav and the sitemap — server-rendered **24 `<img>` tags carrying only `data-src`**, filled
+  in client-side by a hand-rolled IntersectionObserver. Measured on the live SSR HTML: 0 images
+  with a real `src`, 24 with `data-src`. A crawler that does not execute JS saw nothing to index
+  on the site's main image listing. Replaced with native `loading="lazy"`.
+- **AVIF was never the problem** (confirms the 2026-08-16 finding). Google has supported AVIF
+  since 30 Aug 2024, and the listing pages were serving WebP anyway.
+- **New architecture — the public image URL is a route, not a file path:**
+  `/img/{photo:slug}/{variant}-{width}.{format}`, e.g.
+  `/img/begnas-lake-pokhara-nepal/watermarked-1280.avif`. The slug is the identity; role, width
+  and format are delivery details. Storage keys stay opaque UUIDs, so a re-encode, a new format
+  or a move to R2 adds URLs instead of invalidating indexed ones.
+  - `app/Enums/ImageFormat.php` + `ImageVariant.php` own the format and width ladders
+  - `app/Support/Images/PhotoImage.php` + `VariantSet.php` build **every** URL — templates, the
+    image sitemap and the JSON-LD all read from here, which permanently closes the
+    split-signal problem from 2026-08-16 (sitemap and pages can no longer disagree)
+  - `app/Http/Controllers/ServePhotoImage.php` generates on demand behind a `Cache::lock`,
+    width allowlisted per photo so it is not an open resizing endpoint
+  - `app/Services/ImageVariantService.php` downscales from the variant's own 1920/1280 master,
+    so the baked-in watermark survives and the watermark pipeline never re-runs
+  - `resources/js/Components/ResponsiveImage.vue` renders one `<picture>`: AVIF + WebP sources,
+    JPEG fallback, `width`/`height` (no CLS), dominant-colour placeholder
+  - `php artisan photos:variants` is idempotent; warms on upload and nightly at 03:30
+- **⚠️ `routes/images.php` is deliberately OUTSIDE the web group.** `bootstrap/app.php` gives it
+  `SubstituteBindings` and nothing else. In the web group the responses carried `Set-Cookie` +
+  `Vary: X-Inertia` and Cloudflare answered **BYPASS on every image** — worse than the static
+  `/storage` paths. Do not move this route back into `routes/web.php`.
+  (Excluding middleware by name failed: L13's web group registers `PreventRequestForgery`;
+  `ValidateCsrfToken` is only a deprecated alias, so the exclusion removed nothing and every
+  image 500'd with *Session store not set on request*.)
+- **Two bugs shipped and fixed the same session** — both caught by post-deploy verification,
+  neither by any test: (1) the controller validated width against the raw enum ladder while
+  `PhotoImage` caps it at the master width, so all 26 sitemap URLs and every photo page's JPEG
+  LCP element 404'd; (2) the middleware naming above.
+- **Verified live:** 234 unique image URLs across 10 public pages → all 200. 26/26 sitemap
+  entries 200. `/photos` now 24 real `src` + 48 `<source>`, 0 `data-src`. Cloudflare
+  `cf-cache-status: HIT` on jpg **and** avif. ETag revalidation returns 304. Non-allowlisted
+  width 404s. 637 variant files warmed (609 built, 0 unavailable).
+- **Left deliberately untouched:** admin screens still build `/storage/<uuid>` URLs directly.
+  Those pages are `Disallow`ed, unaffected by this change, and carry no SEO value.
+- **Note:** phpunit is not installed on the server (`composer install --no-dev`) and there is no
+  local runtime, so this change has **no automated test coverage**. Verification was HTTP-level.
+  Local `vendor/` is stale vs the server — do not check framework class names against it.
+
+## 16a. Previous state (2026-08-16)
 
 **Session 2026-08-16 (PC) — Google Images investigation + sitemap fixes (deployed, `fe77cb9`):**
 - **Why photos never reached Google Images (measured from origin logs, 6 weeks retained):**
@@ -214,7 +261,7 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
   Licensable badge. Optional follow-up NOT built: embedding IPTC creator/copyright into the
   derivatives so GSC's Image metadata report lights up (schema alone already qualifies).
 
-## 16a. Previous state (2026-07-26)
+## 16b. Previous state (2026-07-26)
 
 **Session 2026-07-26 (laptop) — everything below is deployed and in git; PC picks up with a plain `git pull`:**
 - **Contact reply feature LIVE** — in-admin reply form (`POST admin/contacts/{id}/reply`): ContactReply mailable (markdown, quotes original), stores `reply_subject`/`reply_message` on contacts, sets replied status. Replaced the dead `mailto:` button. Also fixed the whole ContactController calling nonexistent `LoggingService::logActivity()` (latent 500s) → real static API `LoggingService::activity()/error()`.
@@ -391,7 +438,7 @@ Weekday check: 9am digest now auto-pushes full analytics (sessions+pageViews add
 
 ---
 
-## 16b. Previous state (2026-07-12)
+## 16c. Previous state (2026-07-12)
 - **Series** fully removed (code + DB) and deployed. **git = laptop = prod** in sync.
 - **Open tracks** (see task list): NAS n8n/mcp migration → NAS-orchestrated backups (GFS retention) + NAS config audit + storage fallback; May Day contingency; backlog (photo reach/SEO, blog articles, indexing health, doc hygiene, analytics/growth, infra/commerce); HestiaCP work TBD.
 - **Next dev intent** (from PROGRESS_SUMMARY): photo-upload batch + more articles.
