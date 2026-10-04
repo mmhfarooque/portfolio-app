@@ -101,6 +101,17 @@ Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.send');
 
+// Private resume — password-gated, never indexed or cached, not in the
+// sitemap, the navigation or the Ziggy route list (config/ziggy.php).
+Route::middleware(\App\Http\Middleware\ResumePrivacyHeaders::class)->group(function () {
+    Route::get('/resume', [\App\Http\Controllers\ResumeController::class, 'show'])
+        ->middleware(\App\Http\Middleware\EnsureResumeUnlocked::class)
+        ->name('resume.show');
+    Route::post('/resume/unlock', [\App\Http\Controllers\ResumeController::class, 'unlock'])
+        ->middleware('throttle:resume-unlock')
+        ->name('resume.unlock');
+});
+
 // Blog/Stories routes
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/feed.xml', [FeedController::class, 'rss'])->name('feed.blog');
@@ -150,7 +161,8 @@ Route::get('/robots.txt', function () {
         $content .= "Disallow: /register\n";
         $content .= "Disallow: /password/\n";
         $content .= "Disallow: /dashboard\n";
-        $content .= "Disallow: /profile\n\n";
+        $content .= "Disallow: /profile\n";
+        $content .= "Disallow: /resume\n\n";
         $content .= "# Disallow API endpoints\n";
         $content .= "Disallow: /api/\n\n";
         $content .= "# Allow all images to be indexed\n";
@@ -158,7 +170,8 @@ Route::get('/robots.txt', function () {
         $content .= "# Crawl delay for politeness\n";
         $content .= "Crawl-delay: 1\n";
     } else {
-        $content .= "Disallow: /\n\n";
+        $content .= "Disallow: /\n";
+        $content .= "Disallow: /resume\n\n";
         $content .= "# Site is currently hidden from search engines.\n";
         $content .= "# Enable crawling from Admin > Settings > SEO when ready.\n";
     }

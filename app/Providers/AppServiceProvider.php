@@ -6,7 +6,10 @@ use App\Models\Photo;
 use App\Models\Post;
 use App\Observers\PhotoObserver;
 use App\Observers\PostObserver;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,5 +39,15 @@ class AppServiceProvider extends ServiceProvider
         // (confirm-before-post queue in Admin → Social; nothing auto-sends)
         Photo::observe(PhotoObserver::class);
         Post::observe(PostObserver::class);
+
+        // /resume password attempts: 5 a minute per IP, answered with a
+        // friendly form error rather than a bare 429 page.
+        RateLimiter::for('resume-unlock', function (Request $request) {
+            return Limit::perMinute(5)
+                ->by($request->ip())
+                ->response(fn () => back()->withErrors([
+                    'password' => 'Too many attempts. Please wait a minute and try again.',
+                ]));
+        });
     }
 }

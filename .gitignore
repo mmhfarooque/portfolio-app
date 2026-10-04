@@ -34,3 +34,6 @@ database/*.sqlite-journal
 # Local time tracking (tt) — operational, not app code
 .brain/
 TIME-LOG.md
+
+# Private resume content (served from disk only, never committed)
+storage/app/private/resume*
