@@ -1,6 +1,6 @@
 # Photography Portfolio Website
 
-A professional photography portfolio and CV/Resume website built with Laravel 12.
+A professional photography portfolio and CV/Resume website built with Laravel 13.
 
 **Live Site:** [mfaruk.com](https://mfaruk.com)
 
@@ -8,11 +8,13 @@ A professional photography portfolio and CV/Resume website built with Laravel 12
 
 ## Tech Stack
 
-- **Framework:** Laravel 12.x (PHP 8.2+)
-- **Frontend:** Vue 3, Inertia.js, Tailwind CSS
+- **Framework:** Laravel 13.x (PHP 8.3+, production on PHP 8.4)
+- **Frontend:** Vue 3, Inertia.js 2 (with SSR), Tailwind CSS
+- **Routing in JS:** Ziggy
 - **Database:** MySQL/MariaDB
-- **Image Processing:** Intervention Image
-- **Build Tool:** Vite
+- **Image Processing:** Intervention Image 4
+- **Object Storage:** Cloudflare R2 (S3-compatible, via Flysystem)
+- **Build Tool:** Vite 7
 
 ## Features
 
@@ -25,9 +27,9 @@ A professional photography portfolio and CV/Resume website built with Laravel 12
 - Theme customization (light/dark modes)
 - Media library for selecting photos in settings
 
-## Laravel 12 Features in Use
+## Laravel Features in Use
 
-This project leverages modern Laravel 12 features:
+Upgraded from Laravel 12 to Laravel 13 in August 2026. The project leverages modern Laravel features:
 
 - **Automatic Eager Loading** (12.8+) - Prevents N+1 queries automatically
 - **Number Helper** - For human-readable file sizes (`Number::fileSize()`)
