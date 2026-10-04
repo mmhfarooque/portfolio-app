@@ -13,8 +13,8 @@ const props = defineProps({
     <PublicLayout>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Locations</h1>
-                <p class="mt-2 text-gray-600">Discover photos from around the world</p>
+                <h1 class="text-3xl font-bold text-theme-text-primary">Locations</h1>
+                <p class="mt-2 text-theme-text-secondary">Discover photos from around the world</p>
             </div>
 
             <!-- Featured Locations -->

@@ -69,7 +69,7 @@ onMounted(() => {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <!-- Header -->
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-4">
+                <h1 class="text-3xl font-bold text-theme-text-primary mb-4">
                     <span v-if="currentCategory">{{ currentCategory.name }}</span>
                     <span v-else-if="currentTag">Photos tagged "{{ currentTag.name }}"</span>
                     <span v-else-if="filters.search">Search: {{ filters.search }}</span>
@@ -88,7 +88,7 @@ onMounted(() => {
                     <button
                         v-if="currentCategory || currentTag || filters.search"
                         @click="clearFilters"
-                        class="text-sm text-gray-600 hover:text-gray-900"
+                        class="text-sm text-theme-text-secondary hover:text-theme-text-primary"
                     >
                         Clear filters
                     </button>
