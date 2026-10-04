@@ -235,7 +235,8 @@ const icons = {
                                     <tbody class="divide-y divide-theme-border">
                                         <tr v-for="(item, i) in ecommerce.items" :key="i" class="align-top">
                                             <td class="whitespace-nowrap px-4 py-3">
-                                                <a v-for="site in item.sites" :key="site.site" :href="site.url" class="r-link" target="_blank" rel="noopener noreferrer">{{ site.site }}</a>
+                                                <!-- One link per line when a row lists several domains. -->
+                                                <a v-for="site in item.sites" :key="site.site" :href="site.url" class="r-link block" target="_blank" rel="noopener noreferrer">{{ site.site }}</a>
                                             </td>
                                             <td class="px-4 py-3 text-theme-text-secondary">
                                                 <span class="text-theme-text-primary">{{ item.sector }}</span><template v-if="item.whatIDid">. {{ item.whatIDid }}</template>

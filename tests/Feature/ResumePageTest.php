@@ -218,6 +218,27 @@ class ResumePageTest extends TestCase
         $this->assertSame(1, Artisan::call('resume:import'));
     }
 
+    public function test_ecommerce_table_accepts_a_stack_column_and_multi_domain_rows(): void
+    {
+        $markdown = str_replace(
+            ["| Store | Products | Builder |", '| shop.example.com.au | Widgets. Built from scratch. | Elementor |'],
+            ['| Store | Products | Stack |', '| shop.example.com.au, shop.example.co.nz | Widgets. Built from scratch. | WordPress, WooCommerce |'],
+            self::fixtureMarkdown(),
+        );
+        file_put_contents(config('resume.source'), $markdown);
+
+        $this->assertSame(0, Artisan::call('resume:import'));
+
+        $ecommerce = collect(json_decode(file_get_contents(config('resume.path')), true)['projects'])->firstWhere('key', 'ecommerce');
+
+        $this->assertSame(['Store', 'Products', 'Stack'], $ecommerce['columns']);
+        $this->assertSame('WordPress, WooCommerce', $ecommerce['items'][0]['builder']);
+        $this->assertSame(
+            ['https://shop.example.com.au', 'https://shop.example.co.nz'],
+            array_column($ecommerce['items'][0]['sites'], 'url'),
+        );
+    }
+
     public function test_import_fails_loudly_when_a_section_is_missing(): void
     {
         file_put_contents(config('resume.source'), str_replace('## Profile', '## Bio', self::fixtureMarkdown()));
