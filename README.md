@@ -1,96 +1,78 @@
-# Photography Portfolio Website
+# mfaruk.com — Photography Portfolio & CV Platform
 
-A professional photography portfolio and CV/Resume website built with Laravel 13.
+A full-stack photography portfolio, blog and CV website, designed, built and run in production by **Mahmud Farooque**. It is built on **Laravel 13** with a **Vue 3 + Inertia.js** front end rendered on the server.
 
-**Live Site:** [mfaruk.com](https://mfaruk.com)
+**Live site:** [mfaruk.com](https://mfaruk.com) · **Author:** [Mahmud Farooque](https://www.linkedin.com/in/mmhfarooque)
 
-> 🧠 **AI agents & developers — read [`MFARUK_WORKFLOW.md`](MFARUK_WORKFLOW.md) first.** It is the single operating brain: architecture, access & recovery, R2 photo sync, backups, deploy chain, gotchas, and boundaries.
+![mfaruk.com home page](docs/screenshots/home.png)
+
+## Highlights
+
+- **Laravel 12 → 13 upgrade in production**: brought 38 Composer and 12 npm security vulnerabilities down to zero, then checked the live site URL by URL.
+- **Image delivery pipeline**: a routed image endpoint (`/img/{slug}/{variant}-{width}.{format}`) serves responsive WebP/AVIF variants, with BlurHash placeholders and automatic watermarking.
+- **Photo intelligence**: reads camera settings and GPS from each photo's EXIF data, shows photos on a map, and syncs edits from Lightroom (XMP files).
+- **Cloud storage**: photos are stored on Cloudflare R2 (S3-compatible) through Laravel's Flysystem.
+- **Commerce**: print ordering with Printful and licensed digital downloads, paid through Stripe.
+- **SEO tooling**: a built-in SEO audit dashboard, Google Search Console integration, XML and image sitemaps, and an RSS feed.
+- **Admin dashboard**: 23 admin controllers covering photos, galleries, categories, tags, blog posts (Editor.js), equipment, analytics and site themes.
+- **Production operations**: self-managed Debian server, a systemd-managed SSR service and a scripted deploy chain.
+- **AI-assisted engineering**: developed with Claude Code agents under my direction. I own the architecture, review, testing and deployment; [`CLAUDE.md`](CLAUDE.md) holds the project context the agents work from.
+
+![Photo gallery with category filters](docs/screenshots/photos.png)
 
 ## Tech Stack
 
-- **Framework:** Laravel 13.x (PHP 8.3+, production on PHP 8.4)
-- **Frontend:** Vue 3, Inertia.js 2 (with SSR), Tailwind CSS
-- **Routing in JS:** Ziggy
-- **Database:** MySQL/MariaDB
-- **Image Processing:** Intervention Image 4
-- **Object Storage:** Cloudflare R2 (S3-compatible, via Flysystem)
-- **Build Tool:** Vite 7
-
-## Features
-
-- Photo gallery with categories, tags, and galleries
-- Automatic thumbnail and watermark generation
-- EXIF data extraction and display
-- GPS location mapping
-- Professional CV/Resume front page
-- Admin dashboard for content management
-- Theme customization (light/dark modes)
-- Media library for selecting photos in settings
-
-## Laravel Features in Use
-
-Upgraded from Laravel 12 to Laravel 13 in August 2026. The project leverages modern Laravel features:
-
-- **Automatic Eager Loading** (12.8+) - Prevents N+1 queries automatically
-- **Number Helper** - For human-readable file sizes (`Number::fileSize()`)
-- **Fluent Helpers** - For cleaner data manipulation
-
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for full development guidelines.
+| Layer | Technology |
+|-------|------------|
+| Backend | Laravel 13 (PHP 8.3+, production on PHP 8.4) |
+| Front end | Vue 3 (Composition API), Inertia.js 2 with SSR, Tailwind CSS, Ziggy |
+| Database | MySQL / MariaDB |
+| Images | Intervention Image 4, WebP/AVIF variants, BlurHash |
+| Storage | Cloudflare R2 via Flysystem (S3) |
+| Integrations | Stripe, Printful, Google APIs (Search Console) |
+| Build | Vite 7 |
+| Hosting | Debian + HestiaCP, systemd SSR service |
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 composer install
 npm install
 
-# Configure environment
 cp .env.example .env
 php artisan key:generate
 
-# Run migrations
 php artisan migrate --seed
 
-# Build assets
 npm run build
-
-# Start development server
 php artisan serve
 ```
 
-## Directory Structure
+## Project Structure
 
 ```
 app/
-├── Http/Controllers/
-│   ├── Admin/          # Admin panel controllers
-│   └── PageController  # Public pages
-├── Models/             # Eloquent models
-├── Services/           # Business logic services
-└── Providers/          # Service providers
-
-resources/
-├── views/
-│   ├── admin/          # Admin panel views
-│   ├── components/     # Blade components
-│   └── pages/          # Public page views
-└── js/css/             # Frontend assets
-
-storage/app/public/
-├── photos/             # Uploaded photos
-├── settings/           # Setting images (profile, etc.)
-└── thumbnails/         # Generated thumbnails
+├── Http/Controllers/   # Public site, checkout, sitemaps, feeds
+│   └── Admin/          # Admin dashboard controllers
+├── Services/           # Image variants, EXIF/Lightroom sync, SEO audit, payments, prints
+├── Models/ Jobs/ Observers/ Policies/
+resources/js/
+├── Pages/              # Inertia page components (public + admin)
+├── Components/ Layouts/ composables/
+└── ssr.js              # Server-side rendering entry
+routes/
+├── web.php             # Site and admin routes
+└── images.php          # Routed image delivery (kept outside the web middleware group)
+deploy/                 # Deploy script and systemd SSR unit
 ```
-
-## Deployment
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions to Hestia/cPanel servers.
 
 ## Documentation
 
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - Server deployment guide
-- [DEVELOPMENT.md](./DEVELOPMENT.md) - Development guidelines and patterns
+- [DEVELOPMENT.md](DEVELOPMENT.md): development guidelines and patterns
+- [DEPLOYMENT.md](DEPLOYMENT.md): deployment guide
+- [docs/reference/](docs/reference/): architecture, operations and gotchas
+- [docs/internal/](docs/internal/): historical build notes and task logs
 
 ## License
 
-This project is proprietary software.
+This project is proprietary software. The source is published for portfolio review only.
