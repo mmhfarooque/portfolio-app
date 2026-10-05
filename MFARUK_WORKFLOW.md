@@ -123,7 +123,138 @@ Encrypted **`install/secrets.enc`** (portable cipher, e.g. `openssl aes-256`) + 
 - **Never post / reply / send as Mahmud** on any channel without an explicit ask + double-confirm.
 - **No auto-delete** of data/files/DB/backups; verified backup + explicit go before any destructive op; **backups are sacred**.
 
-## 16. Current state / where we left off (2026-08-30)
+## 16. Current state / where we left off (2026-09-06)
+
+**Session 2026-09-06 (PC) — backup architecture CORRECTED, new servercp project scoped.
+Nothing built, nothing changed on the server. INSPECT throughout.**
+
+- 🚨 **Doc 12's restic-to-R2 architecture is WRONG and superseded.** The whole-server backup
+  goes **to the NAS, by extending the n8n pull pipeline in §9** — not restic, not R2, not
+  Tailscale. Mahmud caught it. **The error:** doc 12 measured whether the VPS could reach the
+  NAS (no), which is the **push** question, then treated that single negative as settling the
+  **destination** question and never asked the **pull** question — which §9 had already
+  answered in production since 2026-08-02. Once push was assumed, R2 followed logically as the
+  only destination needing no VPN. Worse, doc 12 listed §9 in its own comparison table, scored
+  it as a gap (70 MB, one site of five), and never asked whether the mechanism could scale.
+  **Lesson: when a working pipeline exists for a smaller version of the problem, ask whether it
+  scales before proposing any new architecture.**
+  **Doc 12 still carries the wrong architecture and is untracked in git — it needs rewriting.**
+- **The corrected design:** same NAS, same n8n, same SSH forced-command verbs, same one-line
+  JSON sha256 receipt, same prune-only-after-verify contract. What changes is the `create` verb
+  producing a full Hestia account archive instead of the Laravel app plus one database, and
+  retention sized for 1.7 GB rather than 70 MB. §9.1's principle already states it: the server
+  hosts no backup system, the NAS reaches in and pulls.
+- **Live probe 2026-09-06:** `BACKUP_SYSTEM=''` — Hestia local backup is **disabled**. That was
+  Mahmud's deliberate action after the July deadlock and it was **never written into any doc**,
+  which is why this session first reported it as cause-unknown. **He is re-enabling it as the
+  interim safety net.** The `v-backup-users` cron is still armed at 05:10 and has been silently
+  no-opping. restic not installed, no backup host, no keys, no rclone remotes — **nothing was
+  ever built.** Disk 15 GB free of 30 GB; the guard needs ~7.7 GB for the mfaruk user, so it
+  passes. Only backups in existence are the two 2026-09-05 tars, 1.7 GB, on the disk they
+  protect. All of mfaruk.com, salehinarshady.com, climb4earth.org, mimosaw.com and dev sit
+  under the single `mfaruk` user, so **one archive covers all of them**.
+- **The previous entry's closing line was false** and has been corrected in memory: it said the
+  local Hestia backup remained the only whole-account backup. It was already disabled.
+- **Two independent adversarial reviews were run on the day's own output, and both found real
+  errors in it.** Review 1 found 16 issues; review 2 reviewed the whole body of work, checked
+  whether review 1's fixes had actually landed, and found that one of them had been corrected
+  into a *new* wrong answer. Net corrections to the record:
+  - **A restore HAS been rehearsed and PASSED — 2026-08-02.** Doc 12 said no restore had ever
+    been tested and every later artefact inherited it. `09-backup-and-automation.md` §9.3b:
+    oldest STORED weekly, sha256 matched, mysqldump completion marker asserted, zero import
+    errors, all 37 tables, real `COUNT(*)` matching live. Untested is the **production
+    overwrite path** (correctly — it would overwrite the live DB) and **whole-account scope**.
+  - **`BACKUP_SYSTEM` was cleared 2026-09-05 at 11:49:29** server time — 31 minutes after
+    `mfaruk.2026-09-05_11-18-16.tar` was written. A full archive taken, then the system switched
+    off. **Not July**, as a first draft guessed. That is also the day doc 12 was authored, whose
+    §12.7 **step 7** prescribes exactly that command gated behind steps 1–6 — none of which were
+    done. **Worth establishing whether step 7 ran out of order.**
+  - **php-fpm masters are 11, not 10.** Ten versioned plus Hestia's own at
+    `/usr/local/hestia/php/etc/php-fpm.conf` — `hestia-php`, the very process whose failure
+    caused the July→September panel 500 outage.
+  - Also measured: **6 web domains** (mfaruk 5 + admin 1), **zero ip6tables rules with
+    accept-all policies**, spamd loopback-only, and `PHP_VERSIONS` in `hestia.conf` **omits 8.4**
+    while `php8.4-fpm` serves mfaruk.com — a restore would not reproduce that state.
+- **Doc 12 is now banner-marked ⛔ SUPERSEDED** at the top of the file, and the `00-INDEX.md`
+  row for it says so too. Both were previously left untouched while only the *memory about* them
+  was corrected — meaning the index modified that day still advertised the wrong architecture as
+  the thing to read. ⚠️ **Both edits are uncommitted**, so the correction currently exists only
+  on this disk.
+- 🚨 **Live exposure, measured not resolved:** iptables **explicitly ACCEPTs 8083** behind only a
+  `fail2ban-HESTIA` chain, `hestia-nginx` listens on `0.0.0.0:8083`, the API is enabled, and a
+  recursive grep finds **no reference to `API_ALLOWED_IP` anywhere under Hestia's `web/` tier**.
+  Nothing measured supports treating the empty value as an access control — doc 12 asserts the
+  opposite. Settle with an off-network request to `https://SERVER_IP:8083/`.
+- **New personal project: servercp** — an open-source server control panel, Laravel control
+  plane, **remote SSH orchestration** (the panel never runs on the managed box, no agent),
+  **Debian and Ubuntu only for v1**, **mail deferred wholesale to v2**. Plan at
+  `~/app-dev/servercp/PLAN.md`. **v1 131–196 h, with mail 196–296 h** (revised after two
+  independent reviews; the earlier 65–100 omitted panel auth, queue workers, real-time
+  transport, audit log, tests/CI and any data model). **PLANNING only — no code, no
+  repo, no scaffolding.** Hard rule recorded there: no distro-specific command outside a
+  driver, or the project is Debian-only forever. Origin is this server: OpenVZ means the next
+  OS change is a destructive rebuild. ⚠️ **RETRACTED:** an earlier version of this entry said
+  that rebuild forces the Hestia-or-own-panel choice. It does not, as scoped — that box also
+  runs exim4 (6 mail domains), bind9 (8 zones) and vsftpd, none of which v1 covers. PLAN.md §1
+  now offers three options including shrinking the box to what v1 covers.
+
+**Session 2026-09-05 (PC) — server session: Hestia 500 fixed, backup deadlock diagnosed,
+two dead domains removed, OpenVZ ceiling discovered. No app code touched.**
+
+- **Hestia panel was returning 500 on every page. Root cause: a stale process, not config.**
+  An orphaned `hestia-nginx` master from **18 July** (PID 2287452) still held port 8083, so
+  every nightly `v-update-sys-hestia-all` restart hit `bind() ... Address already in use`, the
+  service start aborted, and **`hestia-php` therefore never started** — nginx answered with no
+  PHP behind it. `error.log` showed three `[Error 19]` lines at 02:31 every single night.
+  *Inferred start:* the 14 Aug `hestia-php` package update, whose post-install restart hit the
+  same conflict. **`systemctl stop hestia` did NOT reap the orphan** despite it being listed in
+  the service CGroup — an explicit `kill` was required. That is why seven weeks of nightly
+  restarts never fixed it. Now active, `/run/hestia-php.sock` present, `/login/` returns 200.
+- **The Hestia backup had deadlocked itself.** `v-backup-user:189` refuses when free disk is
+  less than the user's disk × 2. mfaruk = 3834 MB, so it demanded **7668 MB free** against
+  **5529 MB** available — failing with `[Error 8]` nightly since **19 July**. The disk was full
+  of **7 × 1.49 GB archives (11 GB, 37% of the volume)** from a single week in July, and
+  rotation could never prune because the quota of 9 was never reached. *The backups were too
+  large to make room for the next backup.* Mahmud cleared them from the panel → 16 GB free.
+- **Fresh full archive taken before any deletion:** `mfaruk.2026-09-05_11-18-16.tar`, 1671 MB,
+  carrying all 7 web domains, 10 DNS zones, 8 mail domains and 8 databases.
+- **Removed: `mahmudfarooque.com` and `mytravell.info`** (web + DNS + mail) plus the orphan
+  database `mfaruk_50818`, via `v-delete-domain`. Verified: **0 references remaining**, home
+  directories gone, DB gone from MySQL. `mahmudfarooque.com` returns RDAP 404 — released.
+  **`mimosaw.com` deliberately KEPT** — expires **21 Dec 2026** (Cloudflare, auto-renew off),
+  still resolves to this server, and holds two live mailboxes (`info@`, `dhakafood@`). Export
+  that mail before December; check whether `dhakafood@` belongs on dhaka-sweets.com.
+- 🚨 **The VPS is an OpenVZ container, not a VM.** `systemd-detect-virt` = `openvz`, `/proc/vz`
+  and `/proc/user_beancounters` present, `/boot` empty, **zero `linux-image` packages**, kernel
+  6.1.0 built Jan 2024 MSK. **You do not own the kernel and cannot dist-upgrade.** VPSDime
+  offers Debian 13 only through **Reinstall OS — a full destructive wipe**. So every OS change
+  is a rebuild, forever. **The decision that actually matters is OpenVZ vs KVM**, not Debian 12
+  vs 13 — on KVM you upgrade yourself and never face this again.
+- **Migration blocker: PHP 7.4.** `salehinarshady.com` and `climb4earth.org` both run PHP-7_4
+  (EOL Nov 2022); mimosaw 8.2; mfaruk.com and dev 8.4. If Sury has no 7.4 for Debian 13 those
+  two cannot come back as-is. **De-risk by moving them to 8.x on the current box first**, where
+  rollback is one setting. Both are WordPress. Also: **10 PHP-FPM masters are running but only
+  3 versions have real pools** — seven daemons wasting memory on a 6 GB box.
+- **Hestia 1.10.4 is the current release** (published 24 Aug 2026); apt candidate matches, so
+  the panel is fully up to date. It could not self-update while the port deadlock persisted.
+- **The admin dashboard Storage tile counts one directory only** —
+  `storage/app/public/photos`, 109.81 MB. It crossed 100 MB on 30 Aug when the responsive
+  variant ladder was warmed: `variants/` alone is **93.52 MB in 636 files**, against 16.3 MB
+  for the four legacy roles. That is the architecture working as designed, not a leak.
+  Formats split jpg 48.38 / webp 30.90 / avif 30.53 MB. **Dropping WebP is the low-risk cut**
+  (~31 MB); trimming JPEG to canonical width only is worth ~36 MB more but needs a code change.
+- **New design doc: [`docs/reference/12-server-wide-backup-design.md`](docs/reference/12-server-wide-backup-design.md)**
+  — whole-server backup via Hestia's native restic to Cloudflare R2, with a per-object restore
+  playbook. Key findings: the VPS **cannot reach the NAS at all** (no Tailscale, `100.82.168.76`
+  unreachable), so R2 is the only destination needing no exposure; restic's per-user key lives
+  **only** at `/usr/local/hestia/data/users/<user>/restic.conf` and must be escrowed off-server
+  or every snapshot is unrecoverable; and databases reach restic **indirectly** via a pre-step,
+  so a snapshot can exit 0 while containing no DB dump.
+- ⚠️ **BOTH CLAIMS BELOW ARE FALSE — corrected 2026-09-06, left in place for the record.** A
+  restore WAS rehearsed and PASSED on 2026-08-02 (09 §9.3b), and the local Hestia backup was
+  already disabled. Original text follows:
+- **Still open:** no restore has ever been rehearsed. Local Hestia backup remains the only
+  whole-account backup — the NAS pipeline is 70 MB covering one site of five, with no mail.
 
 **Session 2026-08-30 late (PC) — layout cap, variant cleanup, dimension recovery (`c4c4bf9`):**
 - **The 1280 question was settled by LAYOUT, not by re-optimising anything.** `<main>` had no

@@ -25,6 +25,7 @@
 | 9 | [`09-backup-and-automation.md`](09-backup-and-automation.md) | Backups, NAS, n8n, analytics push |
 | 10 | [`10-gotchas.md`](10-gotchas.md) | **Read before your first change.** Hard-won, do not relearn |
 | 11 | [`11-state-and-roadmap.md`](11-state-and-roadmap.md) | What is live, what is dormant, what is next |
+| 12 | [`12-server-wide-backup-design.md`](12-server-wide-backup-design.md) | ⛔ **SUPERSEDED 2026-09-06 — do not build from it.** Its restic → R2 architecture is wrong; the correct design extends the n8n NAS-pull pipeline in 09. Measured facts and the restore-gap list remain useful |
 
 **Minimum viable context** if you are in a hurry: parts 1, 2, 10. That is orientation,
 architecture, and the landmine list. Everything else is lookup.
