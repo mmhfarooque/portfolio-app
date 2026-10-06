@@ -18,7 +18,7 @@ class SitemapController extends Controller
     public function index(): Response
     {
         $photos = Photo::published()
-            ->select(['slug', 'updated_at', 'display_path', 'watermarked_path'])
+            ->select(array_merge(Photo::TILE_COLUMNS, ['updated_at']))
             ->orderBy('updated_at', 'desc')
             ->get();
 
