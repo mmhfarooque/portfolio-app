@@ -47,24 +47,33 @@ class TrackReferrals
         $userAgent = $request->userAgent() ?? '';
         $deviceInfo = ReferralVisit::parseUserAgent($userAgent);
 
-        // Create referral visit record
-        ReferralVisit::create([
-            'session_id' => session()->getId(),
-            'utm_source' => $request->get('utm_source'),
-            'utm_medium' => $request->get('utm_medium'),
-            'utm_campaign' => $request->get('utm_campaign'),
-            'utm_term' => $request->get('utm_term'),
-            'utm_content' => $request->get('utm_content'),
-            'referer' => $referer,
-            'referer_domain' => $refererDomain,
-            'landing_page' => $request->path(),
-            'ip_address' => $request->ip(),
-            'user_agent' => substr($userAgent, 0, 500),
-            'device_type' => $deviceInfo['deviceType'],
-            'browser' => $deviceInfo['browser'],
-            'os' => $deviceInfo['os'],
-            'user_id' => auth()->id(),
-        ]);
+        // Every column is VARCHAR(255) and most of these values come from
+        // outside (the Facebook iOS in-app browser UA alone is ~280 chars), so
+        // cap them. Tracking must never take the page down, so a failed write
+        // is reported and the visitor still gets the page.
+        $cap = fn (?string $value): ?string => $value === null ? null : mb_substr($value, 0, 255);
+
+        try {
+            ReferralVisit::create([
+                'session_id' => session()->getId(),
+                'utm_source' => $cap($request->get('utm_source')),
+                'utm_medium' => $cap($request->get('utm_medium')),
+                'utm_campaign' => $cap($request->get('utm_campaign')),
+                'utm_term' => $cap($request->get('utm_term')),
+                'utm_content' => $cap($request->get('utm_content')),
+                'referer' => $cap($referer),
+                'referer_domain' => $cap($refererDomain),
+                'landing_page' => $cap($request->path()),
+                'ip_address' => $request->ip(),
+                'user_agent' => $cap($userAgent),
+                'device_type' => $deviceInfo['deviceType'],
+                'browser' => $deviceInfo['browser'],
+                'os' => $deviceInfo['os'],
+                'user_id' => auth()->id(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         session(['referral_tracked' => true]);
 
