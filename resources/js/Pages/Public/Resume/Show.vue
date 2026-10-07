@@ -1,31 +1,40 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import ResumeLayout from '@/Layouts/ResumeLayout.vue';
 import SectionNav from '@/Components/Resume/SectionNav.vue';
 import SegmentText from '@/Components/Resume/SegmentText.vue';
-import PipelineDiagram from '@/Components/Resume/PipelineDiagram.vue';
+import Icon from '@/Components/Resume/Icon.vue';
+import StatsBar from '@/Components/Resume/StatsBar.vue';
+import HighlightCards from '@/Components/Resume/HighlightCards.vue';
+import StepFlow from '@/Components/Resume/StepFlow.vue';
+import ExperienceTimeline from '@/Components/Resume/ExperienceTimeline.vue';
+import ProjectsSection from '@/Components/Resume/ProjectsSection.vue';
+import ContactCta from '@/Components/Resume/ContactCta.vue';
+import { useReveal } from '@/Components/Resume/useReveal';
 
 const props = defineProps({
     resume: { type: Object, required: true },
 });
 
+const root = ref(null);
+useReveal(root);
+
 const header = computed(() => props.resume.header || {});
+const has = (key) => Array.isArray(props.resume[key]) && props.resume[key].length > 0;
 
-const sections = [
-    { id: 'profile', label: 'Profile' },
-    { id: 'skills', label: 'Skills' },
+const sections = computed(() => [
+    has('highlights') && { id: 'highlights', label: 'Highlights' },
+    has('profile') && { id: 'profile', label: 'Profile' },
+    has('aiShowcase') && { id: 'ai-engineering', label: 'AI Engineering' },
     { id: 'experience', label: 'Experience' },
-    { id: 'ai-engineering', label: 'AI Engineering' },
-    { id: 'projects', label: 'Projects' },
-    { id: 'education', label: 'Education' },
+    has('projects') && { id: 'projects', label: 'Projects' },
+    has('skills') && { id: 'skills', label: 'Skills' },
+    ...(props.resume.extraSections || []).map((s) => ({ id: `extra-${s.key}`, label: s.title })),
+    (has('education') || props.resume.freelance) && { id: 'education', label: 'Education' },
     { id: 'contact', label: 'Contact' },
-];
+].filter(Boolean));
 
-const projectGroup = (key) => (props.resume.projects || []).find((g) => g.key === key);
-const otherProjectGroups = computed(() =>
-    (props.resume.projects || []).filter((g) => g.key !== 'ecommerce'),
-);
-const ecommerce = computed(() => projectGroup('ecommerce'));
+const whatsapp = computed(() => header.value.phone?.whatsapp || null);
 
 const contactLinks = computed(() => {
     const h = header.value;
@@ -40,6 +49,15 @@ const contactLinks = computed(() => {
     if (h.website) links.push({ key: 'website', label: h.website.label, href: h.website.url, external: true });
     return links;
 });
+
+const heroLinks = computed(() => contactLinks.value.filter((l) => ['linkedin', 'github', 'website'].includes(l.key)));
+
+// Each skill group shows its first few chips, the rest behind "Show all".
+const SKILL_PREVIEW = 5;
+const openSkills = ref({});
+
+// Chips naming the core stack get the accent treatment.
+const emphasised = /\b(WordPress|WooCommerce|Laravel|Claude Code)\b/;
 
 // Person JSON-LD, only on this unlocked page. Text child, not v-html, so it
 // survives SSR (see CLAUDE.md, SSR gotchas).
@@ -56,16 +74,6 @@ const jsonLdString = computed(() => {
         sameAs: [h.linkedin?.url, h.github?.url].filter(Boolean),
     });
 });
-
-const icons = {
-    email: 'M3 5h18v14H3z M3 6l9 7 9-7',
-    phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2',
-    whatsapp: 'M4 20l1.3-3.9A8 8 0 1112 20a8 8 0 01-3.9-1z',
-    linkedin: 'M4 4h16v16H4z M8 10v6 M8 7.5v.01 M12 16v-6 M12 13a2.5 2.5 0 015 0v3',
-    github: 'M9 19c-4 1.3-4-2-6-2.5 M15 21v-3.5a3 3 0 00-.8-2.3c2.7-.3 5.5-1.3 5.5-6a4.7 4.7 0 00-1.3-3.2 4.3 4.3 0 00-.1-3.2s-1-.3-3.4 1.3a11.6 11.6 0 00-6 0C6.5 2.5 5.5 2.8 5.5 2.8a4.3 4.3 0 00-.1 3.2A4.7 4.7 0 004 9.2c0 4.6 2.8 5.7 5.5 6a3 3 0 00-.8 2.3V21',
-    website: 'M12 3a9 9 0 100 18 9 9 0 000-18z M3 12h18 M12 3c2.5 2.7 2.5 15.3 0 18 M12 3c-2.5 2.7-2.5 15.3 0 18',
-    location: 'M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z M12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
-};
 </script>
 
 <template>
@@ -76,234 +84,200 @@ const icons = {
     </Head>
 
     <ResumeLayout>
-        <div class="resume-grid mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:grid lg:grid-cols-[13rem_1fr] lg:gap-12 lg:px-8 lg:py-14">
-            <aside class="hidden lg:block">
-                <div class="sticky top-8">
-                    <SectionNav :sections="sections" />
-                </div>
-            </aside>
+        <div ref="root" class="pb-20 md:pb-0">
+            <!-- Hero -->
+            <header class="r-hero border-b border-theme-border">
+                <div class="mx-auto max-w-6xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+                    <h1 class="r-serif text-4xl font-semibold tracking-tight sm:text-6xl">{{ header.name }}</h1>
+                    <p class="r-accent mt-4 max-w-3xl text-lg font-medium leading-relaxed sm:text-xl">{{ header.headline }}</p>
+                    <p v-if="header.location" class="mt-4 flex items-center gap-2 text-sm text-theme-text-secondary">
+                        <Icon name="location" class="r-accent h-4 w-4 shrink-0" />
+                        {{ header.location }}
+                    </p>
 
-            <main>
-                <!-- Header -->
-                <header class="border-b border-theme-border pb-8">
-                    <h1 class="r-serif text-4xl font-semibold tracking-tight sm:text-5xl">{{ header.name }}</h1>
-                    <p class="r-accent mt-3 text-base font-medium leading-relaxed sm:text-lg">{{ header.headline }}</p>
+                    <div id="hero-cta" class="r-no-print mt-8 flex flex-col gap-3 sm:flex-row">
+                        <a
+                            v-if="header.email"
+                            :href="`mailto:${header.email}`"
+                            class="r-accent-bg inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-base font-semibold shadow-sm transition-transform hover:-translate-y-0.5"
+                        >
+                            <Icon name="email" class="h-5 w-5" />
+                            Email me
+                        </a>
+                        <a
+                            v-if="whatsapp"
+                            :href="`https://wa.me/${whatsapp}`"
+                            target="_blank"
+                            rel="noopener"
+                            class="r-accent inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg border-2 r-accent-border bg-theme-bg-card px-6 text-base font-semibold transition-transform hover:-translate-y-0.5"
+                        >
+                            <Icon name="whatsapp" class="h-5 w-5" />
+                            WhatsApp
+                        </a>
+                    </div>
 
-                    <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-theme-text-secondary">
-                        <li v-if="header.location" class="flex items-center gap-2">
-                            <svg class="h-4 w-4 shrink-0 r-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="icons.location" /></svg>
-                            {{ header.location }}
-                        </li>
-                        <li v-for="link in contactLinks" :key="link.key" class="flex items-center gap-2">
-                            <svg class="h-4 w-4 shrink-0 r-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="icons[link.key]" /></svg>
-                            <a
-                                :href="link.href"
-                                class="r-link"
-                                :target="link.external ? '_blank' : undefined"
-                                :rel="link.external ? 'noopener noreferrer' : undefined"
-                            >{{ link.label }}</a>
+                    <ul v-if="heroLinks.length" class="mt-4 flex flex-wrap gap-x-6 text-sm">
+                        <li v-for="link in heroLinks" :key="link.key" class="flex items-center gap-2">
+                            <Icon :name="link.key" class="r-accent h-4 w-4 shrink-0" />
+                            <a :href="link.href" class="r-link inline-flex min-h-[44px] items-center" target="_blank" rel="noopener">{{ link.label }}</a>
                         </li>
                     </ul>
-                </header>
 
-                <!-- Profile -->
-                <section id="profile" class="border-b border-theme-border py-10" aria-labelledby="h-profile">
-                    <h2 id="h-profile" class="r-serif text-2xl font-semibold">Profile</h2>
-                    <div class="mt-5 max-w-3xl space-y-4 leading-relaxed text-theme-text-secondary">
-                        <p v-for="(paragraph, i) in resume.profile" :key="i">{{ paragraph }}</p>
+                    <StatsBar v-if="has('stats')" :stats="resume.stats" class="mt-10" />
+                </div>
+            </header>
+
+            <div class="resume-grid mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-12 lg:px-8 lg:py-14">
+                <aside class="hidden lg:block">
+                    <div class="sticky top-8">
+                        <SectionNav :sections="sections" />
                     </div>
-                </section>
+                </aside>
 
-                <!-- Skills -->
-                <section id="skills" class="border-b border-theme-border py-10" aria-labelledby="h-skills">
-                    <h2 id="h-skills" class="r-serif text-2xl font-semibold">Core skills</h2>
-                    <div class="mt-6 grid gap-8 md:grid-cols-2">
-                        <div v-for="group in resume.skills" :key="group.label">
-                            <h3 class="r-accent text-sm font-semibold uppercase tracking-wide">{{ group.label }}</h3>
-                            <ul class="mt-3 flex flex-wrap gap-2">
-                                <li
-                                    v-for="(item, i) in group.items"
-                                    :key="i"
-                                    class="rounded-md border border-theme-border bg-theme-bg-secondary px-2.5 py-1 text-xs leading-snug text-theme-text-primary"
-                                >{{ item }}</li>
-                            </ul>
+                <main class="min-w-0">
+                    <!-- Highlights -->
+                    <section v-if="has('highlights')" id="highlights" class="border-b border-theme-border pb-10" aria-labelledby="h-highlights">
+                        <h2 id="h-highlights" class="r-serif text-2xl font-semibold sm:text-3xl">Highlights</h2>
+                        <HighlightCards :items="resume.highlights" class="mt-6" />
+                    </section>
+
+                    <!-- Profile -->
+                    <section v-if="has('profile')" id="profile" class="border-b border-theme-border py-10" aria-labelledby="h-profile">
+                        <h2 id="h-profile" class="r-serif text-2xl font-semibold">Profile</h2>
+                        <div class="mt-5 max-w-3xl space-y-4 leading-relaxed text-theme-text-secondary">
+                            <p v-for="(paragraph, i) in resume.profile" :key="i">{{ paragraph }}</p>
                         </div>
-                    </div>
-                </section>
+                    </section>
 
-                <!-- Experience -->
-                <section id="experience" class="border-b border-theme-border py-10" aria-labelledby="h-experience">
-                    <h2 id="h-experience" class="r-serif text-2xl font-semibold">Experience</h2>
-                    <ol class="relative mt-8 space-y-10 border-l r-accent-border pl-6 sm:pl-8">
-                        <li v-for="(role, i) in resume.experience" :key="i" class="relative">
-                            <span
-                                class="absolute -left-[1.84rem] top-1.5 h-3 w-3 rounded-full border-2 sm:-left-[2.34rem]"
-                                :class="role.concurrent ? 'border-[color:var(--r-accent)] bg-theme-bg-primary' : 'r-accent-bg border-transparent'"
-                                aria-hidden="true"
-                            ></span>
-
-                            <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-                                <h3 class="r-serif text-lg font-semibold leading-snug">{{ role.role }}</h3>
-                                <p class="shrink-0 text-sm text-theme-text-secondary">
-                                    <time>{{ role.start }}</time> – <time>{{ role.end }}</time>
-                                </p>
-                            </div>
-                            <p class="mt-1 text-sm text-theme-text-secondary">
-                                <span class="font-medium text-theme-text-primary">{{ role.company }}</span><template v-if="role.location"> · {{ role.location }}</template>
-                                <span
-                                    v-if="role.concurrent"
-                                    class="r-accent-soft r-accent ml-2 inline-block rounded px-2 py-0.5 text-xs font-medium"
-                                >{{ role.concurrentNote }}</span>
-                            </p>
-
-                            <p v-if="role.context" class="mt-3 max-w-3xl border-l-2 r-accent-border pl-3 text-sm italic leading-relaxed text-theme-text-secondary">
-                                {{ role.context }}
-                            </p>
-
-                            <ul class="mt-4 max-w-3xl list-disc space-y-2 pl-5 text-sm leading-relaxed text-theme-text-secondary marker:text-[color:var(--r-accent)]">
-                                <li v-for="(bullet, b) in role.bullets" :key="b"><SegmentText :segments="bullet" /></li>
-                            </ul>
-                        </li>
-                    </ol>
-                </section>
-
-                <!-- AI Engineering -->
-                <section id="ai-engineering" class="border-b border-theme-border py-10" aria-labelledby="h-ai">
-                    <h2 id="h-ai" class="r-serif text-2xl font-semibold">AI Engineering</h2>
-                    <div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                        <article
-                            v-for="card in resume.aiShowcase"
-                            :key="card.key"
-                            class="r-card rounded-lg border border-theme-border bg-theme-bg-card p-6 shadow-sm"
-                            :class="{ 'md:col-span-2 xl:col-span-3': card.steps && card.steps.length }"
-                        >
-                            <div class="r-accent-bg mb-4 h-1 w-10 rounded-full" aria-hidden="true"></div>
-                            <h3 class="r-serif text-lg font-semibold">{{ card.title }}</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-theme-text-secondary">{{ card.body }}</p>
-                            <PipelineDiagram
-                                v-if="card.steps && card.steps.length"
-                                :steps="card.steps"
-                                :label="`${card.title}: steps`"
-                            />
-                        </article>
-                    </div>
-                </section>
-
-                <!-- Projects -->
-                <section id="projects" class="border-b border-theme-border py-10" aria-labelledby="h-projects">
-                    <h2 id="h-projects" class="r-serif text-2xl font-semibold">Selected projects</h2>
-                    <p v-if="resume.projectsIntro" class="mt-4 max-w-3xl text-sm leading-relaxed text-theme-text-secondary">{{ resume.projectsIntro }}</p>
-
-                    <template v-for="group in otherProjectGroups" :key="group.key">
-                        <h3 class="r-accent mt-10 text-sm font-semibold uppercase tracking-wide">{{ group.title }}</h3>
-
-                        <div v-if="group.type === 'table'" class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <!-- AI Engineering: the centrepiece -->
+                    <section v-if="has('aiShowcase')" id="ai-engineering" class="r-ai -mx-4 my-10 px-4 py-10 sm:-mx-6 sm:rounded-2xl sm:px-8" aria-labelledby="h-ai">
+                        <h2 id="h-ai" class="r-serif flex items-center gap-3 text-2xl font-semibold sm:text-3xl">
+                            <span class="r-accent-bg flex h-10 w-10 items-center justify-center rounded-lg"><Icon name="spark" class="h-5 w-5" /></span>
+                            AI Engineering
+                        </h2>
+                        <div class="mt-6 grid gap-5">
                             <article
-                                v-for="(item, i) in group.items"
-                                :key="i"
-                                class="r-card rounded-lg border border-theme-border bg-theme-bg-card p-5"
+                                v-for="card in resume.aiShowcase"
+                                :key="card.key"
+                                data-reveal
+                                class="r-card rounded-xl border border-theme-border bg-theme-bg-card p-6 shadow-sm"
                             >
-                                <p class="text-sm font-semibold">
-                                    <template v-for="(site, s) in item.sites" :key="site.site">
-                                        <template v-if="s">, </template>
-                                        <a :href="site.url" class="r-link" target="_blank" rel="noopener noreferrer">{{ site.site }}</a>
-                                    </template>
-                                </p>
-                                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-theme-text-secondary">{{ item.sector }}</p>
-                                <p v-if="item.whatIDid" class="mt-3 text-sm leading-relaxed text-theme-text-secondary">{{ item.whatIDid }}</p>
+                                <h3 class="r-serif text-xl font-semibold">{{ card.title }}</h3>
+                                <p v-if="card.body" class="mt-2 text-sm leading-relaxed text-theme-text-secondary">{{ card.body }}</p>
+                                <StepFlow v-if="card.steps.length" :steps="card.steps" :label="`${card.title}: steps`" />
+                                <p v-if="card.caption" class="mt-4 text-sm font-medium text-theme-text-secondary">{{ card.caption }}</p>
                             </article>
                         </div>
+                    </section>
 
-                        <ul v-else class="mt-4 space-y-3">
-                            <li
-                                v-for="(item, i) in group.items"
-                                :key="i"
-                                class="r-card rounded-lg border border-theme-border bg-theme-bg-card p-5 text-sm leading-relaxed text-theme-text-secondary"
-                            ><SegmentText :segments="item.segments" /></li>
+                    <!-- Experience -->
+                    <section id="experience" class="border-b border-theme-border py-10" aria-labelledby="h-experience">
+                        <h2 id="h-experience" class="r-serif text-2xl font-semibold sm:text-3xl">Experience</h2>
+                        <ExperienceTimeline :roles="resume.experience" />
+                    </section>
+
+                    <!-- Projects -->
+                    <section v-if="has('projects')" id="projects" class="border-b border-theme-border py-10" aria-labelledby="h-projects">
+                        <h2 id="h-projects" class="r-serif text-2xl font-semibold sm:text-3xl">Selected projects</h2>
+                        <ProjectsSection :groups="resume.projects" :intro="resume.projectsIntro" :client-range="resume.clientRange" />
+                    </section>
+
+                    <!-- Skills -->
+                    <section v-if="has('skills')" id="skills" class="border-b border-theme-border py-10" aria-labelledby="h-skills">
+                        <h2 id="h-skills" class="r-serif text-2xl font-semibold">Core skills</h2>
+                        <div class="mt-6 grid gap-8 md:grid-cols-2">
+                            <div v-for="group in resume.skills" :key="group.label">
+                                <h3 class="r-accent text-sm font-semibold uppercase tracking-wide">{{ group.label }}</h3>
+                                <ul class="mt-3 flex flex-wrap gap-2">
+                                    <li
+                                        v-for="(item, i) in group.items"
+                                        :key="i"
+                                        class="rounded-md border px-2.5 py-1 text-xs leading-snug"
+                                        :class="[
+                                            emphasised.test(item)
+                                                ? 'r-accent-bg r-chip-strong border-transparent font-semibold'
+                                                : 'border-theme-border bg-theme-bg-secondary text-theme-text-primary',
+                                            { 'r-print-only': i >= SKILL_PREVIEW && !openSkills[group.label] },
+                                        ]"
+                                    >{{ item }}</li>
+                                </ul>
+                                <button
+                                    v-if="group.items.length > SKILL_PREVIEW"
+                                    type="button"
+                                    class="r-no-print r-accent mt-1 inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium"
+                                    :aria-expanded="openSkills[group.label] ? 'true' : 'false'"
+                                    @click="openSkills[group.label] = !openSkills[group.label]"
+                                >
+                                    {{ openSkills[group.label] ? 'Show fewer' : `Show all (${group.items.length})` }}
+                                    <Icon name="chevron" class="h-4 w-4 transition-transform" :class="{ 'rotate-180': openSkills[group.label] }" />
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Any section the page has no special place for -->
+                    <section
+                        v-for="extra in resume.extraSections || []"
+                        :id="`extra-${extra.key}`"
+                        :key="extra.key"
+                        class="border-b border-theme-border py-10"
+                        :aria-labelledby="`h-extra-${extra.key}`"
+                    >
+                        <h2 :id="`h-extra-${extra.key}`" class="r-serif text-2xl font-semibold">{{ extra.title }}</h2>
+                        <p v-for="(paragraph, i) in extra.paragraphs" :key="`p${i}`" class="mt-4 max-w-3xl leading-relaxed text-theme-text-secondary">{{ paragraph }}</p>
+                        <ul v-if="extra.bullets.length" class="mt-4 max-w-3xl list-disc space-y-2 pl-5 text-sm leading-relaxed text-theme-text-secondary marker:text-[color:var(--r-accent)]">
+                            <li v-for="(bullet, b) in extra.bullets" :key="b"><SegmentText :segments="bullet" /></li>
+                        </ul>
+                    </section>
+
+                    <!-- Education (with freelance record and languages) -->
+                    <section v-if="has('education') || resume.freelance" id="education" class="border-b border-theme-border py-10" aria-labelledby="h-education">
+                        <h2 id="h-education" class="r-serif text-2xl font-semibold">Education and certification</h2>
+                        <ul class="mt-6 space-y-4">
+                            <li v-for="(entry, i) in resume.education" :key="i" class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
+                                <div>
+                                    <p class="font-medium">{{ entry.qualification }}</p>
+                                    <p v-if="entry.institution" class="text-sm text-theme-text-secondary">{{ entry.institution }}</p>
+                                </div>
+                                <p v-if="entry.years" class="shrink-0 text-sm text-theme-text-secondary">{{ entry.years }}</p>
+                            </li>
                         </ul>
 
-                        <!-- E-commerce sits third, as in the master. -->
-                        <template v-if="group.key === 'multiDomain' && ecommerce">
-                            <h3 class="r-accent mt-10 text-sm font-semibold uppercase tracking-wide">{{ ecommerce.title }}</h3>
-                            <div class="mt-4 overflow-x-auto rounded-lg border border-theme-border">
-                                <table class="w-full min-w-[36rem] text-left text-sm">
-                                    <thead class="r-accent-soft">
-                                        <tr>
-                                            <th v-for="column in ecommerce.columns" :key="column" scope="col" class="px-4 py-3 font-semibold">{{ column }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-theme-border">
-                                        <tr v-for="(item, i) in ecommerce.items" :key="i" class="align-top">
-                                            <td class="whitespace-nowrap px-4 py-3">
-                                                <!-- One link per line when a row lists several domains. -->
-                                                <a v-for="site in item.sites" :key="site.site" :href="site.url" class="r-link block" target="_blank" rel="noopener noreferrer">{{ site.site }}</a>
-                                            </td>
-                                            <td class="px-4 py-3 text-theme-text-secondary">
-                                                <span class="text-theme-text-primary">{{ item.sector }}</span><template v-if="item.whatIDid">. {{ item.whatIDid }}</template>
-                                            </td>
-                                            <td class="whitespace-nowrap px-4 py-3 text-theme-text-secondary">{{ item.builder }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="mt-10 grid gap-8 md:grid-cols-2">
+                            <div v-if="resume.freelance">
+                                <h3 class="r-accent text-sm font-semibold uppercase tracking-wide">Freelance record</h3>
+                                <p class="mt-3 text-sm leading-relaxed text-theme-text-secondary">{{ resume.freelance }}</p>
                             </div>
-                            <p v-if="ecommerce.also.length" class="mt-3 text-sm text-theme-text-secondary">
-                                Also:
-                                <template v-for="(site, s) in ecommerce.also" :key="site.site">
-                                    <template v-if="s">, </template>
-                                    <a :href="site.url" class="r-link" target="_blank" rel="noopener noreferrer">{{ site.site }}</a>
-                                </template>.
-                            </p>
-                        </template>
-                    </template>
-
-                    <p v-if="resume.clientRange" class="r-accent-soft mt-10 rounded-lg px-5 py-4 text-sm font-medium leading-relaxed">
-                        {{ resume.clientRange }}
-                    </p>
-                </section>
-
-                <!-- Education (with freelance record and languages) -->
-                <section id="education" class="border-b border-theme-border py-10" aria-labelledby="h-education">
-                    <h2 id="h-education" class="r-serif text-2xl font-semibold">Education and certification</h2>
-                    <ul class="mt-6 space-y-4">
-                        <li v-for="(entry, i) in resume.education" :key="i" class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
-                            <div>
-                                <p class="font-medium">{{ entry.qualification }}</p>
-                                <p v-if="entry.institution" class="text-sm text-theme-text-secondary">{{ entry.institution }}</p>
+                            <div v-if="resume.languages && resume.languages.length">
+                                <h3 class="r-accent text-sm font-semibold uppercase tracking-wide">Languages</h3>
+                                <ul class="mt-3 space-y-1 text-sm text-theme-text-secondary">
+                                    <li v-for="language in resume.languages" :key="language">{{ language }}</li>
+                                </ul>
                             </div>
-                            <p v-if="entry.years" class="shrink-0 text-sm text-theme-text-secondary">{{ entry.years }}</p>
-                        </li>
-                    </ul>
-
-                    <div class="mt-10 grid gap-8 md:grid-cols-2">
-                        <div v-if="resume.freelance">
-                            <h3 class="r-accent text-sm font-semibold uppercase tracking-wide">Freelance record</h3>
-                            <p class="mt-3 text-sm leading-relaxed text-theme-text-secondary">{{ resume.freelance }}</p>
                         </div>
-                        <div v-if="resume.languages && resume.languages.length">
-                            <h3 class="r-accent text-sm font-semibold uppercase tracking-wide">Languages</h3>
-                            <ul class="mt-3 space-y-1 text-sm text-theme-text-secondary">
-                                <li v-for="language in resume.languages" :key="language">{{ language }}</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                    </section>
 
-                <!-- Contact -->
-                <section id="contact" class="py-10" aria-labelledby="h-contact">
-                    <h2 id="h-contact" class="r-serif text-2xl font-semibold">Contact</h2>
-                    <ul class="mt-6 grid gap-3 sm:grid-cols-2">
-                        <li v-for="link in contactLinks" :key="link.key" class="flex items-center gap-3 rounded-lg border border-theme-border bg-theme-bg-card px-4 py-3 text-sm">
-                            <svg class="h-5 w-5 shrink-0 r-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="icons[link.key]" /></svg>
-                            <a
-                                :href="link.href"
-                                class="r-link break-all"
-                                :target="link.external ? '_blank' : undefined"
-                                :rel="link.external ? 'noopener noreferrer' : undefined"
-                            >{{ link.label }}</a>
-                        </li>
-                    </ul>
-                </section>
-            </main>
+                    <!-- Contact -->
+                    <section id="contact" class="py-10" aria-labelledby="h-contact">
+                        <h2 id="h-contact" class="r-serif text-2xl font-semibold">Contact</h2>
+                        <ul class="mt-6 grid gap-3 sm:grid-cols-2">
+                            <li v-for="link in contactLinks" :key="link.key">
+                                <a
+                                    :href="link.href"
+                                    class="r-lift flex min-h-[52px] items-center gap-3 rounded-xl border border-theme-border bg-theme-bg-card px-4 py-3 text-sm"
+                                    :target="link.external ? '_blank' : undefined"
+                                    :rel="link.external ? 'noopener' : undefined"
+                                >
+                                    <Icon :name="link.key" class="r-accent h-5 w-5 shrink-0" />
+                                    <span class="r-accent font-medium [overflow-wrap:anywhere]">{{ link.label }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </section>
+                </main>
+            </div>
+
+            <ContactCta :email="header.email" :whatsapp="whatsapp" watch="hero-cta" />
         </div>
     </ResumeLayout>
 </template>

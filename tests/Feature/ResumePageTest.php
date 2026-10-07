@@ -79,6 +79,11 @@ class ResumePageTest extends TestCase
         $this->assertStringNotContainsString(self::PHONE, $html);
         $this->assertStringNotContainsString(self::EXPERIENCE_TEXT, $html);
         $this->assertStringNotContainsString('Example Widgets Pty Ltd', $html);
+
+        // No stats, phone or client names before unlock.
+        foreach (['40+', '2,000', '$50K+', 'years of delivery', 'shop.example.com.au', 'nuts.example.com.au', 'gov.example.gov.au', '61400111222'] as $private) {
+            $this->assertStringNotContainsString($private, $html);
+        }
     }
 
     public function test_wrong_password_shows_an_error_and_stays_locked(): void
@@ -106,6 +111,8 @@ class ResumePageTest extends TestCase
                 ->where('resume.header.phone.whatsapp', '61400111222')
                 ->has('resume.experience', 2)
                 ->has('resume.aiShowcase', 4)
+                ->has('resume.highlights', 3)
+                ->has('resume.stats', 6)
             );
 
         $this->assertStringContainsString(self::EXPERIENCE_TEXT, $response->getContent());
@@ -190,7 +197,7 @@ class ResumePageTest extends TestCase
 
         $data = json_decode(file_get_contents(config('resume.path')), true, flags: JSON_THROW_ON_ERROR);
 
-        foreach (['header', 'profile', 'skills', 'experience', 'aiShowcase', 'projects', 'clientRange', 'freelance', 'education', 'languages'] as $key) {
+        foreach (['header', 'stats', 'profile', 'highlights', 'skills', 'experience', 'aiShowcase', 'projects', 'clientRange', 'freelance', 'education', 'languages'] as $key) {
             $this->assertArrayHasKey($key, $data);
             $this->assertNotEmpty($data[$key], "{$key} should not be empty");
         }
@@ -207,15 +214,78 @@ class ResumePageTest extends TestCase
         $cards = json_decode(file_get_contents(config('resume.path')), true)['aiShowcase'];
 
         $this->assertSame(['Helpdesk card', 'Migration card', 'Skills card', 'Loop card'], array_column($cards, 'title'));
-        $this->assertStringStartsWith('Moved the sample sites', $cards[1]['body']);
-        $this->assertSame([], $cards[1]['steps']);
+        $this->assertSame(['client email', 'sample ticket', 'chat summary', 'approved fix'], $cards[0]['steps']);
+        $this->assertSame(['failure', 'matching script', 'fix'], $cards[2]['steps']);
+        $this->assertSame('3 scripts, 2 a day', $cards[2]['caption']);
+        $this->assertNull($cards[0]['caption']);
     }
 
-    public function test_import_fails_when_an_ai_card_phrase_is_not_found(): void
+    public function test_import_fails_when_an_ai_line_is_malformed(): void
     {
-        file_put_contents(config('resume.source'), str_replace('from: Wrote a set of', 'from: Nothing starts like this', self::fixtureMarkdown()));
+        file_put_contents(config('resume.source'), str_replace('**Loop card** –', 'Loop card:', self::fixtureMarkdown()));
 
         $this->assertSame(1, Artisan::call('resume:import'));
+    }
+
+    public function test_key_achievements_are_parsed(): void
+    {
+        $highlights = json_decode(file_get_contents(config('resume.path')), true)['highlights'];
+
+        $this->assertCount(3, $highlights);
+        $this->assertSame('Built 7 WooCommerce stores for ', $highlights[0][0]['text']);
+        $this->assertSame('https://example.com.au', $highlights[0][1]['url']);
+    }
+
+    public function test_stats_are_read_from_the_markdown(): void
+    {
+        $stats = collect(json_decode(file_get_contents(config('resume.path')), true)['stats'])->keyBy('key');
+
+        $this->assertSame(
+            ['years' => '12', 'sites' => '40+', 'woocommerce' => '7', 'plugins' => '9', 'served' => '~2,000', 'upwork' => '$50K+'],
+            $stats->map(fn ($s) => $s['display'])->all(),
+        );
+        $this->assertSame(2000, $stats['served']['value']);
+    }
+
+    public function test_a_stat_that_is_not_in_the_markdown_is_hidden(): void
+    {
+        file_put_contents(config('resume.source'), str_replace('Upwork: $50K+ earned. ', '', self::fixtureMarkdown()));
+
+        $this->assertSame(0, Artisan::call('resume:import'));
+
+        $keys = array_column(json_decode(file_get_contents(config('resume.path')), true)['stats'], 'key');
+        $this->assertNotContains('upwork', $keys);
+        $this->assertCount(5, $keys);
+    }
+
+    public function test_both_ecommerce_subsections_are_parsed(): void
+    {
+        $projects = collect(json_decode(file_get_contents(config('resume.path')), true)['projects'])->keyBy('key');
+
+        $this->assertSame('table', $projects['woocommerce']['type']);
+        $this->assertSame(['WooCommerce', 'Elementor'], $projects['woocommerce']['items'][0]['stack']);
+
+        $this->assertSame('sites', $projects['shopify']['type']);
+        $this->assertSame(
+            ['https://nuts.example.com.au', 'https://gifts.example.com.au'],
+            array_map(fn ($i) => $i['sites'][0]['url'], $projects['shopify']['items']),
+        );
+        $this->assertSame(['shopify'], $projects['shopify']['items'][0]['tags']);
+        $this->assertContains('government', $projects['government']['items'][0]['tags']);
+    }
+
+    public function test_unknown_sections_render_generically(): void
+    {
+        $markdown = str_replace('## Freelance record', "## Volunteering\n\nHelped at the example club.\n\n- Ran the example.com.au site.\n\n**Odd subsection**\n\n## Freelance record", self::fixtureMarkdown());
+        $markdown = str_replace('**Agency partners and own work**', "**Odd projects**\n\n- Something unusual.\n\n**Agency partners and own work**", $markdown);
+        file_put_contents(config('resume.source'), $markdown);
+
+        $this->assertSame(0, Artisan::call('resume:import'));
+
+        $data = json_decode(file_get_contents(config('resume.path')), true);
+        $this->assertSame('Volunteering', $data['extraSections'][0]['title']);
+        $this->assertSame('https://example.com.au', $data['extraSections'][0]['bullets'][0][1]['url']);
+        $this->assertSame('list', collect($data['projects'])->firstWhere('title', 'Odd projects')['type']);
     }
 
     public function test_ecommerce_table_accepts_a_stack_column_and_multi_domain_rows(): void
@@ -229,19 +299,20 @@ class ResumePageTest extends TestCase
 
         $this->assertSame(0, Artisan::call('resume:import'));
 
-        $ecommerce = collect(json_decode(file_get_contents(config('resume.path')), true)['projects'])->firstWhere('key', 'ecommerce');
+        $ecommerce = collect(json_decode(file_get_contents(config('resume.path')), true)['projects'])->firstWhere('key', 'woocommerce');
 
         $this->assertSame(['Store', 'Products', 'Stack'], $ecommerce['columns']);
         $this->assertSame('WordPress, WooCommerce', $ecommerce['items'][0]['builder']);
+        $this->assertSame(['WooCommerce', 'WordPress'], $ecommerce['items'][0]['stack']);
         $this->assertSame(
             ['https://shop.example.com.au', 'https://shop.example.co.nz'],
             array_column($ecommerce['items'][0]['sites'], 'url'),
         );
     }
 
-    public function test_import_fails_loudly_when_a_section_is_missing(): void
+    public function test_import_fails_loudly_when_experience_is_missing(): void
     {
-        file_put_contents(config('resume.source'), str_replace('## Profile', '## Bio', self::fixtureMarkdown()));
+        file_put_contents(config('resume.source'), str_replace('## Experience', '## Work', self::fixtureMarkdown()));
 
         $this->assertSame(1, Artisan::call('resume:import'));
     }
@@ -260,9 +331,15 @@ Sampletown (remote) · alex@example.test · {$phone} (WhatsApp) · [linkedin.com
 
 ## Profile
 
-First profile paragraph.
+First profile paragraph, with 12 years of delivery across 40+ client sites.
 
 Second profile paragraph.
+
+## Key achievements
+
+- Built 7 WooCommerce stores for example.com.au clients.
+- Shipped a 9-plugin catalogue running on about 2,000 sites.
+- Answered tickets.
 
 ## Core skills
 
@@ -286,12 +363,10 @@ Engaged directly from 2020.
 
 ## AI Engineering
 
-Card notes.
-
-- **Helpdesk card** · from: Set up a sorting pipeline · steps
-- **Migration card** · from: Moved the sample sites
-- **Skills card** · from: Wrote a set of
-- **Loop card** · from: Wired up the review loop
+- **Helpdesk card** – client email → sample ticket → chat summary → approved fix
+- **Migration card** – old host → scan → new host
+- **Skills card** – failure → matching script → fix (3 scripts, 2 a day)
+- **Loop card** – suggestion → patch → release
 
 ## Selected projects and client range
 
@@ -307,13 +382,17 @@ Intro to the projects.
 
 - A network across example-one.com.au and example-two.com.au.
 
-**E-commerce (WordPress and WooCommerce)**
+**E-commerce: WooCommerce (7 stores)**
 
 | Store | Products | Builder |
 | --- | --- | --- |
 | shop.example.com.au | Widgets. Built from scratch. | Elementor |
 
 Also: other.example.com.
+
+**E-commerce: Shopify**
+
+- nuts.example.com.au, gifts.example.com.au
 
 **Agency partners and own work**
 
@@ -323,7 +402,7 @@ Plus 10 further sites.
 
 ## Freelance record
 
-Example freelance record.
+Upwork: $50K+ earned. Example freelance record.
 
 ## Education and certification
 

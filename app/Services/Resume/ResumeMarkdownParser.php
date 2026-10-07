@@ -8,14 +8,42 @@ use RuntimeException;
  * Turns resume-master.md into the structured array behind /resume.
  *
  * The parser only splits text, it never rewords it: every sentence, number,
- * date and site name lands in the output exactly as written. When the
- * markdown drifts from the expected shape it throws instead of guessing, so
- * `resume:import` fails loudly rather than publishing a half-empty page.
+ * date and site name lands in the output exactly as written. The name,
+ * headline, contact line and Experience are required and throw when they
+ * drift, so `resume:import` fails loudly. Every other section is optional,
+ * and a `##` section it does not know is passed through as plain paragraphs
+ * and bullets instead of failing.
  */
 class ResumeMarkdownParser
 {
+    /** Sections with their own place on the page. Anything else is "extra". */
+    private const KNOWN_SECTIONS = [
+        'profile', 'key achievements', 'core skills', 'experience', 'ai engineering',
+        'selected projects and client range', 'freelance record', 'education and certification',
+    ];
+
+    /**
+     * Headline numbers for the stats bar. Only the pattern lives here: the
+     * number itself is read from the markdown, and a stat whose pattern
+     * finds nothing is left out rather than shown with a typed-in value.
+     */
+    private const STATS = [
+        ['key' => 'years', 'label' => 'years', 'pattern' => '/\b(?<n>\d+) years of delivery\b/i'],
+        ['key' => 'sites', 'label' => 'sites', 'pattern' => '/\b(?<n>\d[\d,]*)(?<suffix>\+) client sites\b/i'],
+        ['key' => 'woocommerce', 'label' => 'WooCommerce stores', 'pattern' => '/\b(?<n>\d+) WooCommerce stores\b/i'],
+        ['key' => 'plugins', 'label' => 'plugins', 'pattern' => '/\b(?<n>\d+)(?: custom plugins\b|-plugin\b)/i'],
+        ['key' => 'served', 'label' => 'sites served', 'prefix' => '~', 'pattern' => '/\babout (?<n>\d[\d,]*) (?:hosted )?sites\b/i'],
+        ['key' => 'upwork', 'label' => 'on Upwork', 'pattern' => '/(?<prefix>\$)(?<n>\d+)(?<suffix>K\+) earned\b/'],
+    ];
+
+    /** Sector words that put a project under the Industrial filter. */
+    private const INDUSTRIAL = '/industrial|manufactur|mining|materials handling|\bsteel\b|\biron\b|refuelling|engineering/i';
+
     /** @var array<string, string> section heading (lowercase) => body */
     private array $sections = [];
+
+    /** @var array<string, string> section heading (lowercase) => heading as written */
+    private array $titles = [];
 
     private string $preamble = '';
 
@@ -24,25 +52,27 @@ class ResumeMarkdownParser
         $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
         $this->splitSections($markdown);
 
-        $experience = $this->experience($this->section('experience'));
-
         $data = [
             'header' => $this->header($markdown),
-            'profile' => $this->paragraphs($this->section('profile')),
-            'skills' => $this->skills($this->section('core skills')),
-            'experience' => $experience,
-            'aiShowcase' => $this->aiShowcase($this->section('ai engineering'), $experience),
+            'stats' => $this->stats($markdown),
+            'profile' => $this->paragraphs($this->optional('profile')),
+            'highlights' => array_map(fn ($b) => $this->segments($b), $this->bullets($this->optional('key achievements'))),
+            'skills' => $this->skills($this->optional('core skills')),
+            'experience' => $this->experience($this->section('experience')),
+            'aiShowcase' => $this->aiShowcase($this->optional('ai engineering')),
         ];
 
-        $projects = $this->projects($this->section('selected projects and client range'));
+        $projects = $this->projects($this->optional('selected projects and client range'));
         $data['projectsIntro'] = $projects['intro'];
         $data['projects'] = $projects['groups'];
         $data['clientRange'] = $projects['clientRange'];
-        $data['freelance'] = implode("\n\n", $this->paragraphs($this->section('freelance record')));
+        $data['freelance'] = implode("\n\n", $this->paragraphs($this->optional('freelance record')));
 
-        $education = $this->education($this->section('education and certification'));
+        $education = $this->education($this->optional('education and certification'));
         $data['education'] = $education['items'];
         $data['languages'] = $education['languages'];
+
+        $data['extraSections'] = $this->extraSections();
 
         return $data;
     }
@@ -54,12 +84,15 @@ class ResumeMarkdownParser
     private function splitSections(string $markdown): void
     {
         $this->sections = [];
+        $this->titles = [];
         $parts = preg_split('/^## +(.+)$/m', $markdown, -1, PREG_SPLIT_DELIM_CAPTURE);
 
         $this->preamble = trim(array_shift($parts));
 
         for ($i = 0; $i < count($parts); $i += 2) {
-            $this->sections[strtolower(trim($parts[$i]))] = trim($parts[$i + 1] ?? '');
+            $key = strtolower(trim($parts[$i]));
+            $this->sections[$key] = trim($parts[$i + 1] ?? '');
+            $this->titles[$key] = trim($parts[$i]);
         }
     }
 
@@ -70,6 +103,59 @@ class ResumeMarkdownParser
         }
 
         return $this->sections[$name];
+    }
+
+    private function optional(string $name): string
+    {
+        return $this->sections[$name] ?? '';
+    }
+
+    /**
+     * Any `##` section the page has no place for, kept as written.
+     */
+    private function extraSections(): array
+    {
+        $extra = [];
+
+        foreach ($this->sections as $key => $body) {
+            if (in_array($key, self::KNOWN_SECTIONS, true) || $body === '') {
+                continue;
+            }
+
+            $extra[] = [
+                'key' => trim(preg_replace('/[^a-z0-9]+/', '-', $key), '-'),
+                'title' => $this->titles[$key],
+                'paragraphs' => $this->paragraphs(preg_replace('/^- .*$/m', '', $body)),
+                'bullets' => array_map(fn ($b) => $this->segments($b), $this->bullets($body)),
+            ];
+        }
+
+        return $extra;
+    }
+
+    private function stats(string $markdown): array
+    {
+        $stats = [];
+
+        foreach (self::STATS as $stat) {
+            if (! preg_match($stat['pattern'], $markdown, $m)) {
+                continue;
+            }
+
+            $prefix = ($stat['prefix'] ?? '').($m['prefix'] ?? '');
+            $suffix = $m['suffix'] ?? '';
+
+            $stats[] = [
+                'key' => $stat['key'],
+                'value' => (int) str_replace(',', '', $m['n']),
+                'prefix' => $prefix,
+                'suffix' => $suffix,
+                'display' => $prefix.$m['n'].$suffix,
+                'label' => $stat['label'],
+            ];
+        }
+
+        return $stats;
     }
 
     // ------------------------------------------------------------------
@@ -259,75 +345,38 @@ class ResumeMarkdownParser
 
     /**
      * The "## AI Engineering" section lists one card per line:
-     *   - **Card title** · from: Opening phrase of an Experience sentence · steps
-     * The card body is that Experience sentence, verbatim. "steps" draws it
-     * as a step diagram. Titles and phrases live in resume-master.md only.
+     *   - **Card title** – step → step → step (optional caption)
+     * Steps split on "→"; a trailing (…) on the last step becomes the caption.
      */
-    private function aiShowcase(string $body, array $experience): array
+    private function aiShowcase(string $body): array
     {
-        $sentences = [];
-        foreach ($experience as $role) {
-            foreach ($role['bullets'] as $bullet) {
-                foreach ($this->sentences($this->plain($bullet)) as $sentence) {
-                    $sentences[] = $sentence;
-                }
-            }
-        }
-
         $cards = [];
+
         foreach ($this->bullets($body) as $line) {
-            if (! preg_match('/^\*\*(.+?)\*\*\s*·\s*from:\s*(.+?)(?:\s*·\s*(steps))?$/u', $line, $m)) {
-                throw new RuntimeException("AI Engineering line must look like \"- **Title** · from: Opening phrase [· steps]\": {$line}");
+            if (! preg_match('/^\*\*(.+?)\*\*\s*[–—-]\s*(.+)$/u', $line, $m)) {
+                throw new RuntimeException("AI Engineering line must look like \"- **Title** – step → step\": {$line}");
             }
 
-            [$title, $starts, $withSteps] = [trim($m[1]), trim($m[2]), ! empty($m[3])];
+            $steps = array_values(array_filter(array_map('trim', explode('→', $m[2])), fn ($s) => $s !== ''));
+            $caption = null;
 
-            $found = null;
-            foreach ($sentences as $sentence) {
-                if (str_starts_with($sentence, $starts)) {
-                    $found = $sentence;
-                    break;
-                }
+            $last = count($steps) - 1;
+            if ($last >= 0 && preg_match('/^(.+?)\s*\(([^()]+)\)$/u', $steps[$last], $c)) {
+                $steps[$last] = trim($c[1]);
+                $caption = trim($c[2]);
             }
 
-            if ($found === null) {
-                throw new RuntimeException("AI Engineering card \"{$title}\" needs an Experience sentence starting \"{$starts}\".");
-            }
-
+            $title = trim($m[1]);
             $cards[] = [
                 'key' => trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($title)), '-'),
                 'title' => $title,
-                'body' => $found,
-                'steps' => $withSteps ? $this->pipelineSteps($found) : [],
+                'steps' => count($steps) > 1 ? $steps : [],
+                'body' => count($steps) > 1 ? null : ($steps[0] ?? null),
+                'caption' => $caption,
             ];
         }
 
-        if ($cards === []) {
-            throw new RuntimeException('The AI Engineering section has no cards.');
-        }
-
         return $cards;
-    }
-
-    /**
-     * "Built a pipeline: it does A, does B, does C, and, when approved, does D."
-     * → four verbatim clauses (A, B, C, "when approved, does D") for the
-     * step diagram.
-     */
-    private function pipelineSteps(string $sentence): array
-    {
-        $after = trim(substr($sentence, (strpos($sentence, ':') ?: -1) + 1));
-        $parts = array_map('trim', explode(', ', rtrim($after, '.')));
-
-        if (count($parts) < 4) {
-            return [];
-        }
-
-        $steps = array_slice($parts, 0, 3);
-        $steps[] = preg_replace('/^and,?\s*/', '', implode(', ', array_slice($parts, 3)));
-        $steps[0] = preg_replace('/^it\s+/', '', $steps[0]);
-
-        return array_map(fn ($s) => mb_strtoupper(mb_substr($s, 0, 1)).mb_substr($s, 1), $steps);
     }
 
     // ------------------------------------------------------------------
@@ -352,19 +401,39 @@ class ResumeMarkdownParser
                 $content = trim(substr($content, 0, -strlen($m[0])));
             }
 
-            $group = ['key' => $this->groupKey($title), 'title' => $title, 'items' => [], 'also' => []];
+            $key = $this->groupKey($title);
+            $group = ['key' => $key, 'title' => $title, 'items' => [], 'also' => []];
+            $bullets = $this->bullets($content);
 
             $table = $this->table($content);
             if ($table !== null) {
                 $group['type'] = 'table';
                 $group['columns'] = $table['columns'];
                 foreach ($table['rows'] as $row) {
-                    $group['items'][] = $this->projectRow($row, $table['columns']);
+                    $item = $this->projectRow($row, $table['columns']);
+                    $item['stack'] = $this->stack($key, $item['builder']);
+                    $item['tags'] = $this->projectTags($key, $item['sector'].' '.$item['whatIDid']);
+                    $group['items'][] = $item;
+                }
+            } elseif ($bullets !== [] && count(array_filter($bullets, fn ($b) => ! $this->isDomainList($b))) === 0) {
+                // "- a.com.au, b.com.au" → one entry per domain.
+                $group['type'] = 'sites';
+                foreach ($bullets as $bullet) {
+                    foreach (array_map('trim', explode(',', rtrim($bullet, '.'))) as $site) {
+                        $group['items'][] = [
+                            'sites' => [['site' => $site, 'url' => $this->siteUrl($site)]],
+                            'stack' => $this->stack($key, null),
+                            'tags' => $this->projectTags($key, ''),
+                        ];
+                    }
                 }
             } else {
                 $group['type'] = 'list';
-                foreach ($this->bullets($content) as $bullet) {
-                    $group['items'][] = ['segments' => $this->segments($bullet)];
+                foreach ($bullets as $bullet) {
+                    $group['items'][] = [
+                        'segments' => $this->segments($bullet),
+                        'tags' => $this->projectTags($key, $bullet),
+                    ];
                 }
             }
 
@@ -377,10 +446,6 @@ class ResumeMarkdownParser
             $groups[] = $group;
         }
 
-        if ($clientRange === null) {
-            throw new RuntimeException('Selected projects needs a closing "Plus …" client range line.');
-        }
-
         return ['intro' => $intro, 'groups' => $groups, 'clientRange' => $clientRange];
     }
 
@@ -391,10 +456,54 @@ class ResumeMarkdownParser
         return match (true) {
             str_contains($t, 'government') => 'government',
             str_contains($t, 'multi-domain') => 'multiDomain',
+            str_contains($t, 'shopify') => 'shopify',
+            str_contains($t, 'woocommerce') => 'woocommerce',
             str_contains($t, 'e-commerce') => 'ecommerce',
             str_contains($t, 'agency') => 'agency',
             default => preg_replace('/[^a-z]+/', '-', $t),
         };
+    }
+
+    private function isDomainList(string $bullet): bool
+    {
+        return (bool) preg_match('/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\s*,\s*(?:[a-z0-9-]+\.)+[a-z]{2,})*\.?$/i', trim($bullet));
+    }
+
+    /** Badges for a project card: the shop platform, then the builder cell. */
+    private function stack(string $groupKey, ?string $builder): array
+    {
+        $stack = match ($groupKey) {
+            'woocommerce', 'ecommerce' => ['WooCommerce'],
+            'shopify' => ['Shopify'],
+            default => [],
+        };
+
+        foreach (array_filter(array_map('trim', explode(',', (string) $builder))) as $part) {
+            $stack[] = $part;
+        }
+
+        return array_values(array_unique($stack));
+    }
+
+    /** Filter-chip keys for a project: its group, plus Industrial and Own work by wording. */
+    private function projectTags(string $groupKey, string $text): array
+    {
+        $tags = match ($groupKey) {
+            'government' => ['government'],
+            'multiDomain' => ['multiDomain'],
+            'woocommerce', 'ecommerce' => ['woocommerce'],
+            'shopify' => ['shopify'],
+            default => [],
+        };
+
+        if (preg_match(self::INDUSTRIAL, $text)) {
+            $tags[] = 'industrial';
+        }
+        if (preg_match('/\bown\b/i', $text)) {
+            $tags[] = 'own';
+        }
+
+        return $tags;
     }
 
     private function projectRow(array $row, array $columns): array
@@ -542,16 +651,6 @@ class ResumeMarkdownParser
         }
 
         return $segments;
-    }
-
-    private function plain(array $segments): string
-    {
-        return implode('', array_column($segments, 'text'));
-    }
-
-    private function sentences(string $text): array
-    {
-        return array_values(array_filter(array_map('trim', preg_split('/(?<=\.)\s+(?=[A-Z])/', $text))));
     }
 
     private function siteUrl(string $site): string

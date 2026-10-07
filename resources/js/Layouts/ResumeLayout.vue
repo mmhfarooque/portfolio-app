@@ -23,7 +23,7 @@ onMounted(() => {
     >
         <header class="resume-topbar border-b border-theme-border">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-                <a href="/" class="text-sm font-medium text-theme-text-secondary hover:text-theme-text-primary transition-colors">mfaruk.com</a>
+                <a href="/" class="inline-flex min-h-[44px] items-center text-sm font-medium text-theme-text-secondary hover:text-theme-text-primary transition-colors">mfaruk.com</a>
                 <span class="text-xs uppercase tracking-widest text-theme-text-secondary">Private resume</span>
             </div>
         </header>
@@ -80,6 +80,90 @@ onMounted(() => {
 
 .resume section[id] { scroll-margin-top: 1.5rem; }
 
+/* Hero: soft navy wash. */
+.resume .r-hero {
+    background:
+        radial-gradient(60rem 30rem at 85% -10%, rgba(31, 58, 95, 0.16), transparent 70%),
+        linear-gradient(180deg, var(--r-accent-soft), transparent 85%);
+}
+.resume--dark .r-hero {
+    background:
+        radial-gradient(60rem 30rem at 85% -10%, rgba(156, 184, 222, 0.14), transparent 70%),
+        linear-gradient(180deg, var(--r-accent-soft), transparent 85%);
+}
+
+/* AI centrepiece band. */
+.resume .r-ai {
+    background: linear-gradient(135deg, var(--r-accent-soft), transparent 70%);
+    border: 1px solid var(--r-accent-line);
+}
+
+.resume .r-stats { background-color: var(--border); }
+
+.resume .r-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.resume .r-lift:hover { transform: translateY(-3px); box-shadow: 0 10px 24px -12px rgba(16, 35, 59, 0.35); }
+
+.resume .r-filtered-out { display: none; }
+.resume .r-print-only { display: none; }
+
+/* Stats: the count-up layer sits over the final number, which keeps its space. */
+.resume .r-stat-final--hidden { visibility: hidden; }
+
+/* Timeline rail and dots. */
+.resume .r-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.4rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 2px;
+    background: var(--r-accent-line);
+}
+.resume .r-timeline > li > .r-dot { left: calc(-1.75rem + 0.06rem); }
+@media (min-width: 640px) {
+    .resume .r-timeline > li > .r-dot { left: calc(-2.25rem + 0.06rem); }
+}
+.resume .r-branch > .r-dot { left: calc(-2.75rem + 0.06rem) !important; }
+@media (min-width: 640px) {
+    .resume .r-branch > .r-dot { left: calc(-4.75rem + 0.06rem) !important; }
+}
+.resume .r-branch::before {
+    content: '';
+    position: absolute;
+    top: 0.95rem;
+    left: -2.3rem;
+    width: 2.3rem;
+    border-top: 2px dashed var(--r-accent-line);
+}
+@media (min-width: 640px) {
+    .resume .r-branch::before { left: -4.3rem; width: 4.3rem; }
+}
+.resume .r-role-main { border-color: var(--r-accent-line); }
+
+/* Scroll reveal (only once JS has added .r-motion). */
+.resume .r-motion [data-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    transition-delay: calc(var(--i, 0) * 70ms);
+}
+.resume .r-motion [data-reveal].is-in { opacity: 1; transform: none; }
+.resume .r-motion .r-flow[data-reveal] { opacity: 1; transform: none; }
+.resume .r-motion .r-flow [data-step] {
+    opacity: 0;
+    transform: translateX(-14px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition-delay: calc(var(--i, 0) * 260ms + 150ms);
+}
+.resume .r-motion .r-flow.is-in [data-step] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .resume *, .resume *::before, .resume *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
 @media print {
     @page { margin: 14mm 12mm; }
 
@@ -110,6 +194,18 @@ onMounted(() => {
     }
 
     .resume h2 { break-after: avoid; }
+
+    .resume .r-hero, .resume .r-ai { background: none !important; border: 0 !important; }
+    .resume .r-filtered-out { display: block !important; }
+    .resume .r-filterable.r-filtered-out { display: block !important; }
+    .resume li.r-filterable.r-filtered-out { display: flex !important; }
+    .resume .r-role-body { display: block !important; }
+    .resume [data-reveal], .resume [data-step] { opacity: 1 !important; transform: none !important; }
+    .resume .r-lift { transform: none !important; }
+    .resume .r-print-only { display: revert !important; }
+    .resume .r-stat-final { visibility: visible !important; }
+    .resume .r-stat-anim { display: none !important; }
+    .resume a { overflow-wrap: anywhere; }
     .resume a.r-link { text-decoration: none; }
 }
 </style>

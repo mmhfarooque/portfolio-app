@@ -23,8 +23,8 @@ const submit = () => {
     </Head>
 
     <ResumeLayout>
-        <main class="flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-16">
-            <div class="r-card w-full max-w-md rounded-lg border border-theme-border bg-theme-bg-card p-8 shadow-sm">
+        <main class="r-hero flex min-h-[calc(100vh-7.5rem)] items-center justify-center px-4 py-16">
+            <div class="r-card w-full max-w-md rounded-xl border border-theme-border bg-theme-bg-card p-8 shadow-lg">
                 <div class="r-accent-bg mb-6 h-1 w-12 rounded-full" aria-hidden="true"></div>
 
                 <h1 class="r-serif text-3xl font-semibold tracking-tight">{{ summary.name }}</h1>
@@ -43,7 +43,7 @@ const submit = () => {
                         required
                         :aria-invalid="form.errors.password ? 'true' : 'false'"
                         :aria-describedby="form.errors.password ? 'resume-password-error' : (hint ? 'resume-password-hint' : undefined)"
-                        class="mt-2 block w-full rounded-md border-theme-border bg-theme-bg-input text-theme-text-primary shadow-sm focus:border-[color:var(--r-accent)] focus:ring-[color:var(--r-accent)]"
+                        class="mt-2 block min-h-[44px] w-full rounded-md border-theme-border bg-theme-bg-input text-theme-text-primary shadow-sm focus:border-[color:var(--r-accent)] focus:ring-[color:var(--r-accent)]"
                     />
 
                     <p v-if="hint" id="resume-password-hint" class="mt-2 text-sm text-theme-text-secondary">
@@ -59,15 +59,12 @@ const submit = () => {
 
                     <button
                         type="submit"
-                        class="r-accent-bg mt-6 w-full rounded-md px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                        class="r-accent-bg mt-6 min-h-[44px] w-full rounded-md px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
                         :disabled="form.processing"
                     >View resume</button>
                 </form>
 
-                <p class="mt-8 text-sm text-theme-text-secondary">
-                    Need access? Email
-                    <a :href="`mailto:${summary.email}`" class="r-link">{{ summary.email }}</a>
-                </p>
+                <p class="mt-8 text-sm text-theme-text-secondary">Detailed resume, shared privately.</p>
             </div>
         </main>
     </ResumeLayout>

@@ -43,12 +43,15 @@ class ImportResume extends Command
         rename($tmp, $output);
 
         $this->info(sprintf(
-            'resume.json written: %d skill groups, %d roles, %d AI cards, %d project groups, %d education entries.',
+            'resume.json written: %d stats, %d highlights, %d skill groups, %d roles, %d AI cards, %d project groups, %d education entries, %d extra sections.',
+            count($data['stats']),
+            count($data['highlights']),
             count($data['skills']),
             count($data['experience']),
             count($data['aiShowcase']),
             count($data['projects']),
             count($data['education']),
+            count($data['extraSections']),
         ));
 
         return self::SUCCESS;
